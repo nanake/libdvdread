@@ -65,6 +65,7 @@ typedef struct {
   uint8_t second;
   uint8_t frame_u; /* The two high bits are the frame rate. */
 } ATTRIBUTE_PACKED dvd_time_t;
+#define DVD_TIME_SIZE 4U
 
 /**
  * Type to store per-command data.
@@ -93,6 +94,7 @@ typedef struct {
   unsigned char letterboxed          : 1;
   unsigned char film_mode            : 1;
 } ATTRIBUTE_PACKED video_attr_t;
+#define VIDEO_ATTR_SIZE  2U
 
 /**
  * Audio Attributes.
@@ -126,6 +128,7 @@ typedef struct {
     } surround;
   } ATTRIBUTE_PACKED app_info;
 } ATTRIBUTE_PACKED audio_attr_t;
+#define AUDIO_ATTR_SIZE  8U
 
 
 /**
@@ -157,6 +160,7 @@ typedef struct {
   unsigned char ach4_seBe  : 1;
   uint8_t zero6[19];
 } ATTRIBUTE_PACKED multichannel_ext_t;
+#define MULTICHANNEL_EXT_SIZE  24U
 
 
 /**
@@ -181,6 +185,7 @@ typedef struct {
   uint8_t  lang_extension;
   uint8_t  code_extension;
 } ATTRIBUTE_PACKED subp_attr_t;
+#define SUBP_ATTR_SIZE  6U
 
 
 
@@ -225,6 +230,7 @@ typedef struct {
   uint32_t last_vobu_start_sector;
   uint32_t last_sector;
 } ATTRIBUTE_PACKED cell_playback_t;
+#define CELL_PLAYBACK_SIZE  24U
 
 #define BLOCK_TYPE_NONE         0x0
 #define BLOCK_TYPE_ANGLE_BLOCK  0x1
@@ -242,6 +248,7 @@ typedef struct {
   uint8_t  zero_1;
   uint8_t  cell_nr;
 } ATTRIBUTE_PACKED cell_position_t;
+#define CELL_POSITION_SIZE 4U
 
 /**
  * User Operations.
@@ -277,6 +284,7 @@ typedef struct {
   unsigned char chapter_search_or_play         : 1;
   unsigned char title_or_time_play             : 1; /* 0 */
 } ATTRIBUTE_PACKED user_ops_t;
+#define USER_OPS_SIZE  4U
 
 /**
  * Program Chain Information.
@@ -366,6 +374,7 @@ typedef struct {
   uint32_t start_sector;
   uint32_t last_sector;
 } ATTRIBUTE_PACKED cell_adr_t;
+#define CELL_ADDR_SIZE  12U
 
 /**
  * Cell Address Table.
@@ -438,6 +447,7 @@ typedef struct {
   subp_attr_t  vmgm_subp_attr;
   subp_attr_t  zero_10[27];  /* XXX: how much 'padding' here? */
 } ATTRIBUTE_PACKED vmgi_mat_t;
+#define VMGI_MAT_SIZE 510U
 
 
 
@@ -556,6 +566,7 @@ typedef struct {
   unsigned char chapter_search_or_play    : 1; /* UOP 1 */
   unsigned char title_or_time_play        : 1; /* UOP 0 */
 } ATTRIBUTE_PACKED playback_type_t;
+#define PLAYBACK_TYPE_SIZE 1U
 
 /**
  * Title Information.
@@ -569,6 +580,7 @@ typedef struct {
   uint8_t  vts_ttn;
   uint32_t title_set_sector;
 } ATTRIBUTE_PACKED title_info_t;
+#define TITLE_INFO_SIZE 12U
 
 /**
  * PartOfTitle Search Pointer Table.
@@ -677,6 +689,7 @@ typedef struct {
   char text[12]; /* ended by 0x09 */
 #endif
 } ATTRIBUTE_PACKED txtdt_t;
+#define TXTDT_SIZE 204U
 
 /**
  * Text Data Language Unit. (Incomplete)
@@ -765,6 +778,7 @@ typedef struct {
   multichannel_ext_t vts_mu_audio_attr[8];
   /* XXX: how much 'padding' here, if any? */
 } ATTRIBUTE_PACKED vtsi_mat_t;
+#define VTSI_MAT_SIZE 984U
 
 
 typedef struct {
@@ -880,6 +894,7 @@ typedef struct {
   uint16_t pgcn;
   uint16_t pgn;
 } ATTRIBUTE_PACKED ptt_info_t;
+#define PTT_INFO_SIZE  4U
 
 /**
  * PartOfTitle Information.
@@ -888,6 +903,7 @@ typedef struct {
   uint16_t nr_of_ptts;
   ptt_info_t *ptt;
 } ATTRIBUTE_PACKED ttu_t;
+#define TTU_SIZE 2U
 
 /**
  * PartOfTitle Search Pointer Table.
