@@ -13,7 +13,23 @@ dvdread_src = files(
     'md5.c',
     'nav_print.c',
     'nav_read.c',
+    'file/filesystem.c',
 )
+
+# Platform-specific filesystem implementation
+if host_machine.system() == 'windows'
+    dvdread_src += files(
+        'file/dir_win32.c',
+        'file/file_win32.c',
+        'file/stat_win32.c',
+    )
+else
+    dvdread_src += files(
+        'file/dir_posix.c',
+        'file/file_posix.c',
+        'file/stat_posix.c',
+    )
+endif
 
 #
 # Library definitions

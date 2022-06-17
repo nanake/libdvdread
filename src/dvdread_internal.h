@@ -50,6 +50,7 @@ struct dvd_reader_s
     dvd_type_t dvd_type;
     void *priv; /* User provided context */
     dvd_logger_cb logcb;
+    dvd_reader_filesystem_h* fs;
     /* Set 100 flags for BUP fallback, most signifiant left
        [0] for upper remaining VTS, [1] for the first Main + 63 VTS */
     uint64_t ifoBUPflags[2];

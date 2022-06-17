@@ -4,6 +4,7 @@
 dvdread_api_headers = files(
     'attributes.h',
     'bitreader.h',
+    'dvd_filesystem.h',
     'dvd_reader.h',
     'dvd_udf.h',
     'ifo_print.h',

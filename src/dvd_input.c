@@ -24,8 +24,6 @@
 #include "config.h"                  /* Required for HAVE_DVDCSS_DVDCSS_H */
 #include <stdio.h>                   /* fprintf */
 #include <stdlib.h>                  /* free */
-#include <fcntl.h>                   /* open */
-#include <unistd.h>                  /* lseek */
 #include <string.h>                  /* strerror */
 #include <errno.h>
 #include <assert.h>
@@ -42,8 +40,6 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#include "../msvc/contrib/win32_cs.h"
-#include <io.h>                      /* _wopen */
 #endif
 
 #include "dvdread/dvd_reader.h"      /* DVD_VIDEO_LB_LEN */
@@ -53,7 +49,8 @@
 
 /* The function pointers that is the exported interface of this file. */
 dvd_input_t (*dvdinput_open)  (void *, dvd_logger_cb *,
-                               const char *,dvd_reader_stream_cb *);
+                               const char *, dvd_reader_stream_cb *,
+                               dvd_reader_filesystem_h *);
 int         (*dvdinput_close) (dvd_input_t);
 int         (*dvdinput_seek)  (dvd_input_t, int);
 int         (*dvdinput_title) (dvd_input_t, int);
@@ -103,22 +100,6 @@ static int      (*DVDcpxm_init)  (dvdcss_t, uint8_t* p_mkb);
 
 #endif
 
-#ifdef _WIN32
-static int open_win32(const char *path, int flags)
-{
-  wchar_t *wpath;
-  int      fd;
-
-  wpath = _utf8_to_wchar(path);
-  if (!wpath) {
-    return -1;
-  }
-  fd = _wopen(wpath, flags);
-  free(wpath);
-  return fd;
-}
-#endif
-
 /* The DVDinput handle, add stuff here for new input methods.
  * NOTE: All members of this structure must be initialized in dvd_input_New
  */
@@ -137,10 +118,10 @@ struct dvd_input_s {
   /* DVD_VR -> VRO with cprm */
   dvd_type_t stream_type;
 
-  /* dummy file input */
-  int fd;
   /* stream input */
   dvd_reader_stream_cb *stream_cb;
+  /* file input */
+  dvd_file_h* file;
 };
 
 static dvd_input_t dvd_input_New(void *priv, dvd_logger_cb *logcb)
@@ -155,8 +136,8 @@ static dvd_input_t dvd_input_New(void *priv, dvd_logger_cb *logcb)
 
       /* Initialize all inputs to safe defaults */
       dev->dvdcss = NULL;
-      dev->fd = -1;
       dev->stream_cb = NULL;
+      dev->file = NULL;
   }
   return dev;
 }
@@ -166,7 +147,8 @@ static dvd_input_t dvd_input_New(void *priv, dvd_logger_cb *logcb)
  */
 static dvd_input_t css_open(void *priv, dvd_logger_cb *logcb,
                             const char *target,
-                            dvd_reader_stream_cb *stream_cb)
+                            dvd_reader_stream_cb *stream_cb,
+                            dvd_reader_filesystem_h *fs UNUSED)
 {
   dvd_input_t dev;
 
@@ -264,7 +246,8 @@ static int cpxm_init(dvd_input_t dev, uint8_t* p_mkb )
  */
 static dvd_input_t file_open(void *priv, dvd_logger_cb *logcb,
                              const char *target,
-                             dvd_reader_stream_cb *stream_cb)
+                             dvd_reader_stream_cb *stream_cb,
+                             dvd_reader_filesystem_h *fs)
 {
   dvd_input_t dev;
 
@@ -292,14 +275,8 @@ static dvd_input_t file_open(void *priv, dvd_logger_cb *logcb,
     free(dev);
     return NULL;
   }
-#if defined(_WIN32)
-  dev->fd = open_win32(target, O_RDONLY | O_BINARY);
-#elif defined(__OS2__)
-  dev->fd = open(target, O_RDONLY | O_BINARY);
-#else
-  dev->fd = open(target, O_RDONLY);
-#endif
-  if(dev->fd < 0) {
+  dev->file = fs->file_open(fs, target);
+  if(!dev->file) {
     char buf[256];
 #if defined(HAVE_STRERROR_R) && defined(HAVE_DECL_STRERROR_R)
   #ifdef STRERROR_R_CHAR_P
@@ -332,7 +309,7 @@ static dvd_input_t file_open(void *priv, dvd_logger_cb *logcb,
  */
 static int file_seek(dvd_input_t dev, int blocks)
 {
-  off_t pos = -1;
+  int64_t pos = -1;
 
   if(dev->ipos == blocks)
   {
@@ -351,7 +328,7 @@ static int file_seek(dvd_input_t dev, int blocks)
     /* Returns position as the number of bytes from beginning of file
      * or -1 on error
      */
-    pos = lseek(dev->fd, (off_t)blocks * (off_t)DVD_VIDEO_LB_LEN, SEEK_SET);
+    pos = dev->file->seek(dev->file, (int64_t)blocks * (int64_t)DVD_VIDEO_LB_LEN, SEEK_SET);
 
     if (pos >= 0) {
       dev->ipos = pos / DVD_VIDEO_LB_LEN;
@@ -395,7 +372,7 @@ static int file_read(dvd_input_t dev, void *buffer, int blocks,
       ret = dev->stream_cb->pf_read(dev->priv, ((char*)buffer) + bytes, len);
     } else {
       /* Returns the number of bytes read or -1 on error */
-      ret = read(dev->fd, ((char*)buffer) + bytes, len);
+      ret = dev->file->read(dev->file, ((char*)buffer) + bytes, len);
     }
 
     if(ret < 0) {
@@ -434,8 +411,8 @@ static int file_close(dvd_input_t dev)
 
   /* close file if it was open */
 
-  if (dev->fd >= 0) {
-    ret = close(dev->fd);
+  if (dev->file) {
+    ret = dev->file->close(dev->file);
   }
 
   free(dev);

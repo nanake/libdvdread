@@ -50,6 +50,7 @@ endif
 check_headers = [
     'sys/param.h',
     'limits.h',
+    'dirent.h',
 ]
 
 foreach h : check_headers

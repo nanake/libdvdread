@@ -23,13 +23,6 @@
 #ifndef LIBDVDREAD_DVD_READER_H
 #define LIBDVDREAD_DVD_READER_H
 
-#ifdef _MSC_VER
-#include <config.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#endif
-
 #include <sys/types.h>
 #include <inttypes.h>
 #include <stdarg.h>
@@ -52,6 +45,12 @@ typedef SSIZE_T ssize_t;
  * The current version.
  */
 #include <dvdread/version.h>
+
+/**
+ * Filesystem types
+ */
+#include "dvd_filesystem.h"
+
 
 /**
  * The length of one Logical Block of a DVD.
