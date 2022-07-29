@@ -50,8 +50,16 @@ extern int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb);
 extern void        dvdinput_set_stream(dvd_input_t, dvd_type_t);
 /**
  * Setup function accessed by dvd_reader.c.  Returns 1 if there is CSS support.
+ * Otherwise it fallsback to the internal dvdread implementation (without css support)
+ * which is basically the same as calling dvdinput_setup_builtin.
  */
 /* dvda flag enabled cpxm */
 int dvdinput_setup(void *, dvd_logger_cb *, dvd_type_t dvda_flag);
+
+/**
+ * Setup function accessed by dvd_reader.c using the builtin libdvdread implementation
+ * (without css support)
+ */
+void dvdinput_setup_builtin(void *, dvd_logger_cb *);
 
 #endif /* LIBDVDREAD_DVD_INPUT_H */

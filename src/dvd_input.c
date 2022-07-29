@@ -560,14 +560,25 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
     DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_WARN,
                "Encrypted DVD support unavailable.");
 
+    dvdinput_setup_builtin(priv, logcb);
+    return 0;
+  }
+}
+
+/**
+ * Setup read functions with the builtin libdvdread implementation (minimal DVD access without css).
+ */
+void dvdinput_setup_builtin(void *priv, dvd_logger_cb *logcb)
+{
+    DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_INFO,
+               "Setting up builtin libdvdread implementation");
+
     /* libdvdcss replacement functions */
     dvdinput_open  = file_open;
     dvdinput_close = file_close;
     dvdinput_seek  = file_seek;
     dvdinput_title = file_title;
     dvdinput_read  = file_read;
-    return 0;
-  }
 }
 
 /* change the stream type, this will set the decryption method */
