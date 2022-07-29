@@ -170,6 +170,19 @@ DVDREAD_API dvd_reader_t *DVDOpenVideoRecording( void *, const dvd_logger_cb *, 
 DVDREAD_API dvd_reader_t *DVDOpenStreamVideoRecording( void *, const dvd_logger_cb *, dvd_reader_stream_cb *);
 
 /**
+ * Open unencrypted DVD files providing the respective filesystem implementation
+ * Useful to open files located on virtual file systems
+ *
+ * @param path Specifies the file or directory to use
+ * @param priv is a private handle
+ * @param logcb is a custom logger callback struct, or NULL if none needed
+ * @param fs is a struct containing the filesystem implementation
+ * @return If successful a read handle is returned. Otherwise 0 is returned.
+ *
+ */
+DVDREAD_API dvd_reader_t *DVDOpenFiles( void *priv, const dvd_logger_cb *logcb, const char * path, dvd_reader_filesystem_h *fs);
+
+/**
  * Closes and cleans up the DVD reader object.
  *
  * You must close all open files before calling this function.
