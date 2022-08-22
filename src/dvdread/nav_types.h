@@ -135,7 +135,7 @@ typedef struct {
   unsigned int zero6            : 2;  /**< reserved */
   unsigned int right            : 6;  /**< button index when pressing right */
   vm_cmd_t cmd;
-} ATTRIBUTE_PACKED btni_t;
+} btni_t;
 
 /**
  * Highlight Information
