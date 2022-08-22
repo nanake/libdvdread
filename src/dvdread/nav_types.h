@@ -144,7 +144,7 @@ typedef struct {
   hl_gi_t     hl_gi;
   btn_colit_t btn_colit;
   btni_t      btnit[36];
-} ATTRIBUTE_PACKED hli_t;
+} hli_t;
 
 /**
  * PCI packet
@@ -154,7 +154,7 @@ typedef struct {
   nsml_agli_t nsml_agli;
   hli_t       hli;
   uint8_t     zero1[189];
-} ATTRIBUTE_PACKED pci_t;
+} pci_t;
 
 
 
