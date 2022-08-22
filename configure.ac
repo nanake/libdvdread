@@ -54,6 +54,17 @@ AC_SUBST([DVDREAD_LTVERSION], [$DVDREAD_LT_CURRENT:$DVDREAD_LT_REVISION:$DVDREAD
 
 AC_PROG_CC_C99
 
+dnl C11 static_assert()
+AC_MSG_CHECKING([for _Static_assert])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([], [
+_Static_assert(1, "The impossible happened.");
+])], [
+  AC_MSG_RESULT([yes])
+  AC_DEFINE([HAVE_STATIC_ASSERT], [1], [Define to 1 if _Static_assert is available.])
+], [
+  AC_MSG_RESULT([no])
+])
+
 AC_CHECK_HEADERS_ONCE([sys/param.h limits.h dlfcn.h])
 
 AC_SYS_LARGEFILE

@@ -34,6 +34,18 @@
 #include "dvdread_internal.h"
 #include "dvdread/bitreader.h"
 
+#ifndef HAVE_STATIC_ASSERT
+#if defined(_MSC_VER)
+#include <crtdbg.h>
+#define _Static_assert(x, y)  _STATIC_ASSERT(x)
+#else
+#define _Static_assert(x, y) // packed size checks not supported by this compiler
+#endif
+#endif
+
+#define POINTER_SIZE  sizeof(void*)
+
+
 #ifndef DVD_BLOCK_LEN
 #define DVD_BLOCK_LEN 2048
 #endif
@@ -122,6 +134,68 @@ static inline int DVDFileSeekForce_( dvd_file_t *dvd_file, uint32_t offset, int 
 static inline int DVDFileSeek_( dvd_file_t *dvd_file, uint32_t offset ) {
   return (DVDFileSeek(dvd_file, (int)offset) == (int)offset);
 }
+
+#define STRINGIFY_NAME( z )   STRINGIFY_NAME_( z )
+#define STRINGIFY_NAME_( z ) #z
+
+#define CHECK_STRUCT_SIZE(strt, ptrs, size) \
+  _Static_assert(sizeof(strt)  <= size + ptrs * POINTER_SIZE,  STRINGIFY_NAME(strt) " bigger than " STRINGIFY_NAME(size)); \
+  _Static_assert(sizeof(strt)  >= size + ptrs * POINTER_SIZE,  STRINGIFY_NAME(strt) " smaller than " STRINGIFY_NAME(size))
+
+#define CHECK_STRUCT_SIZE_REF(strt, ptrs, size) \
+  _Static_assert(sizeof(strt)  <= size + ptrs * POINTER_SIZE + sizeof(int),  STRINGIFY_NAME(strt) " bigger than " STRINGIFY_NAME(size)); \
+  _Static_assert(sizeof(strt)  >= size + ptrs * POINTER_SIZE + sizeof(int),  STRINGIFY_NAME(strt) " smaller than " STRINGIFY_NAME(size))
+
+/* size checks on packed structures */
+CHECK_STRUCT_SIZE(dvd_time_t,             0, DVD_TIME_SIZE);
+CHECK_STRUCT_SIZE(vm_cmd_t,               0, COMMAND_DATA_SIZE);
+CHECK_STRUCT_SIZE(video_attr_t,           0, VIDEO_ATTR_SIZE);
+CHECK_STRUCT_SIZE(audio_attr_t,           0, AUDIO_ATTR_SIZE);
+CHECK_STRUCT_SIZE(multichannel_ext_t,     0, MULTICHANNEL_EXT_SIZE);
+CHECK_STRUCT_SIZE(subp_attr_t,            0, SUBP_ATTR_SIZE);
+CHECK_STRUCT_SIZE(pgc_command_tbl_t,      3, PGC_COMMAND_TBL_SIZE);
+CHECK_STRUCT_SIZE(cell_playback_t,        0, CELL_PLAYBACK_SIZE);
+CHECK_STRUCT_SIZE(cell_position_t,        0, CELL_POSITION_SIZE);
+CHECK_STRUCT_SIZE(user_ops_t,             0, USER_OPS_SIZE);
+CHECK_STRUCT_SIZE_REF(pgc_t,              4, PGC_SIZE);
+CHECK_STRUCT_SIZE(pgci_srp_t,             1, PGCI_SRP_SIZE);
+CHECK_STRUCT_SIZE_REF(pgcit_t,            1, PGCIT_SIZE);
+CHECK_STRUCT_SIZE(pgci_lu_t,              1, PGCI_LU_SIZE);
+CHECK_STRUCT_SIZE(pgci_ut_t,              1, PGCI_UT_SIZE);
+CHECK_STRUCT_SIZE(cell_adr_t,             0, CELL_ADDR_SIZE);
+CHECK_STRUCT_SIZE(c_adt_t,                1, C_ADT_SIZE);
+CHECK_STRUCT_SIZE(vobu_admap_t,           1, VOBU_ADMAP_SIZE);
+CHECK_STRUCT_SIZE(vmgi_mat_t,             0, VMGI_MAT_SIZE);
+
+CHECK_STRUCT_SIZE(playback_type_t,        0, PLAYBACK_TYPE_SIZE);
+CHECK_STRUCT_SIZE(title_info_t,           0, TITLE_INFO_SIZE);
+CHECK_STRUCT_SIZE(tt_srpt_t,              1, TT_SRPT_SIZE);
+CHECK_STRUCT_SIZE(ptl_mait_country_t,     1, PTL_MAIT_COUNTRY_SIZE);
+CHECK_STRUCT_SIZE(ptl_mait_t,             1, PTL_MAIT_SIZE);
+CHECK_STRUCT_SIZE(vts_attributes_t,       0, VTS_ATTRIBUTES_SIZE);
+
+CHECK_STRUCT_SIZE(vts_atrt_t,             2, VTS_ATRT_SIZE);
+CHECK_STRUCT_SIZE(txtdt_t,                0, TXTDT_SIZE);
+CHECK_STRUCT_SIZE(txtdt_lu_t,             1, TXTDT_LU_SIZE);
+CHECK_STRUCT_SIZE(txtdt_mgi_t,            1, TXTDT_MGI_SIZE);
+CHECK_STRUCT_SIZE(vtsi_mat_t,             0, VTSI_MAT_SIZE);
+CHECK_STRUCT_SIZE(ptt_info_t,             0, PTT_INFO_SIZE);
+CHECK_STRUCT_SIZE(ttu_t,                  1, TTU_SIZE);
+CHECK_STRUCT_SIZE(vts_ptt_srpt_t,         2, VTS_PTT_SRPT_SIZE);
+CHECK_STRUCT_SIZE(vts_tmap_t,             1, VTS_TMAP_SIZE);
+CHECK_STRUCT_SIZE(vts_tmapt_t,            2, VTS_TMAPT_SIZE);
+CHECK_STRUCT_SIZE(samg_chapter_t,         0, SAMG_CHAPTER_SIZE);
+CHECK_STRUCT_SIZE(samg_mat_t,             1, SAMG_MAT_SIZE);
+CHECK_STRUCT_SIZE(amgi_mat_t,             0, AMGI_MAT_SIZE);
+CHECK_STRUCT_SIZE(track_info_t,           0, TRACK_INFO_SIZE);
+CHECK_STRUCT_SIZE(tracks_info_table_t,    1, TRACKS_INFO_TABLE_SIZE);
+CHECK_STRUCT_SIZE(atsi_record_t,          0, ATSI_RECORD_SIZE);
+CHECK_STRUCT_SIZE(atsi_mat_t,             0, ATSI_MAT_SIZE);
+CHECK_STRUCT_SIZE(atsi_title_index_t,     0, ATSI_TITLE_INDEX_SIZE);
+CHECK_STRUCT_SIZE(atsi_track_timestamp_t, 0, ATSI_TRACK_TIMESTAMP_SIZE);
+CHECK_STRUCT_SIZE(atsi_track_pointer_t,   0, ATSI_TRACK_POINTER_SIZE);
+CHECK_STRUCT_SIZE(atsi_title_record_t,    2, ATSI_TITLE_ROW_TABLE_SIZE);
+CHECK_STRUCT_SIZE(atsi_title_table_t,     2, ATSI_TITLE_TABLE_SIZE);
 
 static void read_video_attr(video_attr_t *va) {
   getbits_state_t state;

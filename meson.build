@@ -82,6 +82,7 @@ elif cc.has_function('strerror_s', prefix: '#include <string.h>', args: test_arg
     cdata.set('HAVE_STRERROR_S', 1)
 endif
 
+cdata.set10('HAVE_STATIC_ASSERT', cc.compiles('_Static_assert(1, "The impossible happened.");', name : '_Static_assert'))
 
 # External dependencies and libraries
 
