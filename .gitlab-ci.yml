@@ -20,8 +20,8 @@ build-debian:
 build-macos:
     stage: build
     tags:
-        - mojave
         - amd64
+        - macos
     script:
         - autoreconf -fisv
         - mkdir build
