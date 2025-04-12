@@ -1,0 +1,22 @@
+# Copyright (C) 2025 Rob Hall
+# SPDX-License-Identifier: MIT
+
+# General options
+
+option('enable_docs',
+    type: 'boolean',
+    value: false,
+    description: 'Build (with Doxygen) and install API documentation')
+
+# Optional dependencies to be found on the system
+
+option('libdvdcss',
+    type: 'feature',
+    value: 'auto',
+    description: 'Link directly against libdvdcss')
+
+option('dlfcn',
+    type: 'combo',
+    choices: ['external', 'builtin', 'auto'],
+    value: 'auto',
+    description: 'Use external dlfcn for MinGW')
