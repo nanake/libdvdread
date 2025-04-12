@@ -5,17 +5,14 @@ variables:
     GIT_SUBMODULE_STRATEGY: normal
 
 build-debian:
-    image: registry.videolan.org/vlc-debian-unstable:20200529132440
+    image: registry.videolan.org/dav1d-debian-unstable:20250207200301
     stage: build
     tags:
         - docker
         - amd64
     script:
-        - autoreconf -fisv
-        - mkdir build
-        - cd build
-        - ../configure
-        - make -j $(getconf _NPROCESSORS_ONLN)
+        - meson setup build
+        - meson compile -C build
 
 build-macos:
     stage: build
@@ -23,34 +20,32 @@ build-macos:
         - amd64
         - macos
     script:
-        - autoreconf -fisv
-        - mkdir build
-        - cd build
-        - ../configure
-        - make -j $(getconf _NPROCESSORS_ONLN)
+        - meson setup build
+        - meson compile -C build
 
-build-win64:
-    image: registry.videolan.org/vlc-debian-win64:20201106143728
+build-win:
+    image: registry.videolan.org/dav1d-debian-unstable:20250207200301
     stage: build
     tags:
         - docker
         - amd64
     script:
-        - autoreconf -fisv
-        - mkdir build
-        - cd build
-        - ../configure --host=x86_64-w64-mingw32
-        - make -j $(getconf _NPROCESSORS_ONLN)
+        - meson setup build --cross-file package/crossfiles/${CROSSFILE}.meson
+        - meson compile -C build
+    parallel:
+        matrix:
+            - CROSSFILE: [i686-w64-mingw32, x86_64-w64-mingw32]
 
-build-win32:
-    image: registry.videolan.org/vlc-debian-win32:20201106141924
+
+build-win-arm:
+    image: registry.videolan.org/vlc-debian-llvm-msvcrt:20250305204125
     stage: build
     tags:
         - docker
         - amd64
     script:
-        - autoreconf -fisv
-        - mkdir build
-        - cd build
-        - ../configure --host=i686-w64-mingw32
-        - make -j $(getconf _NPROCESSORS_ONLN)
+        - meson setup build --cross-file package/crossfiles/${CROSSFILE}.meson
+        - meson compile -C build
+    parallel:
+        matrix:
+            - CROSSFILE: [armv7-w64-mingw32, aarch64-w64-mingw32]
