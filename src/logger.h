@@ -19,7 +19,9 @@
 #ifndef LIBDVDREAD_LOGGER_H
 #define LIBDVDREAD_LOGGER_H
 
-void DVDReadLog( void *priv, const dvd_logger_cb *logcb,
+#include "dvdread/attributes.h"
+
+DVDREAD_API void DVDReadLog( void *priv, const dvd_logger_cb *logcb,
                  dvd_logger_level_t level, const char *fmt, ... );
 
 #define LOG(ctx, level, ...) \

@@ -36,11 +36,11 @@ libdvdread_la_SOURCES = \
 
 libdvdread_la_LIBADD = $(CSS_LIBS)
 
-libdvdread_la_LDFLAGS = -version-info $(DVDREAD_LTVERSION) \
-	-export-symbols-regex "(^dvdread.*|^nav.*|^ifo.*|^DVD.*|^UDF.*)"
+libdvdread_la_LDFLAGS = -version-info $(DVDREAD_LTVERSION)
 
 pkgincludedir = $(includedir)/dvdread
 pkginclude_HEADERS = \
+	src/dvdread/attributes.h \
 	src/dvdread/bitreader.h \
 	src/dvdread/dvd_reader.h \
 	src/dvdread/dvd_udf.h \

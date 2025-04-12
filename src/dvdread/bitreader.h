@@ -25,14 +25,16 @@
 extern "C" {
 #endif
 
+#include <dvdread/attributes.h>
+
 typedef struct {
   const uint8_t *start;
   uint32_t byte_position;
   uint32_t bit_position;
 } getbits_state_t;
 
-int dvdread_getbits_init(getbits_state_t *state, const uint8_t *start);
-uint32_t dvdread_getbits(getbits_state_t *state, uint32_t number_of_bits);
+DVDREAD_API int dvdread_getbits_init(getbits_state_t *state, const uint8_t *start);
+DVDREAD_API uint32_t dvdread_getbits(getbits_state_t *state, uint32_t number_of_bits);
 
 #ifdef __cplusplus
 };

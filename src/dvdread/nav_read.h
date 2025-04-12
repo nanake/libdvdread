@@ -21,7 +21,8 @@
 #ifndef LIBDVDREAD_NAV_READ_H
 #define LIBDVDREAD_NAV_READ_H
 
-#include "nav_types.h"
+#include <dvdread/attributes.h>
+#include <dvdread/nav_types.h>
 
 /**
  * Parsing of NAV data, PCI and DSI parts.
@@ -37,7 +38,7 @@ extern "C" {
  * @param pci Pointer to the PCI data structure to be filled in.
  * @param buffer Pointer to the buffer of the on disc PCI data.
  */
-void navRead_PCI(pci_t *, unsigned char *);
+DVDREAD_API void navRead_PCI(pci_t *, unsigned char *);
 
 /**
  * Reads the DSI packet data pointed to into dsi struct.
@@ -45,7 +46,7 @@ void navRead_PCI(pci_t *, unsigned char *);
  * @param dsi Pointer to the DSI data structure to be filled in.
  * @param buffer Pointer to the buffer of the on disc DSI data.
  */
-void navRead_DSI(dsi_t *, unsigned char *);
+DVDREAD_API void navRead_DSI(dsi_t *, unsigned char *);
 
 #ifdef __cplusplus
 };

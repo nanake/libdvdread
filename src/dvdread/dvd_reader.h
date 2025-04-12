@@ -34,6 +34,8 @@
 #include <inttypes.h>
 #include <stdarg.h>
 
+#include <dvdread/attributes.h>
+
 /**
  * The DVD access interface.
  *
@@ -136,8 +138,8 @@ typedef struct {
  * dvd = DVDOpen(path);
  * dvd = DVDOpenStream(stream, &stream_cb);
  */
-dvd_reader_t *DVDOpen( const char * );
-dvd_reader_t *DVDOpenStream( void *, dvd_reader_stream_cb * );
+DVDREAD_API dvd_reader_t *DVDOpen( const char * );
+DVDREAD_API dvd_reader_t *DVDOpenStream( void *, dvd_reader_stream_cb * );
 
 /**
  * Same as DVDOpen, but with private handle to be passed back on callbacks
@@ -151,8 +153,8 @@ dvd_reader_t *DVDOpenStream( void *, dvd_reader_stream_cb * );
  * dvd = DVDOpen2(priv, logcb, path);
  * dvd = DVDOpenStream2(priv, logcb, &stream_cb);
  */
-dvd_reader_t *DVDOpen2( void *, const dvd_logger_cb *, const char * );
-dvd_reader_t *DVDOpenStream2( void *, const dvd_logger_cb *, dvd_reader_stream_cb * );
+DVDREAD_API dvd_reader_t *DVDOpen2( void *, const dvd_logger_cb *, const char * );
+DVDREAD_API dvd_reader_t *DVDOpenStream2( void *, const dvd_logger_cb *, dvd_reader_stream_cb * );
 
 /**
  * Closes and cleans up the DVD reader object.
@@ -163,7 +165,7 @@ dvd_reader_t *DVDOpenStream2( void *, const dvd_logger_cb *, dvd_reader_stream_c
  *
  * DVDClose(dvd);
  */
-void DVDClose( dvd_reader_t * );
+DVDREAD_API void DVDClose( dvd_reader_t * );
 
 /**
  *
@@ -202,7 +204,7 @@ typedef enum {
  *
  * int DVDFileStat(dvd, titlenum, domain, stat);
  */
-int DVDFileStat(dvd_reader_t *, int, dvd_read_domain_t, dvd_stat_t *);
+DVDREAD_API int DVDFileStat(dvd_reader_t *, int, dvd_read_domain_t, dvd_stat_t *);
 
 /**
  * Opens a file on the DVD given the title number and domain.
@@ -217,7 +219,7 @@ int DVDFileStat(dvd_reader_t *, int, dvd_read_domain_t, dvd_stat_t *);
  * @return If successful a a file read handle is returned, otherwise 0.
  *
  * dvd_file = DVDOpenFile(dvd, titlenum, domain); */
-dvd_file_t *DVDOpenFile( dvd_reader_t *, int, dvd_read_domain_t );
+DVDREAD_API dvd_file_t *DVDOpenFile( dvd_reader_t *, int, dvd_read_domain_t );
 
 /**
  * Closes a file and frees the associated structure.
@@ -226,7 +228,7 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *, int, dvd_read_domain_t );
  *
  * DVDCloseFile(dvd_file);
  */
-void DVDCloseFile( dvd_file_t * );
+DVDREAD_API void DVDCloseFile( dvd_file_t * );
 
 /**
  * Reads block_count number of blocks from the file at the given block offset.
@@ -243,7 +245,7 @@ void DVDCloseFile( dvd_file_t * );
  *
  * blocks_read = DVDReadBlocks(dvd_file, offset, block_count, data);
  */
-ssize_t DVDReadBlocks( dvd_file_t *, int, size_t, unsigned char * );
+DVDREAD_API ssize_t DVDReadBlocks( dvd_file_t *, int, size_t, unsigned char * );
 
 /**
  * Seek to the given position in the file.  Returns the resulting position in
@@ -257,7 +259,7 @@ ssize_t DVDReadBlocks( dvd_file_t *, int, size_t, unsigned char * );
  *
  * offset_set = DVDFileSeek(dvd_file, seek_offset);
  */
-int32_t DVDFileSeek( dvd_file_t *, int32_t );
+DVDREAD_API int32_t DVDFileSeek( dvd_file_t *, int32_t );
 
 /**
  * Reads the given number of bytes from the file.  This call can only be used
@@ -271,7 +273,7 @@ int32_t DVDFileSeek( dvd_file_t *, int32_t );
  *
  * bytes_read = DVDReadBytes(dvd_file, data, bytes);
  */
-ssize_t DVDReadBytes( dvd_file_t *, void *, size_t );
+DVDREAD_API ssize_t DVDReadBytes( dvd_file_t *, void *, size_t );
 
 /**
  * Returns the file size in blocks.
@@ -281,7 +283,7 @@ ssize_t DVDReadBytes( dvd_file_t *, void *, size_t );
  *
  * blocks = DVDFileSize(dvd_file);
  */
-ssize_t DVDFileSize( dvd_file_t * );
+DVDREAD_API ssize_t DVDFileSize( dvd_file_t * );
 
 /**
  * Get a unique 128 bit disc ID.
@@ -296,7 +298,7 @@ ssize_t DVDFileSize( dvd_file_t * );
  *               have room for 128 bits (16 chars).
  * @return 0 on success, -1 on error.
  */
-int DVDDiscID( dvd_reader_t *, unsigned char * );
+DVDREAD_API int DVDDiscID( dvd_reader_t *, unsigned char * );
 
 /**
  * Get the UDF VolumeIdentifier and VolumeSetIdentifier
@@ -316,10 +318,10 @@ int DVDDiscID( dvd_reader_t *, unsigned char * );
  * @param volsetid_size At most volsetid_size bytes will be copied to volsetid.
  * @return 0 on success, -1 on error.
  */
-int DVDUDFVolumeInfo( dvd_reader_t *, char *, unsigned int,
+DVDREAD_API int DVDUDFVolumeInfo( dvd_reader_t *, char *, unsigned int,
                       unsigned char *, unsigned int );
 
-int DVDFileSeekForce( dvd_file_t *, int offset, int force_size);
+DVDREAD_API int DVDFileSeekForce( dvd_file_t *, int offset, int force_size);
 
 /**
  * Get the ISO9660 VolumeIdentifier and VolumeSetIdentifier
@@ -342,7 +344,7 @@ int DVDFileSeekForce( dvd_file_t *, int offset, int force_size);
  * @param volsetid_size At most volsetid_size bytes will be copied to volsetid.
  * @return 0 on success, -1 on error.
  */
-int DVDISOVolumeInfo( dvd_reader_t *, char *, unsigned int,
+DVDREAD_API int DVDISOVolumeInfo( dvd_reader_t *, char *, unsigned int,
                       unsigned char *, unsigned int );
 
 /**
@@ -357,7 +359,7 @@ int DVDISOVolumeInfo( dvd_reader_t *, char *, unsigned int,
  *
  * @return The level of caching.
  */
-int DVDUDFCacheLevel( dvd_reader_t *, int );
+DVDREAD_API int DVDUDFCacheLevel( dvd_reader_t *, int );
 
 #ifdef __cplusplus
 };

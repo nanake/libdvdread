@@ -96,6 +96,9 @@ AC_SUBST([CSS_REQUIRES])
 
 CC_CHECK_CFLAGS_APPEND([-Wall -Wsign-compare -Wextra])
 
+dnl Symbol visibility
+CC_CHECK_CFLAGS_APPEND([-fvisibility=hidden])
+CPPFLAGS="${CPPFLAGS} -DDVDREAD_API_EXPORT"
 
 AC_ARG_ENABLE([apidoc],
   AS_HELP_STRING([--disable-apidoc], [Disable building (with Doxygen) and installing API documentation @<:@default=auto@:@>]))
