@@ -80,7 +80,16 @@ AC_ARG_ENABLE([dlfcn],
 AS_IF([test x"$with_libdvdcss" = "xyes"], [
   CSS_REQUIRES="libdvdcss >= 1.2"
   PKG_CHECK_MODULES([CSS], [$CSS_REQUIRES])
-  AC_CHECK_HEADERS(dvdcss/dvdcss.h,, AC_MSG_ERROR(You need libdvdcss (dvdcss.h)))
+  AC_CHECK_HEADERS([dvdcss/dvdcss.h], [
+    AC_DEFINE([HAVE_DVDCSS_DVDCSS_H], [1], [Define to 1 if you have dvdcss/dvdcss.h])
+  ], [
+    AC_MSG_ERROR([You need libdvdcss (dvdcss.h)])
+  ])
+  AC_CHECK_HEADERS([dvdcss/dvdcpxm.h], [
+    AC_DEFINE([HAVE_DVDCSS_DVDCPXM_H], [1], [Define to 1 if you have dvdcss/dvdcpxm.h])
+  ], [
+    AC_MSG_WARN([You need libdvdcss >= 1.5 with dvdcpxm.h support])
+  ])
 ], [
   AS_CASE([$host],
     [*mingw32*], [],
