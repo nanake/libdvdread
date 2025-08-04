@@ -153,8 +153,13 @@ DVDREAD_API dvd_reader_t *DVDOpenStream( void *, dvd_reader_stream_cb * );
  * dvd = DVDOpen2(priv, logcb, path);
  * dvd = DVDOpenStream2(priv, logcb, &stream_cb);
  */
-DVDREAD_API dvd_reader_t *DVDOpen2( void *, const dvd_logger_cb *, const char * );
-DVDREAD_API dvd_reader_t *DVDOpenStream2( void *, const dvd_logger_cb *, dvd_reader_stream_cb * );
+DVDREAD_API dvd_reader_t *DVDOpen2( void *, const dvd_logger_cb *, const char *);
+DVDREAD_API dvd_reader_t *DVDOpenStream2( void *, const dvd_logger_cb *, dvd_reader_stream_cb *);
+
+/* same as the functions above, but with the dvd_a flag passed to dvdopencommon*/
+DVDREAD_API dvd_reader_t *DVDOpenAudio( void *, const dvd_logger_cb *, const char *);
+DVDREAD_API dvd_reader_t *DVDOpenStreamAudio( void *, const dvd_logger_cb *, dvd_reader_stream_cb *);
+
 
 /**
  * Closes and cleans up the DVD reader object.
@@ -174,9 +179,10 @@ typedef enum {
   DVD_READ_INFO_FILE,        /**< VIDEO_TS.IFO  or VTS_XX_0.IFO (title) */
   DVD_READ_INFO_BACKUP_FILE, /**< VIDEO_TS.BUP  or VTS_XX_0.BUP (title) */
   DVD_READ_MENU_VOBS,        /**< VIDEO_TS.VOB  or VTS_XX_0.VOB (title) */
-  DVD_READ_TITLE_VOBS        /**< VTS_XX_[1-9].VOB (title).  All files in
+  DVD_READ_TITLE_VOBS,        /**< VTS_XX_[1-9].VOB (title).  All files in
                                   the title set are opened and read as a
                                   single file. */
+  DVD_READ_SAMG_INFO,        /* for the AUDIO_PP.IFO */
 } dvd_read_domain_t;
 
 /**

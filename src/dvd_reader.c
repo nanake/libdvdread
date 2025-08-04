@@ -438,13 +438,15 @@ static char *bsd_block2char( const char *path )
 static dvd_reader_t *DVDOpenCommon( void *priv,
                                     const dvd_logger_cb *logcb,
                                     const char *ppath,
-                                    dvd_reader_stream_cb *stream_cb )
+                                    dvd_reader_stream_cb *stream_cb,
+                                    dvd_type_t type )
 {
   dvdstat_t fileinfo;
   int ret, have_css, cdir = -1;
   char *dev_name = NULL;
   char *path = NULL, *new_path = NULL, *path_copy = NULL;
   dvd_reader_t *ctx = calloc(1, sizeof(*ctx));
+  ctx->dvd_type = type;
   if(!ctx)
       return NULL;
 
@@ -728,27 +730,39 @@ DVDOpen_error:
   return NULL;
 }
 
-dvd_reader_t *DVDOpen( const char *ppath )
+dvd_reader_t *DVDOpen( const char *ppath)
 {
-    return DVDOpenCommon( NULL, NULL, ppath, NULL );
+    return DVDOpenCommon( NULL, NULL, ppath, NULL , DVD_V);
 }
 
 dvd_reader_t *DVDOpenStream( void *stream,
-                             dvd_reader_stream_cb *stream_cb )
+                             dvd_reader_stream_cb *stream_cb)
 {
-    return DVDOpenCommon( stream, NULL, NULL, stream_cb );
+    return DVDOpenCommon( stream, NULL, NULL, stream_cb,  DVD_V );
 }
 
 dvd_reader_t *DVDOpen2( void *priv, const dvd_logger_cb *logcb,
-                        const char *ppath )
+                        const char *ppath)
 {
-    return DVDOpenCommon( priv, logcb, ppath, NULL );
+    return DVDOpenCommon( priv, logcb, ppath, NULL, DVD_V);
 }
 
 dvd_reader_t *DVDOpenStream2( void *priv, const dvd_logger_cb *logcb,
                               dvd_reader_stream_cb *stream_cb )
 {
-    return DVDOpenCommon( priv, logcb, NULL, stream_cb );
+    return DVDOpenCommon( priv, logcb, NULL, stream_cb, DVD_V );
+}
+
+dvd_reader_t *DVDOpenAudio( void *priv, const dvd_logger_cb *logcb,
+                            const char *ppath )
+{
+    return DVDOpenCommon( priv, logcb, ppath, NULL, DVD_A );
+}
+
+dvd_reader_t *DVDOpenStreamAudio( void *priv, const dvd_logger_cb *logcb,
+                                  dvd_reader_stream_cb *stream_cb )
+{
+    return DVDOpenCommon( priv, logcb, NULL, stream_cb, DVD_A );
 }
 
 void DVDClose( dvd_reader_t *dvd )
@@ -1078,6 +1092,10 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
     } else {
       return DVDOpenVOBPath( ctx, titlenum, 0 );
     }
+    break;
+  case DVD_READ_SAMG_INFO:
+    /* no other way to reach SAMG menu*/
+    strcpy( filename,  "/AUDIO_TS/AUDIO_PP.IFO");
     break;
   default:
     Log1(ctx, "Invalid domain for file open." );
