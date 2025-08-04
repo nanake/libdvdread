@@ -958,26 +958,26 @@ typedef struct {
   
   union{
     struct{
-  /* VMGI */
-  vmgi_mat_t     *vmgi_mat;
-  tt_srpt_t      *tt_srpt;
-  pgc_t          *first_play_pgc;
-  ptl_mait_t     *ptl_mait;
-  vts_atrt_t     *vts_atrt;
-  txtdt_mgi_t    *txtdt_mgi;
+      /* VMGI */
+      vmgi_mat_t     *vmgi_mat;
+      tt_srpt_t      *tt_srpt;
+      pgc_t          *first_play_pgc;
+      ptl_mait_t     *ptl_mait;
+      vts_atrt_t     *vts_atrt;
+      txtdt_mgi_t    *txtdt_mgi;
 
-  /* Common */
-  pgci_ut_t      *pgci_ut;
-  c_adt_t        *menu_c_adt;
-  vobu_admap_t   *menu_vobu_admap;
+      /* Common */
+      pgci_ut_t      *pgci_ut;
+      c_adt_t        *menu_c_adt;
+      vobu_admap_t   *menu_vobu_admap;
 
-  /* VTSI */
-  vtsi_mat_t     *vtsi_mat;
-  vts_ptt_srpt_t *vts_ptt_srpt;
-  pgcit_t        *vts_pgcit;
-  vts_tmapt_t    *vts_tmapt;
-  c_adt_t        *vts_c_adt;
-  vobu_admap_t   *vts_vobu_admap;
+      /* VTSI */
+      vtsi_mat_t     *vtsi_mat;
+      vts_ptt_srpt_t *vts_ptt_srpt;
+      pgcit_t        *vts_pgcit;
+      vts_tmapt_t    *vts_tmapt;
+      c_adt_t        *vts_c_adt;
+      vobu_admap_t   *vts_vobu_admap;
     };
 
     struct{
