@@ -317,7 +317,7 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
   struct ifo_handle_private_s *ifop;
   dvd_read_domain_t domain = backup ? DVD_READ_INFO_BACKUP_FILE
                                     : DVD_READ_INFO_FILE;
-  char ifo_filename[13];
+  char ifo_filename[MAX_UDF_FILE_NAME_LEN];
 
   ifop = calloc(1, sizeof(*ifop));
   if(!ifop)
