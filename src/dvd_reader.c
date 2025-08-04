@@ -840,7 +840,7 @@ static int findDVDFile( dvd_reader_t *dvd, const char *file, char *filename )
   int ret;
 
   /* Strip off the directory for our search */
-  if( !strncasecmp( "/VIDEO_TS/", file, 10 ) ) {
+  if( !strncasecmp( (dvd->dvd_type == DVD_V) ? "/VIDEO_TS/" : "/AUDIO_TS/", file, 10 ) ) {
     nodirfile = &(file[ 10 ]);
   } else {
     nodirfile = file;
@@ -851,11 +851,11 @@ static int findDVDFile( dvd_reader_t *dvd, const char *file, char *filename )
     char video_path[ PATH_MAX + 1 ];
 
     /* Try also with adding the path, just in case. */
-    sprintf( video_path, "%s/VIDEO_TS/", dvd->rd->path_root );
+    sprintf( video_path, "%s/%s_TS/", dvd->rd->path_root, DVD_TYPE_STRING( dvd->dvd_type ) );
     ret = findDirFile( video_path, nodirfile, filename );
     if( ret < 0 ) {
       /* Try with the path, but in lower case. */
-      sprintf( video_path, "%s/video_ts/", dvd->rd->path_root );
+      sprintf( video_path, "%s/%s_ts/", dvd->rd->path_root, (dvd->dvd_type == DVD_V) ? "video" : "audio" );
       ret = findDirFile( video_path, nodirfile, filename );
       if( ret < 0 ) {
         return 0;
@@ -916,9 +916,10 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   dvd_file_t *dvd_file;
 
   if( title == 0 ) {
-    strcpy( filename, "/VIDEO_TS/VIDEO_TS.VOB" );
+    sprintf(filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( ctx->dvd_type ), DVD_TYPE_STRING( ctx->dvd_type ) );
   } else {
-    sprintf( filename, "/VIDEO_TS/VTS_%02d_%d.VOB", title, menu ? 0 : 1 );
+    sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( ctx->dvd_type ), STREAM_TYPE_STRING( ctx->dvd_type ),
+            title, menu ? 0 : 1, STREAM_TYPE_STRING( ctx->dvd_type ));
   }
   start = UDFFindFile( ctx, filename, &len );
   if( start == 0 ) return NULL;
@@ -930,12 +931,13 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   dvd_file->lb_start = start;
   dvd_file->filesize = len / DVD_VIDEO_LB_LEN;
 
-  /* Calculate the complete file size for every file in the VOBS */
+  /* Calculate the complete file size for every file in the VOBS, AOBS */
   if( !menu ) {
     int cur;
 
     for( cur = 2; cur < 10; cur++ ) {
-      sprintf( filename, "/VIDEO_TS/VTS_%02d_%d.VOB", title, cur );
+      sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( ctx->dvd_type ), 
+              STREAM_TYPE_STRING( ctx->dvd_type ), title, menu ? 0 : 1, STREAM_TYPE_STRING( ctx->dvd_type ) );
       if( !UDFFindFile( ctx, filename, &len ) ) break;
       dvd_file->filesize += len / DVD_VIDEO_LB_LEN;
     }
@@ -964,15 +966,20 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
   dvd_file = calloc( 1, sizeof( dvd_file_t ) );
   if( !dvd_file ) return NULL;
   dvd_file->ctx = ctx;
+
+  /* css vars aren't used in CPXM */
+  if ( ctx->dvd_type == DVD_V )
   /*Hack*/ dvd_file->css_title = title << 1 | menu;
 
   if( menu ) {
     dvd_input_t dev;
 
     if( title == 0 ) {
-      strcpy( filename, "VIDEO_TS.VOB" );
+      /* there can not be an AUDIO_TS.AOB, there is however sometimes an AUDIO_TS.VOB menu */
+      sprintf(filename, "%s_TS.VOB", DVD_TYPE_STRING( ctx->dvd_type ) );
     } else {
-      sprintf( filename, "VTS_%02i_0.VOB", title );
+      sprintf( filename, "%cTS_%02i_0.%cOB",  STREAM_TYPE_STRING( ctx->dvd_type ) , title, 
+              STREAM_TYPE_STRING( ctx->dvd_type ) );
     }
     if( !findDVDFile( ctx, filename, full_path ) ) {
       free( dvd_file );
@@ -1001,7 +1008,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
 
     for( i = 0; i < TITLES_MAX; ++i ) {
 
-      sprintf( filename, "VTS_%02i_%i.VOB", title, i + 1 );
+      sprintf( filename, "%cTS_%02i_%i.%cOB", STREAM_TYPE_STRING( ctx->dvd_type ), title, i + 1 , STREAM_TYPE_STRING( ctx->dvd_type ));
       if( !findDVDFile( ctx, filename, full_path ) ) {
         break;
       }
@@ -1039,17 +1046,21 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
   switch( domain ) {
   case DVD_READ_INFO_FILE:
     if( titlenum == 0 ) {
-      strcpy( filename, "/VIDEO_TS/VIDEO_TS.IFO" );
+      sprintf( filename, "/%s_TS/%s_TS.IFO", DVD_TYPE_STRING( ctx->dvd_type ),
+              DVD_TYPE_STRING( ctx->dvd_type ) );
     } else {
-      sprintf( filename, "/VIDEO_TS/VTS_%02i_0.IFO", titlenum );
+      sprintf( filename, "/%s_TS/%cTS_%02i_0.IFO", DVD_TYPE_STRING( ctx->dvd_type ),
+              STREAM_TYPE_STRING( ctx->dvd_type ), titlenum );
     }
     do_cache = 1;
     break;
   case DVD_READ_INFO_BACKUP_FILE:
     if( titlenum == 0 ) {
-      strcpy( filename, "/VIDEO_TS/VIDEO_TS.BUP" );
+      sprintf( filename,  "/%s_TS/%s_TS.BUP", DVD_TYPE_STRING( ctx->dvd_type ),
+              DVD_TYPE_STRING( ctx->dvd_type ) );
     } else {
-      sprintf( filename, "/VIDEO_TS/VTS_%02i_0.BUP", titlenum );
+      sprintf( filename, "/%s_TS/%cTS_%02i_0.BUP", DVD_TYPE_STRING( ctx->dvd_type ),
+              STREAM_TYPE_STRING( ctx->dvd_type ), titlenum );
     }
     do_cache = 1;
     break;
@@ -1111,9 +1122,11 @@ static int DVDFileStatVOBUDF( dvd_reader_t *dvd, int title,
   int n;
 
   if( title == 0 )
-    strcpy( filename, "/VIDEO_TS/VIDEO_TS.VOB" );
+    sprintf(filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( dvd->dvd_type ),
+            DVD_TYPE_STRING( dvd->dvd_type ) );
   else
-    sprintf( filename, "/VIDEO_TS/VTS_%02d_%d.VOB", title, menu ? 0 : 1 );
+    sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( dvd->dvd_type ), 
+            STREAM_TYPE_STRING( dvd->dvd_type ),  title, menu ? 0 : 1, STREAM_TYPE_STRING( dvd->dvd_type ) );
 
   if( !UDFFindFile( dvd, filename, &size ) )
     return -1;
@@ -1126,7 +1139,8 @@ static int DVDFileStatVOBUDF( dvd_reader_t *dvd, int title,
     int cur;
 
     for( cur = 2; cur < 10; cur++ ) {
-      sprintf( filename, "/VIDEO_TS/VTS_%02d_%d.VOB", title, cur );
+      sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( dvd->dvd_type ),
+              STREAM_TYPE_STRING( dvd->dvd_type ), title, cur , STREAM_TYPE_STRING( dvd->dvd_type ) );
       if( !UDFFindFile( dvd, filename, &size ) )
         break;
 
@@ -1157,9 +1171,10 @@ static int DVDFileStatVOBPath( dvd_reader_t *dvd, int title,
   int n;
 
   if( title == 0 )
-    strcpy( filename, "VIDEO_TS.VOB" );
+    sprintf(filename, "%s_TS.VOB", DVD_TYPE_STRING( dvd->dvd_type ));
   else
-    sprintf( filename, "VTS_%02d_%d.VOB", title, menu ? 0 : 1 );
+    sprintf( filename, "%cTS_%02d_%d.%cOB", STREAM_TYPE_STRING( dvd->dvd_type ), title, menu ? 0 : 1, 
+            STREAM_TYPE_STRING( dvd->dvd_type ) );
 
   if( !findDVDFile( dvd, filename, full_path ) )
     return -1;
@@ -1176,7 +1191,8 @@ static int DVDFileStatVOBPath( dvd_reader_t *dvd, int title,
   if( !menu ) {
     int cur;
     for( cur = 2; cur < 10; cur++ ) {
-      sprintf( filename, "VTS_%02d_%d.VOB", title, cur );
+      sprintf( filename, "%cTS_%02d_%d.%cOB",  STREAM_TYPE_STRING( dvd->dvd_type ), title, cur,
+              STREAM_TYPE_STRING( dvd->dvd_type ) );
       if( !findDVDFile( dvd, filename, full_path ) )
         break;
 
@@ -1215,18 +1231,19 @@ int DVDFileStat( dvd_reader_t *reader, int titlenum,
   }
 
   switch( domain ) {
+
   case DVD_READ_INFO_FILE:
     if( titlenum == 0 )
-      strcpy( filename, "/VIDEO_TS/VIDEO_TS.IFO" );
+      sprintf(filename, "/%s_TS/%s_TS.IFO", DVD_TYPE_STRING( reader->dvd_type ), DVD_TYPE_STRING( reader->dvd_type ));
     else
-      sprintf( filename, "/VIDEO_TS/VTS_%02i_0.IFO", titlenum );
+      sprintf( filename, "/%s_TS/%cTS_%02i_0.IFO", DVD_TYPE_STRING( reader->dvd_type ), STREAM_TYPE_STRING( reader->dvd_type ) ,titlenum );
 
     break;
   case DVD_READ_INFO_BACKUP_FILE:
     if( titlenum == 0 )
-      strcpy( filename, "/VIDEO_TS/VIDEO_TS.BUP" );
+      sprintf(filename, "/%s_TS/%s_TS.BUP", DVD_TYPE_STRING( reader->dvd_type ), DVD_TYPE_STRING( reader->dvd_type ) );
     else
-      sprintf( filename, "/VIDEO_TS/VTS_%02i_0.BUP", titlenum );
+      sprintf( filename, "/%s_TS/%cTS_%02i_0.BUP", DVD_TYPE_STRING( reader->dvd_type ), STREAM_TYPE_STRING( reader->dvd_type ), titlenum );
 
     break;
   case DVD_READ_MENU_VOBS:

@@ -34,9 +34,19 @@
 #define container_of(ptr, type, member) \
     ((type *)(((char *)(ptr)) - offsetof(type, member)))
 
+/* to determine set paths */
+#define DVD_TYPE_STRING(type) ((type==DVD_V)? "VIDEO":"AUDIO")
+#define STREAM_TYPE_STRING(type) ((type==DVD_V)? 'V':'A')
+
+typedef enum{
+    DVD_V = 0,
+    DVD_A= 1,
+} dvd_type_t;
+
 struct dvd_reader_s
 {
     dvd_reader_device_t *rd;
+    dvd_type_t dvd_type;
     void *priv; /* User provided context */
     dvd_logger_cb logcb;
     /* Set 100 flags for BUP fallback, most signifiant left

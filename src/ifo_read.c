@@ -325,9 +325,10 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
   }
 
   if (title)
-    snprintf(ifo_filename, 13, "VTS_%02d_0.%s", title, backup ? "BUP" : "IFO");
+    snprintf(ifo_filename, 13, "%cTS_%02d_0.%s", STREAM_TYPE_STRING( ctx->dvd_type )
+             ,title, backup ? "BUP" : "IFO");
   else
-    snprintf(ifo_filename, 13, "VIDEO_TS.%s", backup ? "BUP" : "IFO");
+    snprintf(ifo_filename, 13, "%s_TS.%s", DVD_TYPE_STRING( ctx->dvd_type ), backup ? "BUP" : "IFO" );
 
   if(!ifop->file) {
     Log1(ctx, "Can't open file %s.", ifo_filename);
@@ -435,7 +436,7 @@ ifo_handle_t *ifoOpenVMGI(dvd_reader_t *ctx) {
     if(ifoRead_VMG(&ifop->handle))
       return &ifop->handle;
 
-    Log1(ctx, "ifoOpenVMGI(): Invalid main menu IFO (VIDEO_TS.%s).", ext);
+    Log1(ctx, "ifoOpenVMGI(): Invalid main menu IFO (%s_TS.%s).", DVD_TYPE_STRING( ctx->dvd_type ), ext);
     ifoClose(&ifop->handle);
   }
   return NULL;
@@ -463,7 +464,7 @@ ifo_handle_t *ifoOpenVTSI(dvd_reader_t *ctx, int title) {
     ifop->file = DVDOpenFile(ctx, title, domain);
     /* Should really catch any error */
     if(!ifop->file) {
-      Log1(ctx, "Can't open file VTS_%02d_0.%s.", title, ext);
+      Log1(ctx, "Can't open file %cTS_%02d_0.%s.", STREAM_TYPE_STRING( ctx->dvd_type ), title, ext);
       free(ifop);
       continue;
     }
@@ -471,8 +472,8 @@ ifo_handle_t *ifoOpenVTSI(dvd_reader_t *ctx, int title) {
     if(ifoRead_VTS(&ifop->handle) && ifop->handle.vtsi_mat)
       return &ifop->handle;
 
-    Log1(ctx, "Invalid IFO for title %d (VTS_%02d_0.%s).",
-            title, title, ext);
+    Log1(ctx, "Invalid IFO for title %d (%cTS_%02d_0.%s).",
+            title, STREAM_TYPE_STRING( ctx->dvd_type ), title, ext);
     ifoClose(&ifop->handle);
   }
 
