@@ -498,6 +498,25 @@ static void ifoPrint_USER_OPS(user_ops_t *user_ops) {
   }
 }
 
+void ifoPrint_AMGI_MAT(amgi_mat_t *amgi_mat) {
+
+  printf("AMG Identifier: %.12s\n", amgi_mat->amg_identifier);
+  printf("start Sector of AMG: %08x\n", amgi_mat->amg_start_sector);
+  printf("Last Sector of AMGI: %08x\n", amgi_mat->amgi_last_sector);
+  printf("Specification version number: %01x.%01x\n",
+         amgi_mat->specification_version >> 4,
+         amgi_mat->specification_version & 0xf);
+  printf("AMG Number of Volumes: %i\n", amgi_mat->amg_nr_of_volumes);
+  printf("AMG This Volume: %i\n", amgi_mat->amg_this_volume_nr);
+  printf("Disc side %i\n", amgi_mat->disc_side);
+  printf("Audio_SV ifo relative pointer: %08x\n", amgi_mat->audio_sv_ifo_relative_p);
+  printf("VMG Number of title sets: %i\n", amgi_mat->vmg_nr_of_title_sets);
+  printf("AMG Number of title sets: %i\n", amgi_mat->amg_nr_of_title_sets);
+  printf("End byte address: %08x\n", amgi_mat->amg_end_byte_address);
+  printf("AMG Number of zones: %i\n", amgi_mat->amg_nr_of_zones);
+  printf("Last sector of audio system space: %02x\n", amgi_mat->last_sector_audio_sys_space);
+
+}
 
 static void ifoPrint_VMGI_MAT(vmgi_mat_t *vmgi_mat) {
 
@@ -557,7 +576,7 @@ static void ifoPrint_VTSI_MAT(vtsi_mat_t *vtsi_mat) {
   printf("Specification version number: %01x.%01x\n",
          vtsi_mat->specification_version>>4,
          vtsi_mat->specification_version&0xf);
-  printf("VTS Category: %08x\n", vtsi_mat->vts_category);
+  printf("VTS Category: %08x\n", vtsi_mat->vts_category );
   printf("End byte of VTSI_MAT: %08x\n", vtsi_mat->vtsi_last_byte);
   printf("Start sector of VTSM_VOBS:  %08x\n", vtsi_mat->vtsm_vobs);
   printf("Start sector of VTSTT_VOBS: %08x\n", vtsi_mat->vtstt_vobs);
@@ -611,6 +630,88 @@ static void ifoPrint_VTSI_MAT(vtsi_mat_t *vtsi_mat) {
   }
 }
 
+static void ifo_print_atsi_records(atsi_record_t *records){
+  for (int i =0; i <8; i++){
+    printf("Encoding Format (0x00 for lcpm, 0x01 for mlp, 0x05 for dts: %.02x\n", records[i].encoding);
+    printf("audio_format uknown: %.02x\n", records[i].unknown1);
+    printf("audio_format bitrate: %.02x\n", records[i].bitrate);
+    printf("audio_format sampling frequency: %.02x\n", records[i].sampling_frequency);
+    printf("audio_format number of channels: %.02x\n", records[i].nr_channels);
+    printf("audio_format unknown: %.02x\n", records[i].unknown2);
+  }
+}
+
+void ifoPrint_TT(atsi_title_table_t *atsi_title_table){
+  printf("Number of titles: %04x\n", atsi_title_table->nr_titles);
+  printf("Last byte address: %08x\n", atsi_title_table->last_byte_address);
+  
+  for (int i=0; i< atsi_title_table->nr_titles;i++){
+    printf("Offset of record table for entry %d: %08x\n", i, atsi_title_table->atsi_index_rows[i].offset_record_table);
+  }
+ 
+
+  for (int i=0; i< atsi_title_table->nr_titles;i++){
+    atsi_title_record_t *index=atsi_title_table->atsi_title_row_tables+i;
+    printf("Number of tracks in title %d: %04x\n", i,index->nr_tracks );
+
+    printf("Length PTS of title %d: %08x\n", i, index->length_pts);
+    printf("Start sector of pointers table %d: %04x\n", i, index->start_sector_pointers_table);
+
+    for (int i=0; i<index->nr_tracks ;i++){
+      printf("Track number in title of track %d: %02x\n", i, index->atsi_track_timestamp_rows[i].track_number_in_title );
+      printf("Length PTS of track %d: %08x\n", i, index->atsi_track_timestamp_rows[i].length_pts_of_track);
+      printf("Start PTS of track %d: %08x\n", i, index->atsi_track_timestamp_rows[i].first_pts_of_track);
+    }
+    for (int i=0; i< index->nr_pointer_records;i++){
+      printf("Track start sector %d: %08x\n", i, index->atsi_track_pointer_rows[i].start_sector);
+      printf("Length PTS of track %d: %08x\n", i, index->atsi_track_pointer_rows[i].end_sector);
+    }
+  }
+}
+
+void ifoPrint_TIF(tracks_info_table_t *tracks_info_table){
+  printf("Number of titles: %04x\n", tracks_info_table->nr_of_titles);
+  printf("Last byte in table: %04x\n", tracks_info_table->last_byte_in_table);
+  
+  for (int i =0; i<tracks_info_table->nr_of_titles;i++){
+
+    printf("Type and rank of track %d: %02x\n",i, tracks_info_table->tracks_info[i].type_and_rank);
+    printf("Number of chapters in title of track %d: %02x\n",i, tracks_info_table->tracks_info[i].nr_chapters_in_title);
+    printf("Length of audio zone pts of track %d: %04x\n",i, tracks_info_table->tracks_info[i].len_audio_zone_pts);
+    printf("Rank of group, or video titleset number of track %d: %02x\n",i, tracks_info_table->tracks_info[i].group_property);
+    printf("video Title number, of rank of title in audio track of track %d: %02x\n",i, tracks_info_table->tracks_info[i].title_property);
+    printf("Title set sector pointer of track %d: %08x\n",i, tracks_info_table->tracks_info[i].ts_pointer_relative_sector);
+  }
+        
+
+}
+
+void ifoPrint_ATSI_MAT(atsi_mat_t *atsi_mat) {
+  printf("ATS Identifier: %.12s\n", atsi_mat->ats_identifier);
+  printf("Last Sector of ATS: %08x\n", atsi_mat->ats_last_sector);
+  printf("Last Sector of ATSI: %08x\n", atsi_mat->atsi_last_sector);
+  printf("Specification version number: %01x.%01x\n",
+         atsi_mat->specification_version>>4,
+         atsi_mat->specification_version&0xf);
+  printf("End byte of ATSI_MAT: %08x\n", atsi_mat->atsi_last_byte);
+  printf("Start sector of ATSM_VOBS:  %08x\n", atsi_mat->vtsm_vobs);
+  printf("Start sector of ATST_AOBS: %08x\n", atsi_mat->atst_aobs);
+  printf("Start sector of VTS_PTT_SRPT: %08x\n", atsi_mat->vts_ptt_srpt);
+  printf("Start sector of ATS_PCGI_UT:    %08x\n", atsi_mat->ats_pgci_ut);
+  printf("Start sector of VTSM_PGCI_UT: %08x\n", atsi_mat->vtsm_pgci_ut);
+  printf("Start sector of VTS_TMAPT:    %08x\n", atsi_mat->vts_tmapt);
+  printf("Start sector of VTSM_C_ADT:      %08x\n", atsi_mat->vtsm_c_adt);
+  printf("Start sector of VTSM_VOBU_ADMAP: %08x\n",atsi_mat->vtsm_vobu_admap);
+  printf("Start sector of VTS_C_ADT:       %08x\n", atsi_mat->vts_c_adt);
+  printf("Start sector of VTS_VOBU_ADMAP:  %08x\n", atsi_mat->vts_vobu_admap);
+
+  printf("ATSI_RECORDS: ");
+  ifo_print_atsi_records(atsi_mat->atsi_record);
+  printf("\n");
+
+  for (int i =0; i<16; i++)
+    printf("DOWNMIX COEFFICIENTS:  %" PRIx64 "\n", atsi_mat->downmix_coeff[i]);
+}
 
 static void ifoPrint_PGC_COMMAND_TBL(pgc_command_tbl_t *cmd_tbl) {
   int i;
@@ -1089,7 +1190,8 @@ void ifo_print(dvd_reader_t *dvd, int title) {
     return;
   }
 
-
+  switch(ifohandle->ifo_format){
+    case (IFO_VIDEO):
   if(ifohandle->vmgi_mat) {
 
     printf("VMG top level\n-------------\n");
@@ -1203,6 +1305,49 @@ void ifo_print(dvd_reader_t *dvd, int title) {
     printf("\nVideo Title Set VOBU address map\n");
     printf(  "-----------------\n");
     ifoPrint_VOBU_ADMAP(ifohandle->vts_vobu_admap);
+  }
+        break;
+    case(IFO_AUDIO):
+
+      if(ifohandle->samg_mat){
+          printf("\nSimple Audio Manager table\n");
+          printf(  "-----------------\n");
+        //ifoPrint_SAMG(ifohandle->amgi_mat);
+        }
+      if(ifohandle->amgi_mat){
+          printf("\nAudio Manager table\n");
+          printf(  "-----------------\n");
+          ifoPrint_AMGI_MAT(ifohandle->amgi_mat);
+        }
+      if(ifohandle->info_table_first_sector){
+          printf("\nInfo table first sector\n");
+          printf(  "-----------------\n");
+          ifoPrint_TIF(ifohandle->info_table_first_sector);
+        }
+
+      if(ifohandle->info_table_second_sector){
+          printf("\nInfo table second sector\n");
+          printf(  "-----------------\n");
+          ifoPrint_TIF(ifohandle->info_table_second_sector);
+        }
+
+      if(ifohandle->atsi_mat){
+          printf("\nATSI mat\n");
+          printf(  "-----------------\n");
+          ifoPrint_ATSI_MAT(ifohandle->atsi_mat);
+        }
+
+      if(ifohandle->atsi_title_table){
+          printf("\nATSI mat\n");
+          printf(  "-----------------\n");
+          ifoPrint_TT(ifohandle->atsi_title_table);
+            }
+      break;
+    case(IFO_UNKNOWN): 
+
+      printf("\nUKNOWN IFO TYPE\n");
+      break;
+
   }
 
   ifoClose(ifohandle);
