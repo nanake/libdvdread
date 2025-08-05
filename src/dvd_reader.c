@@ -435,6 +435,25 @@ static char *bsd_block2char( const char *path )
 }
 #endif
 
+/* function is called on encrypted DVD-Audio discs */
+/* with the cppm encryption scheme */
+static uint8_t *cppm_get_mkb_or_backup( dvd_reader_t *ctx, int backup );
+
+/* Since the dvd needs to be open in order to read the MKB ( media key block ) it was neccesary to split cpxm initilization into two steps, with one occuring after it's opened */
+/* this should only be called if libdvdcss is available and if the disc type is DVD-Audio */
+static int cpxm_init_condition( dvd_reader_t* ctx, dvd_type_t type, int have_css )
+{
+    if ( type == DVD_A && have_css ) {
+        uint8_t *p_mkb = NULL;
+        p_mkb = cppm_get_mkb_or_backup( ctx, 0 );
+        if ( !p_mkb )
+            p_mkb = cppm_get_mkb_or_backup( ctx, 1 );
+        return dvdinput_init( ctx->rd->dev, p_mkb );
+    }
+    else
+        return 0;
+}
+
 static dvd_reader_t *DVDOpenCommon( void *priv,
                                     const dvd_logger_cb *logcb,
                                     const char *ppath,
@@ -468,6 +487,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
         free(ctx);
         return NULL;
     }
+    cpxm_init_condition( ctx, type, have_css );
     return ctx;
   }
 
@@ -505,6 +525,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
           free(ctx);
           return NULL;
       }
+      cpxm_init_condition( ctx, type, have_css );
       return ctx;
     }
 
@@ -539,6 +560,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
         free(ctx);
         return NULL;
     }
+    cpxm_init_condition( ctx, type, have_css );
     return ctx;
   } else if( S_ISDIR( fileinfo.st_mode ) ) {
 #if defined(SYS_BSD)
@@ -704,6 +726,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
     if(ctx->rd)
     {
         free(path);
+        cpxm_init_condition( ctx, type, have_css );
         return ctx;
     }
     /**
@@ -716,6 +739,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
         free(ctx);
         return NULL;
     }
+    cpxm_init_condition( ctx, type, have_css );
     return ctx;
   }
 
@@ -923,6 +947,48 @@ static dvd_file_t *DVDOpenFilePath( dvd_reader_t *ctx, const char *filename )
   return dvd_file;
 }
 
+static uint8_t *cppm_get_mkb_or_backup( dvd_reader_t *ctx, int backup )
+{
+    uint8_t* p_mkb;
+    dvd_file_t* mkb_file;
+    char filename[ MAX_UDF_FILE_NAME_LEN ];
+
+    dvd_reader_device_t *dvd = ctx->rd;
+    switch(backup){
+      case 0:
+        strcpy( filename,  "/AUDIO_TS/DVDAUDIO.MKB");
+        break;
+      case 1:
+        strcpy( filename,  "/AUDIO_TS/DVDAUDIO.BUP");
+        break;
+    }
+ 
+    if( dvd->isImageFile ) {
+       mkb_file= DVDOpenFileUDF( ctx, filename, 0 );
+    } else {
+       mkb_file= DVDOpenFilePath( ctx, filename );
+    }
+
+    if ( !mkb_file )
+        return NULL;
+
+    p_mkb=malloc( mkb_file->filesize * DVD_VIDEO_LB_LEN );
+    if ( !p_mkb )
+        return NULL;
+
+    if ( !DVDReadBytes( mkb_file, p_mkb, mkb_file->filesize * DVD_VIDEO_LB_LEN ) ) {
+        free( p_mkb );
+        return NULL;
+    }
+
+    /* checking header */
+    if( ( !memcmp( p_mkb, "DVDAUDIO.MKB", 12 ) && !backup )
+        || ( !memcmp( p_mkb, "DVDAUDIO.BUP", 12 ) && backup ) )
+        return NULL;
+ 
+    return p_mkb;
+}
+
 static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
 {
   char filename[ MAX_UDF_FILE_NAME_LEN ];
@@ -941,7 +1007,11 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   dvd_file = calloc( 1, sizeof( dvd_file_t ) );
   if( !dvd_file ) return NULL;
   dvd_file->ctx = ctx;
-  /*Hack*/ dvd_file->css_title = title << 1 | menu;
+
+  /* css vars not used in CPXM */
+  if( ctx->dvd_type == DVD_V )
+      /*Hack*/ dvd_file->css_title = title << 1 | menu;
+
   dvd_file->lb_start = start;
   dvd_file->filesize = len / DVD_VIDEO_LB_LEN;
 
@@ -957,7 +1027,7 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
     }
   }
 
-  if( ctx->rd->css_state == 1 /* Need key init */ ) {
+  if( ctx->dvd_type == DVD_V && ctx->rd->css_state == 1 /* Need key init */ ) {
     initAllCSSKeys( ctx );
     ctx->rd->css_state = 2;
   }

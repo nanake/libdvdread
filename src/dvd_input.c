@@ -26,6 +26,7 @@
 #include <unistd.h>                              /* lseek */
 #include <string.h>                  /* strerror */
 #include <errno.h>
+#include <assert.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -44,6 +45,7 @@ int         (*dvdinput_close) (dvd_input_t);
 int         (*dvdinput_seek)  (dvd_input_t, int);
 int         (*dvdinput_title) (dvd_input_t, int);
 int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
+int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb);
 
 #ifdef HAVE_DVDCSS_DVDCSS_H
 /* linking to libdvdcss */
@@ -54,6 +56,17 @@ int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
 # define DVDcss_close   dvdcss_close
 # define DVDcss_seek    dvdcss_seek
 # define DVDcss_read    dvdcss_read
+/* linking cpxm functions*/
+#ifdef HAVE_DVDCSS_DVDCPXM_H
+# include <dvdcss/dvdcpxm.h>
+# define DVDcpxm_open_stream(a, b) \
+    dvdcpxm_open_stream((void*)(a), (dvdcss_stream_cb*)(b))
+# define DVDcpxm_open(a) dvdcss_open((char*)(a))
+# define DVDcpxm_close   dvdcpxm_close
+# define DVDcpxm_seek    dvdcpxm_seek
+# define DVDcpxm_read    dvdcpxm_read
+# define DVDcpxm_init    dvdcpxm_init
+#endif
 #else
 
 /* dlopening libdvdcss */
@@ -74,6 +87,16 @@ static int      (*DVDcss_close) (dvdcss_t);
 static int      (*DVDcss_seek)  (dvdcss_t, int, int);
 static int      (*DVDcss_read)  (dvdcss_t, void *, int, int);
 #define DVDCSS_SEEK_KEY (1 << 1)
+/* function to setup the cpxm struct */
+#ifdef HAVE_DVDCSS_DVDCPXM_H
+static dvdcss_t (*DVDcpxm_open_stream) (void *, dvdcss_stream_cb *);
+static dvdcss_t (*DVDcpxm_open)  (const char *);
+static int      (*DVDcpxm_close) (dvdcss_t);
+static int      (*DVDcpxm_seek)  (dvdcss_t, int, int);
+static int      (*DVDcpxm_read)  (dvdcss_t, void *, int, int);
+static int      (*DVDcpxm_init)  (dvdcss_t, uint8_t* p_mkb);
+#endif
+
 #endif
 
 #ifdef _WIN32
@@ -203,6 +226,44 @@ static int css_close(dvd_input_t dev)
 
   return ret;
 }
+
+#ifdef HAVE_DVDCSS_DVDCPXM_H
+/**
+ * seek into the device.
+ */
+static int cpxm_seek(dvd_input_t dev, int blocks)
+{
+  /* DVDINPUT_NOFLAGS should match the DVDCSS_NOFLAGS value. */
+  return DVDcpxm_seek(dev->dvdcss, blocks, DVDINPUT_NOFLAGS);
+}
+
+/**
+ * read data from the device.
+ */
+static int cpxm_read(dvd_input_t dev, void *buffer, int blocks, int flags)
+{
+  return DVDcpxm_read(dev->dvdcss, buffer, blocks, flags);
+}
+
+static int cpxm_close(dvd_input_t dev)
+{
+  int ret;
+
+  ret = DVDcpxm_close(dev->dvdcss);
+
+  free(dev);
+
+  return ret;
+}
+
+/**
+ * Setup Datastructure.
+ */
+static int cpxm_init(dvd_input_t dev, uint8_t* p_mkb )
+{
+  return DVDcpxm_init(dev->dvdcss, p_mkb);
+}
+#endif
 
 /**
  * initialize and open a DVD device or file.
@@ -396,7 +457,10 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
 {
   void *dvdcss_library = NULL;
 
-#if defined( HAVE_DVDCSS_DVDCSS_H )
+#ifdef HAVE_DVDCSS_DVDCPXM_H
+  /* linking to libdvdcss */
+  dvdcss_library = &dvdcss_library;  /* Give it some value != NULL */
+#elif defined( HAVE_DVDCSS_DVDCSS_H)
   if (dvda_flag ==DVD_V)
     dvdcss_library = &dvdcss_library;  /* Give it some value != NULL */
 #else
@@ -443,9 +507,24 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
         }
       break;
       case DVD_A:
+#ifdef HAVE_DVDCSS_DVDCPXM_H
+        DVDcpxm_open_stream = (dvdcss_t (*)(void *, dvdcss_stream_cb *))
+          dlsym(dvdcss_library, U_S "dvdcss_open_stream");
+        DVDcpxm_open = (dvdcss_t (*)(const char*))
+          dlsym(dvdcss_library, U_S "dvdcss_open");
+        DVDcpxm_close = (int (*)(dvdcss_t))
+          dlsym(dvdcss_library, U_S "dvdcpxm_close");
+        DVDcpxm_seek = (int (*)(dvdcss_t, int, int))
+          dlsym(dvdcss_library, U_S "dvdcpxm_seek");
+        DVDcpxm_read = (int (*)(dvdcss_t, void*, int, int))
+          dlsym(dvdcss_library, U_S "dvdcpxm_read");
+        DVDcpxm_init = (int (*)(dvdcss_t, uint8_t *p_mkb))
+          dlsym(dvdcss_library, U_S "dvdcpxm_init");
+#else 
         dlclose(dvdcss_library);
         dvdcss_library = NULL;
       break;
+#endif
     }
   } else if(!DVDcss_open || !DVDcss_close || !DVDcss_seek
             || !DVDcss_read) {
@@ -455,6 +534,16 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
     dlclose(dvdcss_library);
     dvdcss_library = NULL;
   }
+#ifdef HAVE_DVDCSS_DVDCPXM_H
+  } else if( ( !DVDcpxm_open || !DVDcpxm_close || !DVDcpxm_seek
+            || !DVDcpxm_read || !DVDcpxm_init ) && dvda_flag == DVD_A ) {
+    DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+               "Missing symbols in %s, "
+              "DVD-Audio support not present in libdvdcss", CSS_LIB);
+    dlclose(dvdcss_library);
+    dvdcss_library = NULL;
+  }
+#endif
 #endif /* HAVE_DVDCSS_DVDCSS_H */
 
   if(dvdcss_library != NULL) {
@@ -475,6 +564,17 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
         dvdinput_read  = css_read;
         break;
       case DVD_A:
+#ifdef HAVE_DVDCSS_DVDCPXM_H
+        dvdinput_open  = css_open;
+        dvdinput_close = cpxm_close;
+        dvdinput_seek  = cpxm_seek;
+        /* cpxm title is just seek */
+        dvdinput_title = cpxm_seek;
+        dvdinput_read  = cpxm_read;
+        dvdinput_init  = cpxm_init;
+#else 
+        assert(!"libdvdcss compiled without DVD-Audio (CPXM) support");
+#endif
         break;
     }
     return 1;
