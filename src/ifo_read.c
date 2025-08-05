@@ -79,7 +79,14 @@ static const uint8_t my_friendly_zeros[2048];
 
 /* Prototypes for internal functions */
 static int ifoRead_VMG(ifo_handle_t *ifofile);
+static int ifoRead_AMG(ifo_handle_t *ifofile);
+static int ifoRead_TT(ifo_handle_t *ifofile);
+static int ifoRead_TIF(ifo_handle_t *ifofile, int sector);
+/* Can be used to make simple dvd-a playback, no menus*/
+static int ifoRead_SAMG(ifo_handle_t *ifofile);
+
 static int ifoRead_VTS(ifo_handle_t *ifofile);
+static int ifoRead_ATS(ifo_handle_t *ifofile);
 static int ifoRead_PGC(ifo_handle_t *ifofile, pgc_t *pgc, unsigned int offset);
 static int ifoRead_PGC_COMMAND_TBL(ifo_handle_t *ifofile,
                                    pgc_command_tbl_t *cmd_tbl,
@@ -335,11 +342,12 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
     free(ifop);
     return NULL;
   }
-
+ 
   ifo_handle_t *ifofile = &ifop->handle;
   /* First check if this is a VMGI file. */
   if(ifoRead_VMG(ifofile)) {
 
+    ifofile->ifo_format=IFO_VIDEO;
     /* These are both mandatory. */
     if(!ifoRead_FP_PGC(ifofile) || !ifoRead_TT_SRPT(ifofile))
       goto ifoOpen_fail;
@@ -354,12 +362,13 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
     ifoRead_TXTDT_MGI(ifofile);
     ifoRead_C_ADT(ifofile);
     ifoRead_VOBU_ADMAP(ifofile);
-
+    
     return ifofile;
   }
 
   if(ifoRead_VTS(ifofile)) {
 
+    ifofile->ifo_format=IFO_VIDEO;
     if(!ifoRead_VTS_PTT_SRPT(ifofile) || !ifoRead_PGCIT(ifofile))
       goto ifoOpen_fail;
 
@@ -369,6 +378,34 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
     ifoRead_VOBU_ADMAP(ifofile);
 
     if(!ifoRead_TITLE_C_ADT(ifofile) || !ifoRead_TITLE_VOBU_ADMAP(ifofile))
+      goto ifoOpen_fail;
+
+    return ifofile;
+  }
+  
+  if(ifoRead_AMG(ifofile)){
+    ifofile->ifo_format=IFO_AUDIO;
+    /* same function for both tables, will not be the same table in the case of non hybrid discs */
+    if(!ifoRead_TIF(ifofile,1))
+      goto ifoOpen_fail;
+    if(!ifoRead_TIF(ifofile,2))
+      goto ifoOpen_fail;
+
+    /* Should read SAMG as it contains location to AOB pointers */
+    ifop->file = DVDOpenFile(ctx, 2, DVD_READ_SAMG_INFO);
+    if(!ifop->file)
+      goto ifoOpen_fail;
+    if(!ifoRead_SAMG(ifofile))
+      goto ifoOpen_fail;
+
+    return ifofile;
+  }
+
+
+  if(ifoRead_ATS(ifofile)){
+    ifofile->ifo_format=IFO_AUDIO;
+
+    if(!ifoRead_TT(ifofile))
       goto ifoOpen_fail;
 
     return ifofile;
@@ -480,11 +517,23 @@ ifo_handle_t *ifoOpenVTSI(dvd_reader_t *ctx, int title) {
   return NULL;
 }
 
+void ifoFree_TT(ifo_handle_t *ifofile){
+  for (int j=0;j<ifofile->atsi_title_table->nr_titles;j++){
+    free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_pointer_rows);
+    free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_timestamp_rows);
+  }
+  free(ifofile->atsi_title_table->atsi_title_row_tables);
+  free(ifofile->atsi_title_table->atsi_index_rows);
+  free(ifofile->atsi_title_table);
+  ifofile->atsi_title_table= NULL;
+}
 
 void ifoClose(ifo_handle_t *ifofile) {
   if(!ifofile)
     return;
 
+  switch (ifofile->ifo_format) {
+    case IFO_VIDEO:
   ifoFree_VOBU_ADMAP(ifofile);
   ifoFree_TITLE_VOBU_ADMAP(ifofile);
   ifoFree_C_ADT(ifofile);
@@ -504,7 +553,29 @@ void ifoClose(ifo_handle_t *ifofile) {
 
   if(ifofile->vtsi_mat)
     free(ifofile->vtsi_mat);
+    break;
+    case IFO_AUDIO:
+      if(ifofile->amgi_mat)
+        free(ifofile->amgi_mat);
 
+      if(ifofile->atsi_mat)
+        free(ifofile->atsi_mat);
+
+      if(ifofile->samg_mat){
+        free(ifofile->samg_mat->samg_chapters);
+        free(ifofile->samg_mat);
+      }
+
+      if(ifofile->info_table_first_sector){
+        free(ifofile->info_table_first_sector->tracks_info);
+        free(ifofile->info_table_first_sector);
+      }
+      if(ifofile->atsi_title_table)
+        ifoFree_TT(ifofile);
+      break;
+    case IFO_UNKNOWN:
+      break;
+  }
   struct ifo_handle_private_s *ifop = PRIV(ifofile);
   DVDCloseFile(ifop->file);
   free(ifop);
@@ -520,6 +591,7 @@ static int ifoRead_VMG(ifo_handle_t *ifofile) {
     return 0;
 
   ifofile->vmgi_mat = vmgi_mat;
+  ifofile->ifo_format= IFO_VIDEO;
 
   if(!DVDFileSeek_(ifop->file, 0)) {
     free(ifofile->vmgi_mat);
@@ -600,6 +672,300 @@ static int ifoRead_VMG(ifo_handle_t *ifofile) {
 
   CHECK_VALUE(vmgi_mat->nr_of_vmgm_audio_streams <= 1);
   CHECK_VALUE(vmgi_mat->nr_of_vmgm_subp_streams <= 1);
+
+  return 1;
+}
+
+static int ifoRead_SAMG(ifo_handle_t *ifofile) {
+  struct ifo_handle_private_s *ifop = PRIV(ifofile);
+  samg_mat_t *samg_mat;
+
+  samg_mat = calloc(1, sizeof(samg_mat_t));
+  if(!samg_mat)
+    return 0;
+
+
+  ifofile->samg_mat = samg_mat;
+
+  if(!DVDFileSeek_(ifop->file, 0)) {
+    free(ifofile->samg_mat);
+    ifofile->samg_mat = NULL;
+    return 0;
+  }
+
+  if(!DVDReadBytes(ifop->file, samg_mat, SAMG_MAT_SIZE)) {
+    free(ifofile->samg_mat);
+    ifofile->samg_mat = NULL;
+    return 0;
+  }
+
+  if(strncmp("DVDAUDIOSAPP", samg_mat->samg_identifier, 12) != 0) {
+    free(ifofile->samg_mat);
+    ifofile->samg_mat = NULL;
+    return 0;
+  }
+ 
+  B2N_16(samg_mat->nr_chapters);
+  B2N_16(samg_mat->specification_version);
+
+  samg_mat->samg_chapters = calloc(samg_mat->nr_chapters, sizeof(samg_chapter_t));
+  if(!samg_mat->samg_chapters){
+    free(ifofile->samg_mat);
+    ifofile->samg_mat = NULL;
+    return 0;
+  }
+
+  if(!DVDReadBytes(ifop->file, samg_mat->samg_chapters, samg_mat->nr_chapters* sizeof(samg_chapter_t))) {
+    free(ifofile->samg_mat->samg_chapters);
+    free(ifofile->samg_mat);
+    ifofile->samg_mat = NULL;
+    return 0;
+  }
+
+  for (int i=0; i<samg_mat->nr_chapters; i++) {
+    samg_chapter_t *index = &samg_mat->samg_chapters[i];
+    CHECK_ZERO(index->zero_1);
+    B2N_32(index->timestamp_pts);
+    B2N_32(index->chapter_len);
+    CHECK_ZERO(index->zero_2);
+    B2N_32(index->start_sector_1);
+    B2N_32(index->start_sector_2);
+    B2N_32(index->end_sector);
+    CHECK_ZERO(index->zero_3);
+  }
+
+
+  return 1;
+}
+
+static int ifoRead_TT(ifo_handle_t *ifofile){
+
+  struct ifo_handle_private_s *ifop = PRIV(ifofile);
+  atsi_title_table_t* atsi_title_table;
+
+  atsi_title_table= calloc(1, sizeof(atsi_title_table_t));
+  if(!atsi_title_table)
+    return 0;
+
+  ifofile->atsi_title_table= atsi_title_table;
+
+  if(!DVDFileSeek_(ifop->file, DVD_BLOCK_LEN)) {
+    free(ifofile->atsi_title_table);
+    ifofile->atsi_title_table= NULL;
+    return 0;
+  }
+
+  if(!DVDReadBytes(ifop->file, atsi_title_table, ATSI_TITLE_TABLE_SIZE)) {
+    free(ifofile->atsi_title_table);
+    ifofile->atsi_title_table= NULL;
+    return 0;
+  }
+
+  B2N_16(atsi_title_table->nr_titles);
+
+  atsi_title_table->atsi_index_rows= calloc(atsi_title_table->nr_titles,sizeof(atsi_title_index_t));
+  if(!atsi_title_table->atsi_index_rows){
+    free(ifofile->atsi_title_table);
+    ifofile->atsi_title_table= NULL;
+    return 0;
+  }
+
+
+  if(!DVDReadBytes(ifop->file, atsi_title_table->atsi_index_rows, atsi_title_table->nr_titles * sizeof(atsi_title_index_t))) {
+    free(ifofile->atsi_title_table->atsi_index_rows);
+
+    free(ifofile->atsi_title_table);
+    ifofile->atsi_title_table= NULL;
+    return 0;
+  }
+  
+  for(int i=0; i<atsi_title_table->nr_titles;i++)
+    B2N_32(atsi_title_table->atsi_index_rows[i].offset_record_table);
+  
+  
+  atsi_title_table->atsi_title_row_tables= calloc(atsi_title_table->nr_titles,sizeof(atsi_title_record_t));
+
+  if(!atsi_title_table->atsi_title_row_tables){
+    free(ifofile->atsi_title_table->atsi_index_rows);
+    free(ifofile->atsi_title_table);
+    ifofile->atsi_title_table= NULL;
+    return 0;
+  }
+
+  int i;
+  for (i=0;i<atsi_title_table->nr_titles; i++){
+    atsi_title_record_t *index=(atsi_title_table->atsi_title_row_tables+i);
+
+    if(!DVDFileSeek_(ifop->file, (atsi_title_table->atsi_index_rows+i)->offset_record_table +DVD_BLOCK_LEN))
+      goto fail_audio;
+
+    if(!DVDReadBytes(ifop->file, index,ATSI_TITLE_ROW_TABLE_SIZE))
+      goto fail_audio;
+
+    B2N_16(index->start_sector_pointers_table);
+    B2N_32(index->length_pts);
+    int nr_tracks=index->nr_tracks;
+    int nr_pointer_records=index->nr_pointer_records;
+
+    index->atsi_track_timestamp_rows= calloc(nr_tracks,sizeof(atsi_track_timestamp_t));
+    if(!index->atsi_track_timestamp_rows)
+      goto fail_audio;
+
+    index->atsi_track_pointer_rows= calloc(nr_pointer_records,sizeof(atsi_track_pointer_t));
+    if(!index->atsi_track_pointer_rows)
+      goto fail_audio;
+
+    if(!DVDReadBytes(ifop->file, index->atsi_track_timestamp_rows, nr_tracks* sizeof(atsi_track_timestamp_t))) {
+      free(index->atsi_track_timestamp_rows);
+      goto fail_audio;
+    }
+
+    if(!DVDFileSeek_(ifop->file, (atsi_title_table->atsi_index_rows+i)->offset_record_table +index->start_sector_pointers_table + DVD_BLOCK_LEN)) {
+      free(index->atsi_track_timestamp_rows);
+      free(index->atsi_track_pointer_rows);
+      goto fail_audio;
+    }
+
+    if(!DVDReadBytes(ifop->file, index->atsi_track_pointer_rows, nr_pointer_records* sizeof(atsi_track_pointer_t))) {
+      free(index->atsi_track_timestamp_rows);
+      free(index->atsi_track_pointer_rows);
+      goto fail_audio;
+    }
+    
+    for ( int j=0; j<nr_tracks;j++){
+      CHECK_ZERO(index->atsi_track_timestamp_rows[j].zero);
+      B2N_32(index->atsi_track_timestamp_rows[j].first_pts_of_track);
+      B2N_32(index->atsi_track_timestamp_rows[j].length_pts_of_track);
+    }
+
+    for ( int j=0; j<nr_pointer_records;j++){
+      B2N_32(index->atsi_track_pointer_rows[j].start_sector);
+      B2N_32(index->atsi_track_pointer_rows[j].end_sector);
+    }
+
+  }
+  return 1;
+
+  fail_audio:
+      for (int j=0;j<i;j++){
+        free((atsi_title_table->atsi_title_row_tables+j)->atsi_track_pointer_rows);
+        free((atsi_title_table->atsi_title_row_tables+j)->atsi_track_timestamp_rows);
+      }
+      free(atsi_title_table->atsi_title_row_tables);
+      free(ifofile->atsi_title_table->atsi_index_rows);
+      free(ifofile->atsi_title_table);
+      ifofile->atsi_title_table= NULL;
+      return 0;
+}
+
+static int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset){
+  /* check early if sector_offset corresponds to one of the tables */
+  if ( sector_offset != 2 && sector_offset != 1 )
+    return 0;
+
+  struct ifo_handle_private_s *ifop = PRIV(ifofile);
+  tracks_info_table_t* tracks_info_table;
+
+  tracks_info_table= calloc(1, sizeof(tracks_info_table_t));
+  if(!tracks_info_table)
+    return 0;
+
+  if(!DVDFileSeek_(ifop->file,DVD_BLOCK_LEN * sector_offset)) {
+    free(tracks_info_table);
+    return 0;
+  }
+
+  if(!DVDReadBytes(ifop->file, tracks_info_table,TRACKS_INFO_TABLE_SIZE)) {
+    free(tracks_info_table);
+    return 0;
+  }
+
+  B2N_16(tracks_info_table->nr_of_titles);
+  B2N_16(tracks_info_table->last_byte_in_table);
+
+  tracks_info_table->tracks_info= calloc(tracks_info_table->nr_of_titles,sizeof(track_info_t));
+  if(!tracks_info_table->tracks_info){
+    free(tracks_info_table);
+    return 0;
+  }
+
+  if(!DVDReadBytes(ifop->file, tracks_info_table->tracks_info, tracks_info_table->nr_of_titles * sizeof(track_info_t) )) {
+    free(tracks_info_table->tracks_info);
+    free(tracks_info_table);
+    return 0;
+  }
+
+  /* the second table is an audio_ts only table, the first is audio_ts, video_ts, strangly the nr_titles in second table doesnt match up with the true nr_titles for this table. Need to subtract video titles*/
+  for(int i=0; i<tracks_info_table->nr_of_titles;i++){
+    if (tracks_info_table->tracks_info[i].type_and_rank==0 && sector_offset == 2){
+     tracks_info_table->tracks_info = realloc(tracks_info_table->tracks_info,i*sizeof(track_info_t));
+     tracks_info_table->nr_of_titles=i;
+     break;
+    }
+    B2N_32(tracks_info_table->tracks_info[i].len_audio_zone_pts);
+    CHECK_ZERO(tracks_info_table->tracks_info[i].zero_1);
+    B2N_32(tracks_info_table->tracks_info[i].ts_pointer_relative_sector);
+  }
+
+  switch (sector_offset) {
+    case 1:
+      ifofile->info_table_first_sector= tracks_info_table;
+      break;
+    case 2:
+      ifofile->info_table_second_sector= tracks_info_table;
+      break;
+  }
+
+  return 1;
+}
+
+
+static int ifoRead_AMG(ifo_handle_t *ifofile) {
+  struct ifo_handle_private_s *ifop = PRIV(ifofile);
+  amgi_mat_t *amgi_mat;
+
+  amgi_mat = calloc(1, sizeof(amgi_mat_t));
+  if(!amgi_mat)
+    return 0;
+
+  ifofile->amgi_mat = amgi_mat;
+
+  if(!DVDFileSeek_(ifop->file, 0)) {
+    free(ifofile->amgi_mat);
+    ifofile->amgi_mat = NULL;
+    return 0;
+  }
+
+  if(!DVDReadBytes(ifop->file, amgi_mat, sizeof(amgi_mat_t))) {
+    free(ifofile->amgi_mat);
+    ifofile->amgi_mat = NULL;
+    return 0;
+  }
+
+  if(strncmp("DVDAUDIO-AMG", amgi_mat->amg_identifier, 12) != 0) {
+    free(ifofile->amgi_mat);
+    ifofile->amgi_mat = NULL;
+    return 0;
+  }
+  
+  /* Should be some checks and conversions here, will see about this later*/
+  B2N_32(amgi_mat->audio_sv_ifo_relative_p);
+  B2N_32(amgi_mat->amg_end_byte_address);
+  B2N_32(amgi_mat->amg_start_sector);
+  B2N_32(amgi_mat->amgi_last_sector);
+  B2N_16(amgi_mat->amg_nr_of_volumes);
+  B2N_16(amgi_mat->amg_this_volume_nr);
+  B2N_16(amgi_mat->amg_nr_of_zones);
+  CHECK_ZERO(amgi_mat->zero_1);
+  CHECK_ZERO(amgi_mat->zero_2);
+  CHECK_ZERO(amgi_mat->zero_3);
+  CHECK_ZERO(amgi_mat->zero_4);
+  CHECK_ZERO(amgi_mat->zero_5);
+  CHECK_ZERO(amgi_mat->zero_6);
+  CHECK_ZERO(amgi_mat->zero_7);
+  CHECK_ZERO(amgi_mat->zero_8);
+  CHECK_ZERO(amgi_mat->zero_9);
+  CHECK_ZERO(amgi_mat->zero_10);
 
   return 1;
 }
@@ -719,6 +1085,65 @@ static int ifoRead_VTS(ifo_handle_t *ifofile) {
 
   return 1;
 }
+
+static int ifoRead_ATS(ifo_handle_t *ifofile) {
+  struct ifo_handle_private_s *ifop = PRIV(ifofile);
+  atsi_mat_t *atsi_mat;
+
+  atsi_mat = calloc(1, sizeof(atsi_mat_t));
+  if(!atsi_mat)
+    return 0;
+
+  ifofile->atsi_mat = atsi_mat;
+
+  if(!DVDFileSeek_(ifop->file, 0)) {
+    free(ifofile->atsi_mat);
+    ifofile->atsi_mat = NULL;
+    return 0;
+  }
+
+  if(!(DVDReadBytes(ifop->file, atsi_mat, sizeof(atsi_mat_t)))) {
+    free(ifofile->atsi_mat);
+    ifofile->atsi_mat = NULL;
+    return 0;
+  }
+
+  if(strncmp("DVDAUDIO-ATS", atsi_mat->ats_identifier, 12) != 0) {
+    free(ifofile->atsi_mat);
+    ifofile->atsi_mat = NULL;
+    return 0;
+  }
+
+  //for (int i=0; i<ATSI_RECORD_MAX_SIZE;i++){
+  //  B2N_16(atsi_mat->atsi_record[i].encoding);
+  //  B2N_32(atsi_mat->atsi_record[i].audio_format);
+  //}
+
+  for (int i=0; i<DOWNMIX_COEFF_MAX_SIZE;i++){
+      B2N_64(atsi_mat->downmix_coeff[i]);
+  }
+  
+
+  B2N_32(atsi_mat->ats_last_sector);
+  B2N_32(atsi_mat->atsi_last_sector);
+  B2N_32(atsi_mat->atst_aobs);
+  B2N_32(atsi_mat->atsi_last_byte);
+  B2N_32(atsi_mat->ats_pgci_ut);
+  B2N_32(atsi_mat->vts_tmapt);
+  B2N_32(atsi_mat->vtsm_c_adt);
+  B2N_32(atsi_mat->vtsm_vobu_admap);
+  B2N_32(atsi_mat->vts_c_adt);
+  B2N_32(atsi_mat->vts_vobu_admap);
+
+
+  CHECK_ZERO(atsi_mat->zero_1);
+  CHECK_ZERO(atsi_mat->zero_2);
+  CHECK_ZERO(atsi_mat->zero_3);
+  CHECK_ZERO(atsi_mat->zero_4);
+
+  return 1;
+}
+
 
 
 static int ifoRead_PGC_COMMAND_TBL(ifo_handle_t *ifofile,

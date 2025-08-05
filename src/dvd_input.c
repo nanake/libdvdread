@@ -393,14 +393,13 @@ static int file_close(dvd_input_t dev)
 /**
  * Setup read functions with either libdvdcss or minimal DVD access.
  */
-int dvdinput_setup(void *priv, dvd_logger_cb *logcb)
+int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
 {
   void *dvdcss_library = NULL;
 
-#ifdef HAVE_DVDCSS_DVDCSS_H
-  /* linking to libdvdcss */
-  dvdcss_library = &dvdcss_library;  /* Give it some value != NULL */
-
+#if defined( HAVE_DVDCSS_DVDCSS_H )
+  if (dvda_flag ==DVD_V)
+    dvdcss_library = &dvdcss_library;  /* Give it some value != NULL */
 #else
   /* dlopening libdvdcss */
 
@@ -423,6 +422,10 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb)
 #else
 #define U_S
 #endif
+    /* functions should have the same template*/
+    switch(dvda_flag){
+      case DVD_V:
+      /* hybrid discs encrypt video tracks with css*/
     DVDcss_open_stream = (dvdcss_t (*)(void *, dvdcss_stream_cb *))
       dlsym(dvdcss_library, U_S "dvdcss_open_stream");
     DVDcss_open = (dvdcss_t (*)(const char*))
@@ -433,22 +436,25 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb)
       dlsym(dvdcss_library, U_S "dvdcss_seek");
     DVDcss_read = (int (*)(dvdcss_t, void*, int, int))
       dlsym(dvdcss_library, U_S "dvdcss_read");
-
     if(dlsym(dvdcss_library, U_S "dvdcss_crack")) {
       DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
                  "Old (pre-0.0.2) version of libdvdcss found. "
                 "libdvdread: You should get the latest version from "
                 "http://www.videolan.org/" );
-      dlclose(dvdcss_library);
-      dvdcss_library = NULL;
-    } else if(!DVDcss_open || !DVDcss_close || !DVDcss_seek
-              || !DVDcss_read) {
-      DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
-                 "Missing symbols in %s, "
-                "this shouldn't happen !", CSS_LIB);
-      dlclose(dvdcss_library);
-      dvdcss_library = NULL;
     }
+      break;
+      case DVD_A:
+        dlclose(dvdcss_library);
+        dvdcss_library = NULL;
+      break;
+    }
+  } else if(!DVDcss_open || !DVDcss_close || !DVDcss_seek
+            || !DVDcss_read) {
+    DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+               "Missing symbols in %s, "
+              "this shouldn't happen !", CSS_LIB);
+    dlclose(dvdcss_library);
+    dvdcss_library = NULL;
   }
 #endif /* HAVE_DVDCSS_DVDCSS_H */
 
@@ -461,11 +467,17 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb)
     */
 
     /* libdvdcss wrapper functions */
+    switch(dvda_flag){
+      case DVD_V:
     dvdinput_open  = css_open;
     dvdinput_close = css_close;
     dvdinput_seek  = css_seek;
     dvdinput_title = css_title;
     dvdinput_read  = css_read;
+        break;
+      case DVD_A:
+        break;
+    }
     return 1;
 
   } else {

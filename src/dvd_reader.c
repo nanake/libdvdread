@@ -461,7 +461,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
   /* Try to open DVD using stream_cb functions */
   if( priv != NULL && stream_cb != NULL )
   {
-    have_css = dvdinput_setup( ctx->priv, &ctx->logcb );
+    have_css = dvdinput_setup( ctx->priv, &ctx->logcb, type );
     ctx->rd = DVDOpenImageFile( ctx, NULL, stream_cb, have_css );
     if(!ctx->rd)
     {
@@ -479,7 +479,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
     goto DVDOpen_error;
 
   /* Try to open libdvdcss or fall back to standard functions */
-  have_css = dvdinput_setup( ctx->priv, &ctx->logcb );
+  have_css = dvdinput_setup( ctx->priv, &ctx->logcb, type );
 
 #if defined(_WIN32) || defined(__OS2__)
   /* Strip off the trailing \ if it is not a drive */

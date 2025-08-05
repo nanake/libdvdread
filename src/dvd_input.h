@@ -25,6 +25,7 @@
 /**
  * Defines and flags.  Make sure they fit the libdvdcss API!
  */
+#include "dvdread_internal.h"
 #define DVDINPUT_NOFLAGS         0
 
 #define DVDINPUT_READ_DECRYPT    (1 << 0)
@@ -62,10 +63,12 @@ extern int         (*dvdinput_close) (dvd_input_t);
 extern int         (*dvdinput_seek)  (dvd_input_t, int);
 extern int         (*dvdinput_title) (dvd_input_t, int);
 extern int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
-
+/* run to initialize DVD-Audio encryption */
+extern int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb);
 /**
  * Setup function accessed by dvd_reader.c.  Returns 1 if there is CSS support.
  */
-int dvdinput_setup(void *, dvd_logger_cb *);
+/* dvda flag enabled cpxm */
+int dvdinput_setup(void *, dvd_logger_cb *, dvd_type_t dvda_flag);
 
 #endif /* LIBDVDREAD_DVD_INPUT_H */
