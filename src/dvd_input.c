@@ -33,7 +33,6 @@
 #endif
 
 #include "dvdread/dvd_reader.h"      /* DVD_VIDEO_LB_LEN */
-#include "dvdread_internal.h"
 #include "dvd_input.h"
 #include "logger.h"
 
