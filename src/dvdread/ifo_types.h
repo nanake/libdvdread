@@ -26,7 +26,6 @@
 
 #include <dvdread/dvd_reader.h>
 
-
 #undef ATTRIBUTE_PACKED
 
 #if defined(__GNUC__)
@@ -440,6 +439,113 @@ typedef struct {
   subp_attr_t  zero_10[27];  /* XXX: how much 'padding' here? */
 } ATTRIBUTE_PACKED vmgi_mat_t;
 
+
+
+/**
+ * SAMG
+ *
+ * The following structures relate to the Simple Audio Manager, exclusive to DVD-Audio discs
+ */
+
+/**
+ * This is one of two of the DVD-A content managers, for simple audio dvd only players
+ */
+
+typedef struct {
+  uint16_t zero_1;
+  uint8_t  group_num;
+  uint8_t  chapter_num; /* chapter number within group*/
+  uint32_t timestamp_pts;
+  uint32_t chapter_len;
+  uint32_t zero_2;
+  uint8_t  record_code;
+  uint8_t  bit_depth;
+  uint8_t  sampling_rate;
+  uint8_t  nr_channels; 
+  uint8_t  zero_3[20];
+  uint32_t start_sector_1; /*aob start sector*/
+  uint32_t start_sector_2; /*aob start sector is repeated again */
+  uint32_t end_sector;
+} ATTRIBUTE_PACKED samg_chapter_t;
+#define SAMG_CHAPTER_SIZE 52U
+
+typedef struct {
+  char           samg_identifier[12];
+  uint16_t       nr_chapters;
+  uint16_t       specification_version;
+  samg_chapter_t *samg_chapters;
+} ATTRIBUTE_PACKED samg_mat_t;
+#define SAMG_MAT_SIZE 16U
+
+/**
+ * AMGI
+ *
+ * The following structures relate to the Audio Manager, exclusive to DVD-Audio discs
+ */
+
+/**
+ * Audio Manager Information Management Table.
+ */
+typedef struct {
+  char     amg_identifier[12];
+  uint32_t amg_start_sector;
+  uint8_t  zero_1[12];
+  uint32_t amgi_last_sector;
+  uint16_t specification_version;
+  uint8_t  zero_2[4];
+  uint16_t amg_nr_of_volumes;
+  uint16_t amg_this_volume_nr;
+  uint8_t  disc_side;
+  uint8_t  zero_3[4];
+  uint8_t  autoplay;
+  uint32_t audio_sv_ifo_relative_p;
+  uint8_t  zero_4[10];
+  uint8_t  vmg_nr_of_title_sets;  /* Number of video titlesets in audio zone. */
+  uint8_t  amg_nr_of_title_sets;  /* Number of audio titlesets in audio zone. */
+  uint8_t  unknown_1[32]; /* may be set to zeros */
+  uint8_t  unknown_2[8]; /* may be set to zeros */
+  uint8_t  zero_5[24];  
+  uint32_t amg_end_byte_address;
+  uint8_t  unknown_3[4]; /* may be set to zeros */
+  uint8_t  zero_6[56];  
+  uint16_t menu_prescence_1; /* may be set to zero, or some other value, optional field*/
+  uint8_t  unknown_4[4];  
+  uint16_t unknown_5; /* should be 0x01 */
+  uint8_t  zero_7[2];  
+  uint16_t amg_nr_of_zones; /* may be set to 0x02*/
+  uint8_t  zero_8[2];  
+  uint16_t menu_prescence_2; /* may be set to 0x03*/
+  uint8_t  zero_9[48];  
+  uint8_t  last_sector_audio_sys_space;  
+  uint8_t  zero_10[79];  
+  uint8_t  menu_prescence_3; /* will be set to 0x01*/
+    /* XXX lots of padding after this to complete the sector*/
+} ATTRIBUTE_PACKED amgi_mat_t;
+#define AMGI_MAT_SIZE 335U
+
+/* Sector 2 may have video tracks, sector 3 will not. If there are no video tracks the tables will be the same*/
+
+/*this struct repeats for every audio or video track*/
+typedef struct {
+  uint8_t  type_and_rank; /*first nibble is type, second rank, from 1-9*/
+  uint8_t  nr_chapters_in_title;
+  uint8_t  nr_visible_chapters_in_vts_title; /* this will be zeros in an audio record */
+  uint8_t  zero_1;
+  uint32_t len_audio_zone_pts;
+  uint8_t  group_property; /* in a video track, this is video titleset number, in audio its rank of group */
+  uint8_t  title_property; /* in video track this is title number , in audio track this is rank of title*/
+  uint32_t ts_pointer_relative_sector; /* for ats or vts*/
+} ATTRIBUTE_PACKED track_info_t;
+#define TRACK_INFO_SIZE 16U
+
+typedef struct {
+  uint16_t     nr_of_titles;
+  uint16_t     last_byte_in_table;
+  track_info_t *tracks_info;
+} ATTRIBUTE_PACKED tracks_info_table_t;
+#define TRACKS_INFO_TABLE_SIZE 4U
+
+
 typedef struct {
   unsigned char zero_1                    : 1;
   unsigned char multi_or_random_pgc_title : 1; /* 0: one sequential pgc title */
@@ -660,6 +766,113 @@ typedef struct {
   /* XXX: how much 'padding' here, if any? */
 } ATTRIBUTE_PACKED vtsi_mat_t;
 
+
+typedef struct {
+  /* 0x0000 for lpcm or 0x0100 for mlp, DTS seems to be 0x0500 and has different fields*/
+  uint8_t encoding;
+  uint8_t unknown1;
+  /* for stereo 0f 16 bit, 1f 20 bit, 2f 24 bit*/
+  /* f is a placeholder for the nibbles that is used for channel groups*/
+  /* otherwise if its 5.1 channels each nibble represents a channel group (G1, G2),*/
+  uint8_t  bitrate; 
+  /* 8f 44khz, 0f 48khz, 1f 96khz, 2f 192khz*/
+  /* otherwise if its 5.1 channels each nibble represents a channel group (G1, G2)*/
+  uint8_t  sampling_frequency; 
+  /* 00 1 channel, 01 2 channels, 11 5.1 channels*/
+  uint8_t  nr_channels;
+  uint8_t  unknown2;
+  uint8_t zero[10];
+} ATTRIBUTE_PACKED atsi_record_t;
+#define ATSI_RECORD_SIZE 16U
+
+/**
+ * ATS
+ *
+ * Structures relating to the Audio Title Set (ATS).
+ */
+
+/**
+ * Audio Title Set Information Management Table. Exclusive to DVD-Audio discs
+ */
+#define ATSI_RECORD_MAX_SIZE 8
+#define DOWNMIX_COEFF_MAX_SIZE 16
+
+typedef struct {
+  char          ats_identifier[12];
+  uint32_t      ats_last_sector; /* last sector of ATS_XX_0.BUP*/
+  uint8_t       zero_1[12];
+  uint32_t      atsi_last_sector; /* last sector of ATS_XX_0.IFO*/
+  uint16_t      specification_version;
+  uint32_t      unknown_1;
+  uint8_t       zero_2[90];
+  uint32_t      atsi_last_byte;
+  uint8_t       zero_3[60];
+  uint32_t      vtsm_vobs;       /* may be zeros */
+  uint32_t      atst_aobs;       /* atst or vtst */
+  uint32_t      vts_ptt_srpt;    /* may be zeros */
+  uint32_t      ats_pgci_ut;    /* sector */
+  uint32_t      vtsm_pgci_ut;    /* may be zeros */
+  uint32_t      vts_tmapt;       /* sector */
+  uint32_t      vtsm_c_adt;      /* sector */
+  uint32_t      vtsm_vobu_admap; /* sector */
+  uint32_t      vts_c_adt;       /* sector */
+  uint32_t      vts_vobu_admap;  /* sector */
+  uint8_t       zero_4[24];
+  atsi_record_t atsi_record[ATSI_RECORD_MAX_SIZE];
+  uint64_t      downmix_coeff[DOWNMIX_COEFF_MAX_SIZE];
+} ATTRIBUTE_PACKED atsi_mat_t;
+#define ATSI_MAT_SIZE 256U
+
+typedef struct {
+  uint16_t unknown_1; /* appears to be index, +0x100 for each iter*/
+  uint16_t unkown_2; /* either 0x0000 or 0x0100*/
+  uint32_t offset_record_table; 
+} ATTRIBUTE_PACKED atsi_title_index_t;
+#define ATSI_TITLE_INDEX_SIZE 8U
+
+/* this will be repeated for each track in each title*/
+typedef struct {
+  uint16_t unknown_1; /* will be 0x0000*/
+  uint16_t unknown_2; /* will be 0x0000*/
+  uint8_t  track_number_in_title;
+  uint8_t  unknown_3; /* will be 0x00*/
+  uint32_t first_pts_of_track;
+  uint32_t length_pts_of_track;
+  uint8_t  zero[6];
+} ATTRIBUTE_PACKED atsi_track_timestamp_t;
+#define ATSI_TRACK_TIMESTAMP_SIZE 20U
+
+/* this will come after all of the track timstamps, a set of 12byte sector pointer records. One for each track*/
+typedef struct {
+  uint32_t unknown_1; /* will be 0x01000000*/
+  uint32_t start_sector; /* relative to first AOB file*/
+  uint32_t end_sector; /* relative to first end of AOB file */
+} ATTRIBUTE_PACKED atsi_track_pointer_t;
+#define ATSI_TRACK_POINTER_SIZE 12U
+
+typedef struct {
+  uint16_t unknown_1; /* will be 0x0000*/
+  uint8_t  nr_tracks; /* unsure if this holds up for other files*/
+  uint8_t  nr_pointer_records; /* unsure if this holds up for other files*/
+  uint32_t length_pts;
+  uint16_t unknown_3; /* will be 0x0000*/
+  uint16_t unknown_4; /* will be 0x0010*/
+  uint16_t start_sector_pointers_table; /* pointer to start of sector pointers table, relative to start of title record*/
+  uint16_t unknown_5; /* will be 0x0000*/
+  atsi_track_timestamp_t *atsi_track_timestamp_rows; /*length determined by nr_tracks*/
+  atsi_track_pointer_t   *atsi_track_pointer_rows;
+} ATTRIBUTE_PACKED atsi_title_record_t;
+#define ATSI_TITLE_ROW_TABLE_SIZE 16U
+
+typedef struct {
+  uint16_t               nr_titles;
+  uint16_t               zero_1;
+  uint32_t               last_byte_address;
+  atsi_title_index_t     *atsi_index_rows;   /* length determined by nr_titles*/
+  atsi_title_record_t    *atsi_title_row_tables;   /* length determined by nr_titles*/
+} ATTRIBUTE_PACKED atsi_title_table_t;
+#define ATSI_TITLE_TABLE_SIZE 8U
+
 /**
  * PartOfTitle Unit Information.
  */
@@ -730,7 +943,21 @@ typedef struct {
  * VIDEO_TS.[IFO,BUP] file, and the VTSI, or Video Title Set Information, which
  * is read in from the VTS_XX_0.[IFO,BUP] files.
  */
+
+typedef enum{
+    IFO_UNKNOWN,
+    IFO_VIDEO,
+    IFO_AUDIO
+} ifo_format_t;
+
+/* format type will be used in order to reduce ammount of code refactoring, hopefully add some 
+ * detection mechanism later as well.
+ * */
 typedef struct {
+  
+  
+  union{
+    struct{
   /* VMGI */
   vmgi_mat_t     *vmgi_mat;
   tt_srpt_t      *tt_srpt;
@@ -751,6 +978,26 @@ typedef struct {
   vts_tmapt_t    *vts_tmapt;
   c_adt_t        *vts_c_adt;
   vobu_admap_t   *vts_vobu_admap;
+    };
+
+    struct{
+      /* SAMG */
+      samg_mat_t             *samg_mat;
+
+      /* AMGI */
+      amgi_mat_t             *amgi_mat;
+      tracks_info_table_t    *info_table_first_sector;
+      tracks_info_table_t    *info_table_second_sector;
+
+      /* ATSI */
+      atsi_mat_t             *atsi_mat;
+      atsi_title_table_t     *atsi_title_table;
+    };
+
+  };
+
+  ifo_format_t ifo_format;
+
 } ifo_handle_t;
 
 #endif /* LIBDVDREAD_IFO_TYPES_H */
