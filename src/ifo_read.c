@@ -534,25 +534,25 @@ void ifoClose(ifo_handle_t *ifofile) {
 
   switch (ifofile->ifo_format) {
     case IFO_VIDEO:
-  ifoFree_VOBU_ADMAP(ifofile);
-  ifoFree_TITLE_VOBU_ADMAP(ifofile);
-  ifoFree_C_ADT(ifofile);
-  ifoFree_TITLE_C_ADT(ifofile);
-  ifoFree_TXTDT_MGI(ifofile);
-  ifoFree_VTS_ATRT(ifofile);
-  ifoFree_PTL_MAIT(ifofile);
-  ifoFree_PGCI_UT(ifofile);
-  ifoFree_TT_SRPT(ifofile);
-  ifoFree_FP_PGC(ifofile);
-  ifoFree_PGCIT(ifofile);
-  ifoFree_VTS_PTT_SRPT(ifofile);
-  ifoFree_VTS_TMAPT(ifofile);
+      ifoFree_VOBU_ADMAP(ifofile);
+      ifoFree_TITLE_VOBU_ADMAP(ifofile);
+      ifoFree_C_ADT(ifofile);
+      ifoFree_TITLE_C_ADT(ifofile);
+      ifoFree_TXTDT_MGI(ifofile);
+      ifoFree_VTS_ATRT(ifofile);
+      ifoFree_PTL_MAIT(ifofile);
+      ifoFree_PGCI_UT(ifofile);
+      ifoFree_TT_SRPT(ifofile);
+      ifoFree_FP_PGC(ifofile);
+      ifoFree_PGCIT(ifofile);
+      ifoFree_VTS_PTT_SRPT(ifofile);
+      ifoFree_VTS_TMAPT(ifofile);
 
-  if(ifofile->vmgi_mat)
-    free(ifofile->vmgi_mat);
+      if(ifofile->vmgi_mat)
+        free(ifofile->vmgi_mat);
 
-  if(ifofile->vtsi_mat)
-    free(ifofile->vtsi_mat);
+      if(ifofile->vtsi_mat)
+        free(ifofile->vtsi_mat);
     break;
     case IFO_AUDIO:
       if(ifofile->amgi_mat)
