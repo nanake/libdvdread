@@ -36,6 +36,12 @@
 #define B2N_32(x) x = __builtin_bswap32(x)
 #define B2N_64(x) x = __builtin_bswap64(x)
 
+#elif defined (__GNUC__) && ((__GNUC__ > (4)) || (__GNUC__ == (4) && __GNUC_MINOR__ >= (8)))
+
+#define B2N_16(x) x = __builtin_bswap16(x)
+#define B2N_32(x) x = __builtin_bswap32(x)
+#define B2N_64(x) x = __builtin_bswap64(x)
+
 #else
 
 /* For __FreeBSD_version */
