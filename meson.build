@@ -20,7 +20,7 @@ cdata = configuration_data()
 dvdread_inc_dirs = include_directories('.', 'src', 'src/dvdread')
 
 # The version number for the shared library
-dvdread_soname_version = '8.0.0'
+dvdread_soname_version = '8.1.0'
 
 dvdread_version = meson.project_version()
 dvdread_version_split = dvdread_version.split('.')
