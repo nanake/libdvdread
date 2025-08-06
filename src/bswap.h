@@ -30,6 +30,12 @@
 #define B2N_32(x) (void)(x)
 #define B2N_64(x) (void)(x)
 
+#elif defined(__clang__) && __has_builtin (__builtin_bswap16)
+
+#define B2N_16(x) x = __builtin_bswap16(x)
+#define B2N_32(x) x = __builtin_bswap32(x)
+#define B2N_64(x) x = __builtin_bswap64(x)
+
 #else
 
 /* For __FreeBSD_version */
