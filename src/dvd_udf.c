@@ -887,7 +887,7 @@ uint32_t UDFFindFile( dvd_reader_t *ctx, const char *filename,
         return 0;
       if( !UDFMapICB( ctx, ICB, &filetype, &partition, &File ) )
         return 0;
-      if(!strcmp(token, "VIDEO_TS"))
+      if(!strcmp(token, DVD_TYPE_STRING( ctx->dvd_type ) ))
         cache_file_info = 1;
       token = strtok( NULL, "/" );
     }
