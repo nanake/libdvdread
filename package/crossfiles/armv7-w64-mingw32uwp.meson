@@ -1,0 +1,17 @@
+[binaries]
+c = 'armv7-w64-mingw32uwp-clang'
+cpp = 'armv7-w64-mingw32uwp-clang++'
+ar = 'armv7-w64-mingw32uwp-ar'
+strip = 'armv7-w64-mingw32uwp-strip'
+windres = 'armv7-w64-mingw32uwp-windres'
+pkg-config = 'pkg-config'
+
+[built-in options]
+c_link_args = ['-static-libgcc']
+c_args = ['-DWINAPI_FAMILY=WINAPI_FAMILY_APP', '-D__MSVCRT_VERSION__=0xE00', '-D_UCRT']
+
+[host_machine]
+system = 'windows'
+cpu_family = 'arm'
+cpu = 'armv7'
+endian = 'little'
