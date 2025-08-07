@@ -65,6 +65,19 @@ build-win-arm:
         matrix:
             - CROSSFILE: [armv7-w64-mingw32, aarch64-w64-mingw32]
 
+build-win-uwp:
+    image: registry.videolan.org/vlc-debian-llvm-ucrt:20250305204125
+    stage: build
+    tags:
+        - docker
+        - amd64
+    script:
+        - meson setup build --cross-file package/crossfiles/${CROSSFILE}.meson
+        - meson compile -C build
+    parallel:
+        matrix:
+            - CROSSFILE: [x86_64-w64-mingw32uwp, aarch64-w64-mingw32uwp, armv7-w64-mingw32uwp, i686-w64-mingw32uwp]
+
 build-wasm:
     image: registry.videolan.org/vlc-debian-wasm-emscripten:20250323132008
     stage: build
