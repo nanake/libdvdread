@@ -509,18 +509,19 @@ typedef struct {
   uint8_t  zero_3[4];
   uint8_t  autoplay;
   uint32_t audio_sv_ifo_relative_p;
-  uint8_t  zero_4[10];
+  uint16_t unknown_1; /* some discs have a value here, undocumented in DVD-Audio specs */
+  uint8_t  zero_4[8];
   uint8_t  vmg_nr_of_title_sets;  /* Number of video titlesets in audio zone. */
   uint8_t  amg_nr_of_title_sets;  /* Number of audio titlesets in audio zone. */
-  uint8_t  unknown_1[32]; /* may be set to zeros */
-  uint8_t  unknown_2[8]; /* may be set to zeros */
+  uint8_t  unknown_2[32]; /* may be set to zeros */
+  uint8_t  unknown_3[8]; /* may be set to zeros */
   uint8_t  zero_5[24];  
   uint32_t amg_end_byte_address;
-  uint8_t  unknown_3[4]; /* may be set to zeros */
+  uint8_t  unknown_4[4]; /* may be set to zeros */
   uint8_t  zero_6[56];  
   uint16_t menu_prescence_1; /* may be set to zero, or some other value, optional field*/
-  uint8_t  unknown_4[4];  
-  uint16_t unknown_5; /* should be 0x01 */
+  uint8_t  unknown_5[4];  
+  uint16_t unknown_6; /* should be 0x01 */
   uint8_t  zero_7[2];  
   uint16_t amg_nr_of_zones; /* may be set to 0x02*/
   uint8_t  zero_8[2];  
