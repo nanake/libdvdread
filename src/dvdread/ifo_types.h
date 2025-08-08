@@ -521,7 +521,7 @@ typedef struct {
   uint8_t  menu_prescence_3; /* will be set to 0x01*/
     /* XXX lots of padding after this to complete the sector*/
 } ATTRIBUTE_PACKED amgi_mat_t;
-#define AMGI_MAT_SIZE 335U
+#define AMGI_MAT_SIZE 337U
 
 /* Sector 2 may have video tracks, sector 3 will not. If there are no video tracks the tables will be the same*/
 
@@ -536,7 +536,7 @@ typedef struct {
   uint8_t  title_property; /* in video track this is title number , in audio track this is rank of title*/
   uint32_t ts_pointer_relative_sector; /* for ats or vts*/
 } ATTRIBUTE_PACKED track_info_t;
-#define TRACK_INFO_SIZE 16U
+#define TRACK_INFO_SIZE 14U
 
 typedef struct {
   uint16_t     nr_of_titles;
@@ -821,7 +821,7 @@ typedef struct {
   atsi_record_t atsi_record[ATSI_RECORD_MAX_SIZE];
   uint64_t      downmix_coeff[DOWNMIX_COEFF_MAX_SIZE];
 } ATTRIBUTE_PACKED atsi_mat_t;
-#define ATSI_MAT_SIZE 256U
+#define ATSI_MAT_SIZE 512U
 
 typedef struct {
   uint16_t unknown_1; /* appears to be index, +0x100 for each iter*/
