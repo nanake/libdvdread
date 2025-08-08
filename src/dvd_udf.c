@@ -525,9 +525,9 @@ static int UDFMapICB( dvd_reader_t *ctx, struct AD ICB, uint8_t *FileType,
   do {
     ret = DVDReadLBUDF( ctx, lbnum++, 1, LogBlock, 0 );
     if( ret < 0 ) {
-      return ret;
+      return 0;
     }
-    else if( ret == 0 ) {
+    if( ret == 0 ) {
       TagID = 0;
     }
     else {
@@ -589,7 +589,7 @@ static int UDFScanDir( dvd_reader_t *ctx, struct AD Dir, char *FileName,
         cached_dir_base = NULL;
         cached_dir = NULL;
         if( ret < 0 )
-            return ret;
+            return 0;
       }
       /*
       if(cached_dir) {
@@ -778,9 +778,9 @@ static int UDFFindPartition( dvd_reader_t *ctx, int partnum,
 
       ret = DVDReadLBUDF( ctx, lbnum++, 1, LogBlock, 0 );
       if( ret < 0 ) {
-        return ret;
+        return 0;
       }
-      else if( ret == 0 ) {
+      if( ret == 0 ) {
         TagID = 0;
       }
       else {
@@ -934,9 +934,9 @@ static int UDFGetDescriptor( dvd_reader_t *ctx, int id,
     do {
       ret = DVDReadLBUDF( ctx, lbnum++, 1, descriptor, 0 );
       if( ret < 0 ) {
-        return ret;
+        return 0;
       }
-      else if( ret == 0 ) {
+      if( ret == 0 ) {
         TagID = 0;
       }
       else {
