@@ -22,7 +22,11 @@ dvdread_src = files(
 if host_machine.system() == 'windows' and get_option('default_library') == 'static'
     api_export_flags = []
 else
-    api_export_flags = '-DDVDREAD_API_EXPORT'
+    api_export_flags = ['-DDVDREAD_API_EXPORT']
+endif
+
+if host_machine.system() == 'windows'
+    api_export_flags = [api_export_flags, '-D_CRT_SECURE_NO_WARNINGS']
 endif
 
 # The final libdvdread library
@@ -32,7 +36,7 @@ libdvdread = library('dvdread', dvdread_src,
         libdvdcss_dependency,
         libdl_dependency,
     ],
-    c_args: [api_export_flags],
+    c_args: api_export_flags,
     gnu_symbol_visibility: 'hidden',
     version: dvdread_soname_version,
     install: true,
