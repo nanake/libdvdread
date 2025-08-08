@@ -34,6 +34,10 @@
 #include <inttypes.h>
 #include <stdarg.h>
 
+#ifdef _MSC_VER
+typedef ptrdiff_t ssize_t;
+#endif
+
 #include <dvdread/attributes.h>
 
 /**
