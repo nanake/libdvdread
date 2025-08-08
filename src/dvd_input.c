@@ -31,6 +31,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include "../msvc/contrib/win32_cs.h"
+#include <io.h>                      /* _wopen */
 #endif
 
 #include "dvdread/dvd_reader.h"      /* DVD_VIDEO_LB_LEN */
