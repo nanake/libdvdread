@@ -44,7 +44,7 @@
 #include "dvdread/dvd_udf.h"
 
 /* It's required to either fail or deliver all the blocks asked for. */
-static int DVDReadLBUDF( dvd_reader_t *ctx, uint32_t lb_number,
+static ssize_t DVDReadLBUDF( dvd_reader_t *ctx, uint32_t lb_number,
                          size_t block_count, unsigned char *data,
                          int encrypted )
 {
@@ -65,7 +65,7 @@ static int DVDReadLBUDF( dvd_reader_t *ctx, uint32_t lb_number,
     lb_number += (uint32_t)ret;
   }
 
-  return block_count;
+  return (ssize_t)block_count;
 }
 
 struct Partition {
@@ -512,7 +512,7 @@ static int UDFMapICB( dvd_reader_t *ctx, struct AD ICB, uint8_t *FileType,
   uint32_t lbnum;
   uint16_t TagID;
   struct icbmap tmpmap;
-  int ret;
+  ssize_t ret;
 
   lbnum = partition->Start + ICB.Location;
   tmpmap.lbn = lbnum;
@@ -567,7 +567,7 @@ static int UDFScanDir( dvd_reader_t *ctx, struct AD Dir, char *FileName,
   uint8_t *cached_dir_base = NULL, *cached_dir;
   uint32_t dir_lba;
   struct AD tmpICB;
-  int ret;
+  ssize_t ret;
 
   /* Scan dir for ICB of file */
   lbnum = partition->Start + Dir.Location;
@@ -687,7 +687,7 @@ static int UDFGetAVDP( dvd_reader_t *ctx,
   uint32_t lastsector;
   int terminate;
   struct avdp_t;
-  int ret;
+  ssize_t ret;
 
   if(GetUDFCache(ctx, AVDPCache, 0, avdp))
     return 1;
@@ -758,7 +758,8 @@ static int UDFFindPartition( dvd_reader_t *ctx, int partnum,
   uint8_t *LogBlock = (uint8_t *)(((uintptr_t)LogBlock_base & ~((uintptr_t)2047)) + 2048);
   uint32_t lbnum, MVDS_location, MVDS_length;
   uint16_t TagID;
-  int i, volvalid, ret;
+  int i, volvalid;
+  ssize_t ret;
   struct avdp_t avdp;
 
   if(!UDFGetAVDP(ctx, &avdp))
@@ -826,7 +827,7 @@ uint32_t UDFFindFile( dvd_reader_t *ctx, const char *filename,
   struct AD RootICB, File, ICB;
   char tokenline[ MAX_UDF_FILE_NAME_LEN ];
   uint8_t filetype;
-  int ret;
+  ssize_t ret;
 
   *filesize = 0;
   tokenline[0] = '\0';
@@ -913,7 +914,8 @@ static int UDFGetDescriptor( dvd_reader_t *ctx, int id,
   uint32_t lbnum, MVDS_location, MVDS_length;
   struct avdp_t avdp;
   uint16_t TagID;
-  int i, desc_found = 0, ret;
+  int i, desc_found = 0;
+  ssize_t ret;
   /* Find Anchor */
   lbnum = 256;   /* Try #1, prime anchor */
   if(bufsize < DVD_VIDEO_LB_LEN)
