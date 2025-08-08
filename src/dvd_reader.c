@@ -482,10 +482,6 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
   if(logcb)
     ctx->logcb = *logcb;
 
-#if defined(_WIN32) || defined(__OS2__)
-      int len;
-#endif
-
   /* Try to open DVD using stream_cb functions */
   if( priv != NULL && stream_cb != NULL )
   {
@@ -512,7 +508,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
 
 #if defined(_WIN32) || defined(__OS2__)
   /* Strip off the trailing \ if it is not a drive */
-  len = strlen(path);
+  size_t len = strlen(path);
   if ((len > 1) &&
       (path[len - 1] == '\\')  &&
       (path[len - 2] != ':'))
