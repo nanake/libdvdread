@@ -420,18 +420,18 @@ ifoOpen_fail:
 static void ifoSetBupFlag(dvd_reader_t *ctx, int title)
 {
     if(title > 63)
-        ctx->ifoBUPflags[0] |= 1 << (title - 64);
+        ctx->ifoBUPflags[0] |= UINT64_C(1) << (title - 64);
     else
-        ctx->ifoBUPflags[1] |= 1 << title;
+        ctx->ifoBUPflags[1] |= UINT64_C(1) << title;
 }
 
 static int ifoGetBupFlag(const dvd_reader_t *ctx, int title)
 {
     int bupflag;
     if(title > 63)
-        bupflag = !! (ctx->ifoBUPflags[0] & (1 << (title - 64)));
+        bupflag = !! (ctx->ifoBUPflags[0] & (UINT64_C(1) << (title - 64)));
     else
-        bupflag = !! (ctx->ifoBUPflags[1] & (1 << title));
+        bupflag = !! (ctx->ifoBUPflags[1] & (UINT64_C(1) << title));
     return bupflag;
 }
 
