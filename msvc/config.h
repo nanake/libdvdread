@@ -30,17 +30,10 @@
 
 #define ssize_t __int64
 
-#ifndef PATH_MAX
-#define PATH_MAX MAX_PATH
-#endif
-
 #define strcasecmp stricmp
 #define strncasecmp strnicmp
 
 #define S_ISDIR(m) ((m) & _S_IFDIR)
-#define S_ISREG(m) ((m) & _S_IFREG)
-#define S_ISBLK(m) 0
-#define S_ISCHR(m) 0
 
 /* Fallback types (very x86-centric, sorry) */
 typedef unsigned char       uint8_t;

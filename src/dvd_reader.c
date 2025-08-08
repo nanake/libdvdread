@@ -63,6 +63,15 @@
 # include "msvc/contrib/win32_cs.h"
 #endif
 
+#if defined(_MSC_VER)
+// sys/stat.h values
+#define S_ISREG(m)  (((m) & _S_IFMT) == _S_IFREG)
+#define S_ISBLK(m) 0
+#define S_ISCHR(m) 0
+
+#define PATH_MAX _MAX_PATH
+#endif
+
 /* misc win32 helpers */
 
 #ifdef _WIN32
