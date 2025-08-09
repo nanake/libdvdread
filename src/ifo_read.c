@@ -1038,6 +1038,7 @@ static int ifoRead_AMG(ifo_handle_t *ifofile) {
   B2N_32(amgi_mat->amg_start_sector);
   B2N_32(amgi_mat->amgi_last_sector);
   B2N_16(amgi_mat->amg_nr_of_volumes);
+  B2N_16(amgi_mat->specification_version);
   B2N_16(amgi_mat->amg_this_volume_nr);
   B2N_16(amgi_mat->amg_nr_of_zones);
   CHECK_ZERO(amgi_mat->zero_1);
@@ -1050,6 +1051,7 @@ static int ifoRead_AMG(ifo_handle_t *ifofile) {
   CHECK_ZERO(amgi_mat->zero_8);
   CHECK_ZERO(amgi_mat->zero_9);
   CHECK_ZERO(amgi_mat->zero_10);
+  CHECK_VALUE(amgi_mat->specification_version == 0x0012);
 
   return 1;
 }
