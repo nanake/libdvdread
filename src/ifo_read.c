@@ -982,6 +982,15 @@ static int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset){
     B2N_32(tracks_info_table->tracks_info[i].ts_pointer_relative_sector);
   }
 
+  /* sanity check */
+  /* sector table two's size and end byte are always the same as sector one's table
+   * even though it will be equal to or smaller, since it only lists audio titles 
+   * sector two's table has been resized in the ifo to match it's true size */
+  if( sector_offset == 1 )
+    CHECK_VALUE( (TRACKS_INFO_TABLE_SIZE + 
+                  tracks_info_table->nr_of_titles * TRACK_INFO_SIZE -
+                  1) == tracks_info_table->last_byte_in_table );
+
   switch (sector_offset) {
     case 1:
       ifofile->info_table_first_sector= tracks_info_table;
