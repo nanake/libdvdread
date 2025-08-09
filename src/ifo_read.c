@@ -836,6 +836,7 @@ static int ifoRead_TT(ifo_handle_t *ifofile){
   }
 
   B2N_16(atsi_title_table->nr_titles);
+  B2N_32(atsi_title_table->last_byte_address);
 
   atsi_title_table->atsi_index_rows= calloc(atsi_title_table->nr_titles,sizeof(atsi_title_index_t));
   if(!atsi_title_table->atsi_index_rows){
