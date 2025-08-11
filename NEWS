@@ -1,10 +1,14 @@
 libdvdread (6.2.0)
- * Introduced DVDOpenStreamAudio, DVDOpenAudio for opening DVD-Audio discs
- * Added DVD-Audio IFO structs for AMGI, SAMG and ATS 
- * Added IFO read, print functions for AMGI, SAMG and ATS 
- * Added dvdcpxm integration from libdvdcss 1.5.0 for encrypted DVD-A Discs
+ * DVD-Audio support:
+     * Introduced DVDOpenStreamAudio, DVDOpenAudio for opening DVD-Audio discs
+     * Added DVD-Audio IFO structs for AMGI, SAMG and ATS
+     * Added IFO read, print functions for AMGI, SAMG and ATS
+     * Added dvdcpxm integration from libdvdcss 1.5.0 for encrypted DVD-A Discs
  * Switch build system to Meson
  * Use visibility attributes for exported symbols
+ * Docs and Readme updates
+ * Add missing stream callback functionality
+ * Misc improvements and solidification for the port of various platforms
 
 libdvdread (6.1.3)
  * Improvements for OpenBSD

@@ -1,6 +1,15 @@
-# Goals and features
+# libdvdread
 
-**libdvdread** is a library for simple navigation of DVD (DVDs without menus).
+**libdvdread** is a cross-platform library for simple navigation of DVDs.
+
+It supports multimedia DVDs: DVD-Video and DVD-Audio.
+
+It's been in use for more than 20 years to support any time of Disc.
+
+## Goals and features
+
+It focuses on DVD-Video and DVD-Audio; it does not support DVD menus, but
+provides the low-level access to those discs and the DVD structures.
 
 Written in C, cross-platform, it gives low-level access to DVD structures.
 
@@ -54,3 +63,11 @@ Note that *libdvdnav* is useful for interactive DVD menus.
 ## CoC
 
 The [VideoLAN Code of Conduct](https://wiki.videolan.org/Code_of_Conduct/) applies to this project.
+
+# Compile
+
+1. Install [Meson](https://mesonbuild.com/) (0.49 or higher), [Ninja](https://ninja-build.org/)
+2. Run `mkdir build && cd build` to create a build directory and enter it
+3. Run `meson setup ..` to configure meson, add `--default-library=static` if static linking is desired
+4. Run `ninja` to compile
+
