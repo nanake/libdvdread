@@ -675,7 +675,7 @@ static int UDFScanDir( dvd_reader_t *ctx, struct AD Dir, char *FileName,
 
 
 /**
- * Return 1 on success, 0 or negative on error.
+ * Return 1 on success, 0 on error.
  */
 static int UDFGetAVDP( dvd_reader_t *ctx,
                        struct avdp_t *avdp)
@@ -700,9 +700,9 @@ static int UDFGetAVDP( dvd_reader_t *ctx,
   for(;;) {
     ret = DVDReadLBUDF( ctx, lbnum, 1, Anchor, 0 );
     if( ret < 0 ) {
-      return ret;
+      return 0;
     }
-    else if( ret == 0 ) {
+    if( ret == 0 ) {
       TagID = 0;
     }
     else {
