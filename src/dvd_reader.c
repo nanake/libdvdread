@@ -1066,9 +1066,9 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
     if( title == 0 ) {
       /* there can not be an AUDIO_TS.AOB, there is however sometimes an AUDIO_TS.VOB menu */
       sprintf(filename, "%s_TS.VOB", DVD_TYPE_STRING( ctx->dvd_type ) );
-    } else {
-      sprintf( filename, "%cTS_%02i_0.%cOB",  STREAM_TYPE_STRING( ctx->dvd_type ) , title, 
-              STREAM_TYPE_STRING( ctx->dvd_type ) );
+    } else if ( ctx->dvd_type == DVD_V ) {
+      /* there are no ATS_%02i_0.AOB's */
+      sprintf( filename, "VTS_%02i_0.VOB", title );
     }
     if( !findDVDFile( ctx, filename, full_path ) ) {
       free( dvd_file );
@@ -1155,9 +1155,12 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
     break;
   case DVD_READ_MENU_VOBS:
     if( dvd->isImageFile ) {
-      return DVDOpenVOBUDF( ctx, titlenum, 1 );
+      /* there is only one DVD-Audio menu vob, this call should be restricted */
+      if ( ctx->dvd_type == DVD_A && titlenum != 0 ) 
+        Log2( ctx, "Defaulting to the only menu on DVD-Audio discs" );
+      return DVDOpenVOBUDF( ctx, ( ctx->dvd_type == DVD_V ? titlenum : 0 ), 1 );
     } else {
-      return DVDOpenVOBPath( ctx, titlenum, 1 );
+      return DVDOpenVOBPath( ctx, ( ctx->dvd_type == DVD_V ? titlenum : 0 ), 1 );
     }
     break;
   case DVD_READ_TITLE_VOBS:
