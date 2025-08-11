@@ -1,4 +1,4 @@
-libdvdread (6.2.0)
+libdvdread (7.0.0)
  * DVD-Audio support:
      * Introduced DVDOpenStreamAudio, DVDOpenAudio for opening DVD-Audio discs
      * Added DVD-Audio IFO structs for AMGI, SAMG and ATS

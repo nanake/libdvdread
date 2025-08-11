@@ -66,7 +66,7 @@ The [VideoLAN Code of Conduct](https://wiki.videolan.org/Code_of_Conduct/) appli
 
 # Compile
 
-1. Install [Meson](https://mesonbuild.com/) (0.49 or higher), [Ninja](https://ninja-build.org/)
+1. Install [Meson](https://mesonbuild.com/) (0.60 or higher), [Ninja](https://ninja-build.org/)
 2. Run `mkdir build && cd build` to create a build directory and enter it
 3. Run `meson setup ..` to configure meson, add `--default-library=static` if static linking is desired
 4. Run `ninja` to compile
