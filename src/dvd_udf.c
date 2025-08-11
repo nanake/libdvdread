@@ -674,6 +674,9 @@ static int UDFScanDir( dvd_reader_t *ctx, struct AD Dir, char *FileName,
 }
 
 
+/**
+ * Return 1 on success, 0 or negative on error.
+ */
 static int UDFGetAVDP( dvd_reader_t *ctx,
                        struct avdp_t *avdp)
 {
