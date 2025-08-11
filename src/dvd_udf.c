@@ -844,9 +844,9 @@ uint32_t UDFFindFile( dvd_reader_t *ctx, const char *filename,
     do {
       ret = DVDReadLBUDF( ctx, lbnum++, 1, LogBlock, 0 );
       if( ret < 0 ) {
-        return ret;
+        return 0;
       }
-      else if( ret == 0 ) {
+      if( ret == 0 ) {
         TagID = 0;
       }
       else {
@@ -896,8 +896,7 @@ uint32_t UDFFindFile( dvd_reader_t *ctx, const char *filename,
   /* Hack to not return partition.Start for empty files. */
   if( !File.Location )
     return 0;
-  else
-    return partition.Start + File.Location;
+  return partition.Start + File.Location;
 }
 
 
