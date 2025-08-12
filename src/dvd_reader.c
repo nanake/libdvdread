@@ -457,6 +457,8 @@ static int cpxm_init_condition( dvd_reader_t* ctx, dvd_type_t type, int have_css
         p_mkb = cppm_get_mkb_or_backup( ctx, 0 );
         if ( !p_mkb )
             p_mkb = cppm_get_mkb_or_backup( ctx, 1 );
+        if ( !p_mkb )
+            Log2(ctx, "There is no MKB on this DVD-Audio disc, so there likely no encryption");
         return dvdinput_init( ctx->rd->dev, p_mkb );
     }
     else
@@ -967,10 +969,15 @@ static uint8_t *cppm_get_mkb_or_backup( dvd_reader_t *ctx, int backup )
         strcpy( filename,  "/AUDIO_TS/DVDAUDIO.BUP");
         break;
     }
- 
+
+    uint32_t len; 
+
+    /* exits early if there is no MKB file */
     if( dvd->isImageFile ) {
+       if( !UDFFindFile( ctx, filename, &len ) ) return NULL;
        mkb_file= DVDOpenFileUDF( ctx, filename, 0 );
     } else {
+       if( !findDVDFile( ctx, filename, filename ) ) return NULL;
        mkb_file= DVDOpenFilePath( ctx, filename );
     }
 
