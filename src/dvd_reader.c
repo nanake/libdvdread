@@ -452,17 +452,18 @@ static uint8_t *cppm_get_mkb_or_backup( dvd_reader_t *ctx, int backup );
 /* this should only be called if libdvdcss is available and if the disc type is DVD-Audio */
 static int cpxm_init_condition( dvd_reader_t* ctx, dvd_type_t type, int have_css )
 {
-    if ( type == DVD_A && have_css ) {
-        uint8_t *p_mkb = NULL;
-        p_mkb = cppm_get_mkb_or_backup( ctx, 0 );
-        if ( !p_mkb )
-            p_mkb = cppm_get_mkb_or_backup( ctx, 1 );
-        if ( !p_mkb )
-            Log2(ctx, "There is no MKB on this DVD-Audio disc, so there likely no encryption");
-        return dvdinput_init( ctx->rd->dev, p_mkb );
-    }
-    else
-        return 0;
+  if ( type == DVD_A && have_css ) 
+  {
+    uint8_t *p_mkb = NULL;
+    p_mkb = cppm_get_mkb_or_backup( ctx, 0 );
+    if ( !p_mkb )
+      p_mkb = cppm_get_mkb_or_backup( ctx, 1 );
+    if ( !p_mkb )
+      Log2(ctx, "There is no MKB on this DVD-Audio disc, so there likely no encryption");
+    return dvdinput_init( ctx->rd->dev, p_mkb );
+  }
+  else
+    return 0;
 }
 
 static dvd_reader_t *DVDOpenCommon( void *priv,
@@ -752,7 +753,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
 
 DVDOpen_error:
   /* If it's none of the above, screw it. */
-  Log0(ctx, "Could not open %s", path );
+  Log0( ctx, "Could not open %s", path );
   free( path );
   free( path_copy );
   if ( cdir >= 0 )
@@ -818,13 +819,13 @@ static dvd_file_t *DVDOpenFileUDF( dvd_reader_t *ctx, const char *filename,
 
   start = UDFFindFile( ctx, filename, &len );
   if( !start ) {
-    Log0(ctx, "DVDOpenFileUDF:UDFFindFile %s failed", filename );
+    Log0( ctx, "DVDOpenFileUDF:UDFFindFile %s failed", filename );
     return NULL;
   }
 
   dvd_file = calloc( 1, sizeof( dvd_file_t ) );
   if( !dvd_file ) {
-    Log0(ctx, "DVDOpenFileUDF:malloc failed" );
+    Log0( ctx, "DVDOpenFileUDF:malloc failed" );
     return NULL;
   }
   dvd_file->ctx = ctx;
@@ -956,49 +957,53 @@ static dvd_file_t *DVDOpenFilePath( dvd_reader_t *ctx, const char *filename )
 
 static uint8_t *cppm_get_mkb_or_backup( dvd_reader_t *ctx, int backup )
 {
-    uint8_t* p_mkb;
-    dvd_file_t* mkb_file;
-    char filename[ MAX_UDF_FILE_NAME_LEN ];
+  uint8_t* p_mkb;
+  dvd_file_t* mkb_file;
+  char filename[ MAX_UDF_FILE_NAME_LEN ];
 
-    dvd_reader_device_t *dvd = ctx->rd;
-    switch(backup){
-      case 0:
-        strcpy( filename,  "/AUDIO_TS/DVDAUDIO.MKB");
-        break;
-      case 1:
-        strcpy( filename,  "/AUDIO_TS/DVDAUDIO.BUP");
-        break;
-    }
+  dvd_reader_device_t *dvd = ctx->rd;
+  switch( backup )
+  {
+    case 0:
+      strcpy( filename,  "/AUDIO_TS/DVDAUDIO.MKB" );
+      break;
+    case 1:
+      strcpy( filename,  "/AUDIO_TS/DVDAUDIO.BUP" );
+      break;
+  }
 
-    uint32_t len; 
+  uint32_t len; 
 
-    /* exits early if there is no MKB file */
-    if( dvd->isImageFile ) {
-       if( !UDFFindFile( ctx, filename, &len ) ) return NULL;
-       mkb_file= DVDOpenFileUDF( ctx, filename, 0 );
-    } else {
-       if( !findDVDFile( ctx, filename, filename ) ) return NULL;
-       mkb_file= DVDOpenFilePath( ctx, filename );
-    }
+  /* exits early if there is no MKB file */
+  if( dvd->isImageFile ) 
+  {
+    if( !UDFFindFile( ctx, filename, &len ) ) return NULL;
+    mkb_file= DVDOpenFileUDF( ctx, filename, 0 );
+  } else
+  {
+    if( !findDVDFile( ctx, filename, filename ) ) return NULL;
+    mkb_file= DVDOpenFilePath( ctx, filename );
+  }
 
-    if ( !mkb_file )
-        return NULL;
+  if ( !mkb_file )
+    return NULL;
 
-    p_mkb=malloc( mkb_file->filesize * DVD_VIDEO_LB_LEN );
-    if ( !p_mkb )
-        return NULL;
+  p_mkb = malloc( mkb_file->filesize * DVD_VIDEO_LB_LEN );
+  if ( !p_mkb )
+    return NULL;
 
-    if ( !DVDReadBytes( mkb_file, p_mkb, mkb_file->filesize * DVD_VIDEO_LB_LEN ) ) {
-        free( p_mkb );
-        return NULL;
-    }
+  if ( !DVDReadBytes( mkb_file, p_mkb, mkb_file->filesize * DVD_VIDEO_LB_LEN ) ) 
+  {
+    free( p_mkb );
+    return NULL;
+  }
 
-    /* checking header */
-    if( ( !memcmp( p_mkb, "DVDAUDIO.MKB", 12 ) && !backup )
+  /* checking header */
+  if( ( !memcmp( p_mkb, "DVDAUDIO.MKB", 12 ) && !backup )
         || ( !memcmp( p_mkb, "DVDAUDIO.BUP", 12 ) && backup ) )
-        return NULL;
- 
-    return p_mkb;
+    return NULL;
+
+  return p_mkb;
 }
 
 static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
@@ -1008,10 +1013,10 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   dvd_file_t *dvd_file;
 
   if( title == 0 ) {
-    sprintf(filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( ctx->dvd_type ), DVD_TYPE_STRING( ctx->dvd_type ) );
+    sprintf( filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( ctx->dvd_type ), DVD_TYPE_STRING( ctx->dvd_type ) );
   } else {
     sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( ctx->dvd_type ), STREAM_TYPE_STRING( ctx->dvd_type ),
-            title, menu ? 0 : 1, STREAM_TYPE_STRING( ctx->dvd_type ));
+            title, menu ? 0 : 1, STREAM_TYPE_STRING( ctx->dvd_type ) );
   }
   start = UDFFindFile( ctx, filename, &len );
   if( start == 0 ) return NULL;
@@ -1180,10 +1185,10 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
     break;
   case DVD_READ_SAMG_INFO:
     /* no other way to reach SAMG menu*/
-    strcpy( filename,  "/AUDIO_TS/AUDIO_PP.IFO");
+    strcpy( filename, "/AUDIO_TS/AUDIO_PP.IFO" );
     break;
   default:
-    Log1(ctx, "Invalid domain for file open." );
+    Log1( ctx, "Invalid domain for file open." );
     return NULL;
   }
 
@@ -1225,11 +1230,11 @@ static int DVDFileStatVOBUDF( dvd_reader_t *dvd, int title,
   int n;
 
   if( title == 0 )
-    sprintf(filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( dvd->dvd_type ),
+    sprintf( filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( dvd->dvd_type ),
             DVD_TYPE_STRING( dvd->dvd_type ) );
   else
     sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( dvd->dvd_type ), 
-            STREAM_TYPE_STRING( dvd->dvd_type ),  title, menu ? 0 : 1, STREAM_TYPE_STRING( dvd->dvd_type ) );
+            STREAM_TYPE_STRING( dvd->dvd_type ), title, menu ? 0 : 1, STREAM_TYPE_STRING( dvd->dvd_type ) );
 
   if( !UDFFindFile( dvd, filename, &size ) )
     return -1;
@@ -1274,7 +1279,7 @@ static int DVDFileStatVOBPath( dvd_reader_t *dvd, int title,
   int n;
 
   if( title == 0 )
-    sprintf(filename, "%s_TS.VOB", DVD_TYPE_STRING( dvd->dvd_type ));
+    sprintf( filename, "%s_TS.VOB", DVD_TYPE_STRING( dvd->dvd_type ) );
   else
     sprintf( filename, "%cTS_%02d_%d.%cOB", STREAM_TYPE_STRING( dvd->dvd_type ), title, menu ? 0 : 1, 
             STREAM_TYPE_STRING( dvd->dvd_type ) );
@@ -1283,7 +1288,7 @@ static int DVDFileStatVOBPath( dvd_reader_t *dvd, int title,
     return -1;
 
   if( dvdstat( full_path, &fileinfo ) < 0 ) {
-    Log1(dvd, "Can't stat() %s.", filename );
+    Log1( dvd, "Can't stat() %s.", filename );
     return -1;
   }
 
@@ -1300,7 +1305,7 @@ static int DVDFileStatVOBPath( dvd_reader_t *dvd, int title,
         break;
 
       if( dvdstat( full_path, &fileinfo ) < 0 ) {
-        Log1(dvd, "Can't stat() %s.", filename );
+        Log1( dvd, "Can't stat() %s.", filename );
         break;
       }
 
@@ -1337,14 +1342,14 @@ int DVDFileStat( dvd_reader_t *reader, int titlenum,
 
   case DVD_READ_INFO_FILE:
     if( titlenum == 0 )
-      sprintf(filename, "/%s_TS/%s_TS.IFO", DVD_TYPE_STRING( reader->dvd_type ), DVD_TYPE_STRING( reader->dvd_type ));
+      sprintf( filename, "/%s_TS/%s_TS.IFO", DVD_TYPE_STRING( reader->dvd_type ), DVD_TYPE_STRING( reader->dvd_type ) );
     else
       sprintf( filename, "/%s_TS/%cTS_%02i_0.IFO", DVD_TYPE_STRING( reader->dvd_type ), STREAM_TYPE_STRING( reader->dvd_type ) ,titlenum );
 
     break;
   case DVD_READ_INFO_BACKUP_FILE:
     if( titlenum == 0 )
-      sprintf(filename, "/%s_TS/%s_TS.BUP", DVD_TYPE_STRING( reader->dvd_type ), DVD_TYPE_STRING( reader->dvd_type ) );
+      sprintf( filename, "/%s_TS/%s_TS.BUP", DVD_TYPE_STRING( reader->dvd_type ), DVD_TYPE_STRING( reader->dvd_type ) );
     else
       sprintf( filename, "/%s_TS/%cTS_%02i_0.BUP", DVD_TYPE_STRING( reader->dvd_type ), STREAM_TYPE_STRING( reader->dvd_type ), titlenum );
 
@@ -1384,7 +1389,7 @@ int DVDFileStat( dvd_reader_t *reader, int titlenum,
 
     if( findDVDFile( reader, filename, full_path ) ) {
       if( dvdstat( full_path, &fileinfo ) < 0 )
-        Log1(reader, "Can't stat() %s.", filename );
+        Log1( reader, "Can't stat() %s.", filename );
       else {
         statbuf->size = fileinfo.st_size;
         statbuf->nr_parts = 1;
@@ -1404,13 +1409,13 @@ int InternalUDFReadBlocksRaw( const dvd_reader_t *ctx, uint32_t lb_number,
   int ret;
 
   if( !ctx->rd->dev ) {
-    Log0(ctx, "Fatal error in block read." );
+    Log0( ctx, "Fatal error in block read." );
     return -1;
   }
 
   ret = dvdinput_seek( ctx->rd->dev, (int) lb_number );
   if( ret != (int) lb_number ) {
-    Log1(ctx, "Can't seek to block %u", lb_number );
+    Log1( ctx, "Can't seek to block %u", lb_number );
     return ret;
   }
 
@@ -1473,7 +1478,7 @@ static int DVDReadBlocksPath( const dvd_file_t *dvd_file, unsigned int offset,
       if( ( offset + block_count ) <= dvd_file->title_sizes[ i ] ) {
         off = dvdinput_seek( dvd_file->title_devs[ i ], (int)offset );
         if( off < 0 || off != (int)offset ) {
-          Log1(ctx, "Can't seek to block %u", offset );
+          Log1( ctx, "Can't seek to block %u", offset );
           return off < 0 ? off : 0;
         }
         ret = dvdinput_read( dvd_file->title_devs[ i ], data,
@@ -1487,7 +1492,7 @@ static int DVDReadBlocksPath( const dvd_file_t *dvd_file, unsigned int offset,
         /* Read part 1 */
         off = dvdinput_seek( dvd_file->title_devs[ i ], (int)offset );
         if( off < 0 || off != (int)offset ) {
-          Log1(ctx, "Can't seek to block %u", offset );
+          Log1( ctx, "Can't seek to block %u", offset );
           return off < 0 ? off : 0;
         }
         ret = dvdinput_read( dvd_file->title_devs[ i ], data,
@@ -1503,7 +1508,7 @@ static int DVDReadBlocksPath( const dvd_file_t *dvd_file, unsigned int offset,
         /* Read part 2 */
         off = dvdinput_seek( dvd_file->title_devs[ i + 1 ], 0 );
         if( off < 0 || off != 0 ) {
-          Log1(ctx, "Can't seek to block %d", 0 );
+          Log1( ctx, "Can't seek to block %d", 0 );
           return off < 0 ? off : 0;
         }
         ret2 = dvdinput_read( dvd_file->title_devs[ i + 1 ],
@@ -1616,7 +1621,7 @@ ssize_t DVDReadBytes( dvd_file_t *dvd_file, void *data, size_t byte_size )
 
   secbuf_base = malloc( numsec * DVD_VIDEO_LB_LEN + 2048 );
   if( !secbuf_base ) {
-    Log0(ctx, "Can't allocate memory for file read" );
+    Log0( ctx, "Can't allocate memory for file read" );
     return 0;
   }
   secbuf = (unsigned char *)(((uintptr_t)secbuf_base & ~((uintptr_t)2047)) + 2048);
