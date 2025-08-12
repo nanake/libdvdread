@@ -1371,6 +1371,9 @@ int DVDFileStat( dvd_reader_t *reader, int titlenum,
       return DVDFileStatVOBPath( reader, titlenum, 0, statbuf );
 
     break;
+  case DVD_READ_SAMG_INFO:
+    strcpy( filename, "/AUDIO_TS/AUDIO_PP.IFO" );
+    break;
   default:
     Log1(reader, "Invalid domain for file stat." );
     errno = EINVAL;
