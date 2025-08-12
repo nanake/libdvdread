@@ -465,7 +465,7 @@ typedef struct {
   uint16_t zero_1;
   uint8_t  group_num;
   uint8_t  chapter_num; /* chapter number within group*/
-  uint32_t timestamp_pts;
+  uint32_t timestamp_pts; /* this is MPEG time, Not DVD time */
   uint32_t chapter_len;
   uint32_t zero_2;
   uint8_t  record_code;
@@ -542,7 +542,8 @@ typedef struct {
   uint8_t  nr_chapters_in_title;
   uint8_t  nr_visible_chapters_in_vts_title; /* this will be zeros in an audio record */
   uint8_t  zero_1;
-  uint32_t len_audio_zone_pts;
+  uint32_t len_audio_zone_pts; /* this is MPEG time, Not DVD time */
+
   uint8_t  group_property; /* in a video track, this is video titleset number, in audio its rank of group */
   uint8_t  title_property; /* in video track this is title number , in audio track this is rank of title*/
   uint32_t ts_pointer_relative_sector; /* for ats or vts*/
@@ -851,8 +852,10 @@ typedef struct {
   uint16_t unknown_2; /* will be 0x0000*/
   uint8_t  track_number_in_title;
   uint8_t  unknown_3; /* will be 0x00*/
-  uint32_t first_pts_of_track;
-  uint32_t length_pts_of_track;
+  uint32_t first_pts_of_track; /* this is MPEG time, Not DVD time */
+
+  uint32_t length_pts_of_track; /* this is MPEG time, Not DVD time */
+
   uint8_t  zero[6];
 } ATTRIBUTE_PACKED atsi_track_timestamp_t;
 #define ATSI_TRACK_TIMESTAMP_SIZE 20U
@@ -869,7 +872,8 @@ typedef struct {
   uint16_t unknown_1; /* will be 0x0000*/
   uint8_t  nr_tracks; /* unsure if this holds up for other files*/
   uint8_t  nr_pointer_records; /* unsure if this holds up for other files*/
-  uint32_t length_pts;
+  uint32_t length_pts; /* this is MPEG time, Not DVD time */
+
   uint16_t unknown_3; /* will be 0x0000*/
   uint16_t unknown_4; /* will be 0x0010*/
   uint16_t start_sector_pointers_table; /* pointer to start of sector pointers table, relative to start of title record*/
