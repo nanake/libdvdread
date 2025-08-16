@@ -606,7 +606,7 @@ void ifoClose(ifo_handle_t *ifofile) {
   if(!ifofile)
     return;
 
-  switch (ifofile->ifo_format) {
+  switch(ifofile->ifo_format) {
     case IFO_VIDEO:
       ifoFree_VOBU_ADMAP(ifofile);
       ifoFree_TITLE_VOBU_ADMAP(ifofile);
@@ -783,20 +783,21 @@ static int ifoRead_SAMG(ifo_handle_t *ifofile) {
   B2N_16(samg_mat->specification_version);
 
   samg_mat->samg_chapters = calloc(samg_mat->nr_chapters, sizeof(samg_chapter_t));
-  if(!samg_mat->samg_chapters){
+  if(!samg_mat->samg_chapters) {
     free(ifofile->samg_mat);
     ifofile->samg_mat = NULL;
     return 0;
   }
 
-  if(!DVDReadBytes(ifop->file, samg_mat->samg_chapters, samg_mat->nr_chapters* sizeof(samg_chapter_t))) {
+  if(!DVDReadBytes(ifop->file, samg_mat->samg_chapters, 
+                   samg_mat->nr_chapters * sizeof(samg_chapter_t))) {
     free(ifofile->samg_mat->samg_chapters);
     free(ifofile->samg_mat);
     ifofile->samg_mat = NULL;
     return 0;
   }
 
-  for (int i=0; i<samg_mat->nr_chapters; i++) {
+  for (int i = 0; i < samg_mat->nr_chapters; i++) {
     samg_chapter_t *index = &samg_mat->samg_chapters[i];
     CHECK_ZERO(index->zero_1);
     B2N_32(index->timestamp_pts);
@@ -808,113 +809,116 @@ static int ifoRead_SAMG(ifo_handle_t *ifofile) {
     CHECK_ZERO(index->zero_3);
   }
 
-
   return 1;
 }
 
-static int ifoRead_TT(ifo_handle_t *ifofile){
+static int ifoRead_TT(ifo_handle_t *ifofile) {
 
   struct ifo_handle_private_s *ifop = PRIV(ifofile);
-  atsi_title_table_t* atsi_title_table;
+  atsi_title_table_t *atsi_title_table;
 
   atsi_title_table= calloc(1, sizeof(atsi_title_table_t));
+
   if(!atsi_title_table)
     return 0;
 
-  ifofile->atsi_title_table= atsi_title_table;
+  ifofile->atsi_title_table = atsi_title_table;
 
   if(!DVDFileSeek_(ifop->file, DVD_BLOCK_LEN)) {
     free(ifofile->atsi_title_table);
-    ifofile->atsi_title_table= NULL;
+    ifofile->atsi_title_table = NULL;
     return 0;
   }
 
   if(!DVDReadBytes(ifop->file, atsi_title_table, ATSI_TITLE_TABLE_SIZE)) {
     free(ifofile->atsi_title_table);
-    ifofile->atsi_title_table= NULL;
+    ifofile->atsi_title_table = NULL;
     return 0;
   }
 
   B2N_16(atsi_title_table->nr_titles);
   B2N_32(atsi_title_table->last_byte_address);
 
-  atsi_title_table->atsi_index_rows= calloc(atsi_title_table->nr_titles,sizeof(atsi_title_index_t));
-  if(!atsi_title_table->atsi_index_rows){
+  atsi_title_table->atsi_index_rows = calloc(atsi_title_table->nr_titles,sizeof(atsi_title_index_t));
+  if(!atsi_title_table->atsi_index_rows) {
     free(ifofile->atsi_title_table);
-    ifofile->atsi_title_table= NULL;
+    ifofile->atsi_title_table = NULL;
     return 0;
   }
 
 
-  if(!DVDReadBytes(ifop->file, atsi_title_table->atsi_index_rows, atsi_title_table->nr_titles * sizeof(atsi_title_index_t))) {
+  if(!DVDReadBytes(ifop->file, atsi_title_table->atsi_index_rows, 
+                   atsi_title_table->nr_titles * sizeof(atsi_title_index_t))) {
     free(ifofile->atsi_title_table->atsi_index_rows);
-
     free(ifofile->atsi_title_table);
-    ifofile->atsi_title_table= NULL;
+    ifofile->atsi_title_table = NULL;
     return 0;
   }
   
-  for(int i=0; i<atsi_title_table->nr_titles;i++)
+  for(int i=0; i<atsi_title_table->nr_titles; i++)
     B2N_32(atsi_title_table->atsi_index_rows[i].offset_record_table);
   
   
-  atsi_title_table->atsi_title_row_tables= calloc(atsi_title_table->nr_titles,sizeof(atsi_title_record_t));
+  atsi_title_table->atsi_title_row_tables = calloc(atsi_title_table->nr_titles, sizeof(atsi_title_record_t));
 
-  if(!atsi_title_table->atsi_title_row_tables){
+  if(!atsi_title_table->atsi_title_row_tables) {
     free(ifofile->atsi_title_table->atsi_index_rows);
     free(ifofile->atsi_title_table);
-    ifofile->atsi_title_table= NULL;
+    ifofile->atsi_title_table = NULL;
     return 0;
   }
 
   int i;
-  for (i=0;i<atsi_title_table->nr_titles; i++){
-    atsi_title_record_t *index=(atsi_title_table->atsi_title_row_tables+i);
+  for (i=0; i < atsi_title_table->nr_titles; i++){
+    atsi_title_record_t *index = (atsi_title_table->atsi_title_row_tables + i);
 
     uint32_t record_offset = (atsi_title_table->atsi_index_rows+i)->offset_record_table;
-    if( !DVDFileSeek_( ifop->file, record_offset + DVD_BLOCK_LEN ) )
+    if(!DVDFileSeek_(ifop->file, record_offset + DVD_BLOCK_LEN))
       goto fail_audio;
 
-    if(!DVDReadBytes(ifop->file, index,ATSI_TITLE_ROW_TABLE_SIZE))
+    if(!DVDReadBytes(ifop->file, index, ATSI_TITLE_ROW_TABLE_SIZE))
       goto fail_audio;
 
     B2N_16(index->start_sector_pointers_table);
     B2N_32(index->length_pts);
     int nr_tracks=index->nr_tracks;
-    int nr_pointer_records=index->nr_pointer_records;
+    int nr_pointer_records = index->nr_pointer_records;
 
-    index->atsi_track_timestamp_rows= calloc(nr_tracks,sizeof(atsi_track_timestamp_t));
+    index->atsi_track_timestamp_rows = calloc(nr_tracks, sizeof(atsi_track_timestamp_t));
     if(!index->atsi_track_timestamp_rows)
       goto fail_audio;
 
-    index->atsi_track_pointer_rows= calloc(nr_pointer_records,sizeof(atsi_track_pointer_t));
+    index->atsi_track_pointer_rows = calloc(nr_pointer_records, sizeof(atsi_track_pointer_t));
     if(!index->atsi_track_pointer_rows)
       goto fail_audio;
 
-    if(!DVDReadBytes(ifop->file, index->atsi_track_timestamp_rows, nr_tracks* sizeof(atsi_track_timestamp_t))) {
+    if(!DVDReadBytes(ifop->file, index->atsi_track_timestamp_rows,
+                     nr_tracks * sizeof(atsi_track_timestamp_t))) {
       free(index->atsi_track_timestamp_rows);
       goto fail_audio;
     }
 
-    if(!DVDFileSeek_(ifop->file, (atsi_title_table->atsi_index_rows+i)->offset_record_table +index->start_sector_pointers_table + DVD_BLOCK_LEN)) {
+    if(!DVDFileSeek_(ifop->file, (atsi_title_table->atsi_index_rows + i)->offset_record_table
+                     + index->start_sector_pointers_table + DVD_BLOCK_LEN)) {
       free(index->atsi_track_timestamp_rows);
       free(index->atsi_track_pointer_rows);
       goto fail_audio;
     }
 
-    if(!DVDReadBytes(ifop->file, index->atsi_track_pointer_rows, nr_pointer_records* sizeof(atsi_track_pointer_t))) {
+    if(!DVDReadBytes(ifop->file, index->atsi_track_pointer_rows,
+                     nr_pointer_records * sizeof(atsi_track_pointer_t))) {
       free(index->atsi_track_timestamp_rows);
       free(index->atsi_track_pointer_rows);
       goto fail_audio;
     }
     
-    for ( int j=0; j<nr_tracks;j++){
+    for (int j = 0; j<nr_tracks; j++) {
       CHECK_ZERO(index->atsi_track_timestamp_rows[j].zero);
       B2N_32(index->atsi_track_timestamp_rows[j].first_pts_of_track);
       B2N_32(index->atsi_track_timestamp_rows[j].length_pts_of_track);
     }
 
-    for ( int j=0; j<nr_pointer_records;j++){
+    for (int j = 0; j<nr_pointer_records; j++) {
       B2N_32(index->atsi_track_pointer_rows[j].start_sector);
       B2N_32(index->atsi_track_pointer_rows[j].end_sector);
     }
@@ -928,24 +932,24 @@ static int ifoRead_TT(ifo_handle_t *ifofile){
   return 1;
 
   fail_audio:
-      for (int j=0;j<i;j++){
-        free((atsi_title_table->atsi_title_row_tables+j)->atsi_track_pointer_rows);
-        free((atsi_title_table->atsi_title_row_tables+j)->atsi_track_timestamp_rows);
+      for (int j = 0; j < i; j++){
+        free((atsi_title_table->atsi_title_row_tables + j)->atsi_track_pointer_rows);
+        free((atsi_title_table->atsi_title_row_tables + j)->atsi_track_timestamp_rows);
       }
       free(atsi_title_table->atsi_title_row_tables);
       free(ifofile->atsi_title_table->atsi_index_rows);
       free(ifofile->atsi_title_table);
-      ifofile->atsi_title_table= NULL;
+      ifofile->atsi_title_table = NULL;
       return 0;
 }
 
-static int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset){
+static int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset) {
   /* check early if sector_offset corresponds to one of the tables */
-  if ( sector_offset != 2 && sector_offset != 1 )
+  if (sector_offset != 2 && sector_offset != 1)
     return 0;
 
   struct ifo_handle_private_s *ifop = PRIV(ifofile);
-  tracks_info_table_t* tracks_info_table;
+  tracks_info_table_t *tracks_info_table;
 
   tracks_info_table= calloc(1, sizeof(tracks_info_table_t));
   if(!tracks_info_table)
@@ -964,24 +968,25 @@ static int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset){
   B2N_16(tracks_info_table->nr_of_titles);
   B2N_16(tracks_info_table->last_byte_in_table);
 
-  tracks_info_table->tracks_info= calloc(tracks_info_table->nr_of_titles,sizeof(track_info_t));
-  if(!tracks_info_table->tracks_info){
+  tracks_info_table->tracks_info = calloc(tracks_info_table->nr_of_titles,sizeof(track_info_t));
+  if(!tracks_info_table->tracks_info) {
     free(tracks_info_table);
     return 0;
   }
 
-  if(!DVDReadBytes(ifop->file, tracks_info_table->tracks_info, tracks_info_table->nr_of_titles * sizeof(track_info_t) )) {
+  if(!DVDReadBytes(ifop->file, tracks_info_table->tracks_info,
+                   tracks_info_table->nr_of_titles * sizeof(track_info_t))) {
     free(tracks_info_table->tracks_info);
     free(tracks_info_table);
     return 0;
   }
 
   /* the second table is an audio_ts only table, the first is audio_ts, video_ts, strangly the nr_titles in second table doesnt match up with the true nr_titles for this table. Need to subtract video titles*/
-  for(int i=0; i<tracks_info_table->nr_of_titles;i++){
-    if (tracks_info_table->tracks_info[i].type_and_rank==0 && sector_offset == 2){
-     tracks_info_table->tracks_info = realloc(tracks_info_table->tracks_info,i*sizeof(track_info_t));
-     tracks_info_table->nr_of_titles=i;
-     break;
+  for(int i=0; i<tracks_info_table->nr_of_titles; i++) {
+    if(tracks_info_table->tracks_info[i].type_and_rank==0 && sector_offset == 2) {
+      tracks_info_table->tracks_info = realloc(tracks_info_table->tracks_info, i * sizeof(track_info_t));
+      tracks_info_table->nr_of_titles = i;
+      break;
     }
     B2N_32(tracks_info_table->tracks_info[i].len_audio_zone_pts);
     CHECK_ZERO(tracks_info_table->tracks_info[i].zero_1);
@@ -992,17 +997,17 @@ static int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset){
   /* sector table two's size and end byte are always the same as sector one's table
    * even though it will be equal to or smaller, since it only lists audio titles 
    * sector two's table has been resized in the ifo to match it's true size */
-  if( sector_offset == 1 )
+  if(sector_offset == 1)
     CHECK_VALUE( (TRACKS_INFO_TABLE_SIZE + 
                   tracks_info_table->nr_of_titles * TRACK_INFO_SIZE -
                   1) == tracks_info_table->last_byte_in_table );
 
-  switch (sector_offset) {
+  switch(sector_offset) {
     case 1:
-      ifofile->info_table_first_sector= tracks_info_table;
+      ifofile->info_table_first_sector = tracks_info_table;
       break;
     case 2:
-      ifofile->info_table_second_sector= tracks_info_table;
+      ifofile->info_table_second_sector = tracks_info_table;
       break;
   }
 
@@ -1206,12 +1211,7 @@ static int ifoRead_ATS(ifo_handle_t *ifofile) {
     return 0;
   }
 
-  //for (int i=0; i<ATSI_RECORD_MAX_SIZE;i++){
-  //  B2N_16(atsi_mat->atsi_record[i].encoding);
-  //  B2N_32(atsi_mat->atsi_record[i].audio_format);
-  //}
-
-  for (int i=0; i<DOWNMIX_COEFF_MAX_SIZE;i++){
+  for (int i=0; i < DOWNMIX_COEFF_MAX_SIZE; i++){
       B2N_64(atsi_mat->downmix_coeff[i]);
   }
   
