@@ -196,6 +196,7 @@ CHECK_STRUCT_SIZE(atsi_track_timestamp_t, 0, ATSI_TRACK_TIMESTAMP_SIZE);
 CHECK_STRUCT_SIZE(atsi_track_pointer_t,   0, ATSI_TRACK_POINTER_SIZE);
 CHECK_STRUCT_SIZE(atsi_title_record_t,    2, ATSI_TITLE_ROW_TABLE_SIZE);
 CHECK_STRUCT_SIZE(atsi_title_table_t,     2, ATSI_TITLE_TABLE_SIZE);
+CHECK_STRUCT_SIZE(downmix_coeff_t,        0, DOWNMIX_COEFF_SIZE);
 
 static void read_video_attr(video_attr_t *va) {
   getbits_state_t state;
@@ -1211,8 +1212,9 @@ static int ifoRead_ATS(ifo_handle_t *ifofile) {
     return 0;
   }
 
-  for (int i=0; i < DOWNMIX_COEFF_MAX_SIZE; i++){
-      B2N_64(atsi_mat->downmix_coeff[i]);
+  for (int i=0; i < DOWNMIX_COEFF_MAX_SIZE; i++) {
+    CHECK_ZERO(atsi_mat->downmix_coefficients[i].zero_1);
+    CHECK_ZERO(atsi_mat->downmix_coefficients[i].zero_2);
   }
   
 

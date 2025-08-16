@@ -449,6 +449,48 @@ typedef struct {
 } ATTRIBUTE_PACKED vmgi_mat_t;
 #define VMGI_MAT_SIZE 510U
 
+/* Downmix coefficients can be used to reduce 5.1 channels to stereo in DVD-Audio Discs */
+/** Downmix equations
+ * Left_out  = Lf_left  * Lf
+ *           + Rf_left  * Rf
+ *           + C_left   * C
+ *           + LFE_left * LFE
+ *           + Ls_left  * Ls
+ *           + Rs_left  * Rs;
+ * 
+ * Right_out = Lf_right  * Lf
+ *           + Rf_right  * Rf
+ *           + C_right   * C
+ *           + LFE_right * LFE
+ *           + Ls_right  * Ls
+ *           + Rs_right  * Rs;
+ * 
+ * Where:
+ *   - Lf, Rf, C, LFE, Ls, Rs are the 5.1 input channels
+ *   - Left_out, Right_out are the stereo output channels
+ *   - Each coefficient (e.g. Lf_left, C_right) is an 8-bit gain factor
+ */
+
+typedef struct {
+  /* it seems each entry is started and ended with padding */
+  uint16_t zero_1;
+  /* each coefficient corresponds to stereo side for a channel in 5.1 */
+  uint8_t Lf_left;
+  uint8_t Lf_right;
+  uint8_t Rf_left;
+  uint8_t Rf_right;
+  uint8_t C_left;
+  uint8_t C_right;
+  uint8_t LFE_left;
+  uint8_t LFE_right;
+  uint8_t Ls_left;
+  uint8_t Ls_right;
+  uint8_t Rs_left;
+  uint8_t Rs_right;
+
+  uint16_t zero_2;
+} ATTRIBUTE_PACKED downmix_coeff_t;
+#define DOWNMIX_COEFF_SIZE 16U
 
 
 /**
@@ -472,6 +514,8 @@ typedef struct {
   uint8_t  bit_depth;
   uint8_t  sampling_rate;
   uint8_t  nr_channels; 
+  /* some DVD's made with authoring software keep downmix coefficients here */
+  /* since I do not have samples of commercial discs that do this, I will not include it */
   uint8_t  zero_3[20];
   uint32_t start_sector_1; /*aob start sector*/
   uint32_t start_sector_2; /*aob start sector is repeated again */
@@ -834,10 +878,11 @@ typedef struct {
   uint32_t      vts_c_adt;       /* sector */
   uint32_t      vts_vobu_admap;  /* sector */
   uint8_t       zero_4[24];
+  /* the majority, or even all of these entries may be zero*/
   atsi_record_t atsi_record[ATSI_RECORD_MAX_SIZE];
-  uint64_t      downmix_coeff[DOWNMIX_COEFF_MAX_SIZE];
+  downmix_coeff_t downmix_coefficients[DOWNMIX_COEFF_MAX_SIZE];
 } ATTRIBUTE_PACKED atsi_mat_t;
-#define ATSI_MAT_SIZE 512U
+#define ATSI_MAT_SIZE 640U
 
 typedef struct {
   uint16_t unknown_1; /* appears to be index, +0x100 for each iter*/

@@ -641,6 +641,31 @@ static void ifo_print_atsi_records(atsi_record_t *records){
   }
 }
 
+static void ifo_print_downmix_coefficients(downmix_coeff_t *downmix_coefficients) {
+  for (int i = 0; i < DOWNMIX_COEFF_MAX_SIZE; i++) {
+    printf("DOWNMIX COEFFICIENTS:\n");
+
+    printf("Lf_left, Lf_right: %02x, %02x\n ", 
+           downmix_coefficients[i].Lf_left, downmix_coefficients[i].Lf_right);
+
+    printf("Rf_left, Rf_right: %02x, %02x\n ", 
+           downmix_coefficients[i].Rf_left, downmix_coefficients[i].Rf_right);
+
+    printf("C_left, C_right: %02x, %02x\n ", 
+           downmix_coefficients[i].C_left, downmix_coefficients[i].C_right);
+
+    printf("LFE_left, LFE_right: %02x, %02x\n ",
+           downmix_coefficients[i].LFE_left, downmix_coefficients[i].LFE_right);
+
+    printf("Ls_left, Ls_right: %02x, %02x\n ", 
+           downmix_coefficients[i].Ls_left, downmix_coefficients[i].Ls_right);
+
+    printf("Rs_left, Rs_right: %02x, %02x\n ", 
+           downmix_coefficients[i].Rs_left, downmix_coefficients[i].Rs_right);
+
+  }
+}
+
 void ifoPrint_TT(atsi_title_table_t *atsi_title_table){
   printf("Number of titles: %04x\n", atsi_title_table->nr_titles);
   printf("Last byte address: %08x\n", atsi_title_table->last_byte_address);
@@ -708,9 +733,9 @@ void ifoPrint_ATSI_MAT(atsi_mat_t *atsi_mat) {
   printf("ATSI_RECORDS: ");
   ifo_print_atsi_records(atsi_mat->atsi_record);
   printf("\n");
+  ifo_print_downmix_coefficients(atsi_mat->downmix_coefficients);
 
-  for (int i =0; i<16; i++)
-    printf("DOWNMIX COEFFICIENTS:  %" PRIx64 "\n", atsi_mat->downmix_coeff[i]);
+
 }
 
 static void ifoPrint_PGC_COMMAND_TBL(pgc_command_tbl_t *cmd_tbl) {
