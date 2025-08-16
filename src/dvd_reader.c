@@ -1185,6 +1185,10 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
     break;
   case DVD_READ_SAMG_INFO:
     /* no other way to reach SAMG menu*/
+    if( ctx->dvd_type == DVD_V ) {
+      Log1( ctx, "SAMG IFO is exclusive to DVD-Audio" );
+      return NULL;
+    }
     strcpy( filename, "/AUDIO_TS/AUDIO_PP.IFO" );
     break;
   default:
@@ -1372,7 +1376,13 @@ int DVDFileStat( dvd_reader_t *reader, int titlenum,
 
     break;
   case DVD_READ_SAMG_INFO:
+    /* no other way to reach SAMG menu*/
+    if( reader->dvd_type == DVD_V ) {
+      Log1( reader, "SAMG IFO is exclusive to DVD-Audio" );
+      return -1;
+    }
     strcpy( filename, "/AUDIO_TS/AUDIO_PP.IFO" );
+
     break;
   default:
     Log1(reader, "Invalid domain for file stat." );
