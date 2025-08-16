@@ -871,7 +871,8 @@ static int ifoRead_TT(ifo_handle_t *ifofile){
   for (i=0;i<atsi_title_table->nr_titles; i++){
     atsi_title_record_t *index=(atsi_title_table->atsi_title_row_tables+i);
 
-    if(!DVDFileSeek_(ifop->file, (atsi_title_table->atsi_index_rows+i)->offset_record_table +DVD_BLOCK_LEN))
+    uint32_t record_offset = (atsi_title_table->atsi_index_rows+i)->offset_record_table;
+    if( !DVDFileSeek_( ifop->file, record_offset + DVD_BLOCK_LEN ) )
       goto fail_audio;
 
     if(!DVDReadBytes(ifop->file, index,ATSI_TITLE_ROW_TABLE_SIZE))
@@ -917,6 +918,11 @@ static int ifoRead_TT(ifo_handle_t *ifofile){
       B2N_32(index->atsi_track_pointer_rows[j].start_sector);
       B2N_32(index->atsi_track_pointer_rows[j].end_sector);
     }
+
+    /* Sanity Check */
+    CHECK_VALUE( index->start_sector_pointers_table
+                 == ( ATSI_TITLE_ROW_TABLE_SIZE 
+                 + index->nr_tracks * ATSI_TRACK_TIMESTAMP_SIZE ) );
 
   }
   return 1;
