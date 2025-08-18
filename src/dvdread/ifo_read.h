@@ -44,7 +44,7 @@ DVDREAD_API ifo_handle_t *ifoOpen(dvd_reader_t *, int );
  *
  * Opens an IFO and reads in _only_ the vmgi_mat data.  This call can be used
  * together with the calls below to read in each segment of the IFO file on
- * demand.
+ * demand. If the dvd_reader opened an DVD-Audio Disc, this will open the AMGI
  */
 DVDREAD_API ifo_handle_t *ifoOpenVMGI(dvd_reader_t *);
 
@@ -53,7 +53,7 @@ DVDREAD_API ifo_handle_t *ifoOpenVMGI(dvd_reader_t *);
  *
  * Opens an IFO and reads in _only_ the vtsi_mat data.  This call can be used
  * together with the calls below to read in each segment of the IFO file on
- * demand.
+ * demand. If the dvd_reader opened an DVD-Audio Disc, this will open the ATSI
  */
 DVDREAD_API ifo_handle_t *ifoOpenVTSI(dvd_reader_t *, int);
 
@@ -205,6 +205,25 @@ DVDREAD_API int ifoRead_TITLE_VOBU_ADMAP(ifo_handle_t *);
 DVDREAD_API int ifoRead_TXTDT_MGI(ifo_handle_t *);
 
 /**
+ * okay = ifoRead_TT(ifofile);
+ *
+ * Reads the Title Track Table in ATS IFO's.
+ * This structure. This structure is mandatory, and must be included
+ * in the AMGI file.
+ */
+DVDREAD_API int ifoRead_TT(ifo_handle_t *);
+
+/**
+ * okay = ifoRead_TIF(ifofile);
+ *
+ * Reads either table in AUDIO_TS.IFO based on the sector offset given,
+ * either 1,2. The first table being one with video titles, the second one
+ * without. This structure. This structure is mandatory, and must be included
+ * in the AMGI file.
+ */
+DVDREAD_API int ifoRead_TIF(ifo_handle_t *, int);
+
+/**
  * The following functions are used for freeing parsed sections of the
  * ifo_handle_t structure and the allocated substructures.  The free calls
  * below are safe:  they will not mind if you attempt to free part of an IFO
@@ -223,6 +242,7 @@ DVDREAD_API void ifoFree_TITLE_C_ADT(ifo_handle_t *);
 DVDREAD_API void ifoFree_VOBU_ADMAP(ifo_handle_t *);
 DVDREAD_API void ifoFree_TITLE_VOBU_ADMAP(ifo_handle_t *);
 DVDREAD_API void ifoFree_TXTDT_MGI(ifo_handle_t *);
+DVDREAD_API void ifoFree_TT(ifo_handle_t *);
 
 #ifdef __cplusplus
 };

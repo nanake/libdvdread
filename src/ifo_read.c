@@ -92,8 +92,6 @@ static const uint8_t my_friendly_zeros[2048];
 /* Prototypes for internal functions */
 static int ifoRead_VMG(ifo_handle_t *ifofile);
 static int ifoRead_AMG(ifo_handle_t *ifofile);
-static int ifoRead_TT(ifo_handle_t *ifofile);
-static int ifoRead_TIF(ifo_handle_t *ifofile, int sector);
 /* Can be used to make simple dvd-a playback, no menus*/
 static int ifoRead_SAMG(ifo_handle_t *ifofile);
 
@@ -540,15 +538,19 @@ ifo_handle_t *ifoOpenVMGI(dvd_reader_t *ctx) {
     ifop->ctx = ctx;
     ifop->file = DVDOpenFile(ctx, 0, domain);
     if(!ifop->file) { /* Should really catch any error */
-      Log1(ctx, "Can't open file VIDEO_TS.%s.", ext);
+      Log1(ctx, "Can't open file %s_TS.%s.", 
+           DVD_TYPE_STRING( ctx->dvd_type ), ext);
       free(ifop);
       return NULL;
     }
 
-    if(ifoRead_VMG(&ifop->handle))
+    if((ctx->dvd_type == DVD_V ? ifoRead_VMG : ifoRead_AMG)(&ifop->handle)){
+      ifop->handle.ifo_format = ctx->dvd_type == DVD_V ? IFO_VIDEO : IFO_AUDIO;
       return &ifop->handle;
+     }
 
-    Log1(ctx, "ifoOpenVMGI(): Invalid main menu IFO (%s_TS.%s).", DVD_TYPE_STRING( ctx->dvd_type ), ext);
+    Log1(ctx, "ifoOpenVMGI(): Invalid main menu IFO (%s_TS.%s).", 
+         DVD_TYPE_STRING( ctx->dvd_type ), ext);
     ifoClose(&ifop->handle);
   }
   return NULL;
@@ -576,13 +578,18 @@ ifo_handle_t *ifoOpenVTSI(dvd_reader_t *ctx, int title) {
     ifop->file = DVDOpenFile(ctx, title, domain);
     /* Should really catch any error */
     if(!ifop->file) {
-      Log1(ctx, "Can't open file %cTS_%02d_0.%s.", STREAM_TYPE_STRING( ctx->dvd_type ), title, ext);
+      Log1(ctx, "Can't open file %cTS_%02d_0.%s.",
+           STREAM_TYPE_STRING( ctx->dvd_type ), title, ext);
       free(ifop);
       continue;
     }
 
-    if(ifoRead_VTS(&ifop->handle) && ifop->handle.vtsi_mat)
-      return &ifop->handle;
+      if ((ctx->dvd_type == DVD_V
+              ? (ifoRead_VTS(&ifop->handle) && ifop->handle.vtsi_mat)
+              : (ifoRead_ATS(&ifop->handle) && ifop->handle.atsi_mat))) {
+        ifop->handle.ifo_format = ctx->dvd_type == DVD_V ? IFO_VIDEO : IFO_AUDIO;
+        return &ifop->handle;
+      }
 
     Log1(ctx, "Invalid IFO for title %d (%cTS_%02d_0.%s).",
             title, STREAM_TYPE_STRING( ctx->dvd_type ), title, ext);
@@ -593,14 +600,19 @@ ifo_handle_t *ifoOpenVTSI(dvd_reader_t *ctx, int title) {
 }
 
 void ifoFree_TT(ifo_handle_t *ifofile){
-  for (int j=0;j<ifofile->atsi_title_table->nr_titles;j++){
-    free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_pointer_rows);
-    free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_timestamp_rows);
+  if(!ifofile)
+    return;
+
+  if (ifofile->atsi_title_table) {
+    for (int j=0;j<ifofile->atsi_title_table->nr_titles;j++){
+      free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_pointer_rows);
+      free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_timestamp_rows);
+    }
+    free(ifofile->atsi_title_table->atsi_title_row_tables);
+    free(ifofile->atsi_title_table->atsi_index_rows);
+    free(ifofile->atsi_title_table);
+    ifofile->atsi_title_table= NULL;
   }
-  free(ifofile->atsi_title_table->atsi_title_row_tables);
-  free(ifofile->atsi_title_table->atsi_index_rows);
-  free(ifofile->atsi_title_table);
-  ifofile->atsi_title_table= NULL;
 }
 
 void ifoClose(ifo_handle_t *ifofile) {
@@ -813,7 +825,7 @@ static int ifoRead_SAMG(ifo_handle_t *ifofile) {
   return 1;
 }
 
-static int ifoRead_TT(ifo_handle_t *ifofile) {
+int ifoRead_TT(ifo_handle_t *ifofile) {
 
   struct ifo_handle_private_s *ifop = PRIV(ifofile);
   atsi_title_table_t *atsi_title_table;
@@ -944,7 +956,7 @@ static int ifoRead_TT(ifo_handle_t *ifofile) {
       return 0;
 }
 
-static int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset) {
+int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset) {
   /* check early if sector_offset corresponds to one of the tables */
   if (sector_offset != 2 && sector_offset != 1)
     return 0;
@@ -1237,8 +1249,6 @@ static int ifoRead_ATS(ifo_handle_t *ifofile) {
 
   return 1;
 }
-
-
 
 static int ifoRead_PGC_COMMAND_TBL(ifo_handle_t *ifofile,
                                    pgc_command_tbl_t *cmd_tbl,
