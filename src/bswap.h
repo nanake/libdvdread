@@ -30,19 +30,24 @@
 #define B2N_32(x) (void)(x)
 #define B2N_64(x) (void)(x)
 
-#elif defined(__clang__) && __has_builtin (__builtin_bswap16)
+#else /* WORDS_BIGENDIAN */
 
-#define B2N_16(x) x = __builtin_bswap16(x)
-#define B2N_32(x) x = __builtin_bswap32(x)
-#define B2N_64(x) x = __builtin_bswap64(x)
+#if defined(__clang__)
+# if __has_builtin (__builtin_bswap16)
+#  define BSWAP_BUILTIN 1
+# endif
 
 #elif defined (__GNUC__) && ((__GNUC__ > (4)) || (__GNUC__ == (4) && __GNUC_MINOR__ >= (8)))
+# define BSWAP_BUILTIN 1
+#endif
+
+#if defined(BSWAP_BUILTIN)
 
 #define B2N_16(x) x = __builtin_bswap16(x)
 #define B2N_32(x) x = __builtin_bswap32(x)
 #define B2N_64(x) x = __builtin_bswap64(x)
 
-#else
+#else /* BSWAP_BUILTIN */
 
 /* For __FreeBSD_version */
 #if defined(HAVE_SYS_PARAM_H)
@@ -124,6 +129,8 @@
 #error "You need to add endian swap macros for your system"
 
 #endif
+
+#endif /* BSWAP_BUILTIN */
 
 #endif /* WORDS_BIGENDIAN */
 
