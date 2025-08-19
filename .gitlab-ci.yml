@@ -14,6 +14,21 @@ build-debian:
         - meson setup build
         - meson compile -C build
 
+build-raspberry:
+    image: registry.videolan.org/vlc-ubuntu-raspberry:20240806085528
+    stage: build
+    tags:
+        - docker
+        - amd64
+    script:
+        - MESON_VERSION=1.7.1
+        - MESON_URL=https://github.com/mesonbuild/meson/releases/download/${MESON_VERSION}/meson-${MESON_VERSION}.tar.gz
+        - MESON_SHASUM512=bad913c59f540b701a0d234a868bd88615ccfcdc09931f8dea7b4da48bcc3a3c3c7e9cdeeff5abfcd48c6b2b25e5c60590811125b7156da36b714e00b35813c6
+        - curl -LsO "${MESON_URL}" && echo $MESON_SHASUM512 meson-${MESON_VERSION}.tar.gz | sha512sum -c - && tar xvzf meson-${MESON_VERSION}.tar.gz
+
+        - meson-${MESON_VERSION}/meson.py setup build --cross-file package/crossfiles/arm-linux-gnueabihf.meson
+        - meson-${MESON_VERSION}/meson.py compile -C build
+
 build-macos:
     stage: build
     tags:
