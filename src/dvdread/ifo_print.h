@@ -19,10 +19,10 @@
 #ifndef LIBDVDREAD_IFO_PRINT_H
 #define LIBDVDREAD_IFO_PRINT_H
 
-#include "ifo_types.h"
 #include <inttypes.h>
 
 #include <dvdread/attributes.h>
+#include <dvdread/ifo_types.h>
 
 DVDREAD_API void ifo_print(dvd_reader_t *dvd, int title);
 DVDREAD_API void dvdread_print_time(dvd_time_t *dtime);

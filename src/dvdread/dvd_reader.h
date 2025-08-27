@@ -50,7 +50,7 @@ typedef ptrdiff_t ssize_t;
 /**
  * The current version.
  */
-#include "version.h"
+#include <dvdread/version.h>
 
 /**
  * The length of one Logical Block of a DVD.
