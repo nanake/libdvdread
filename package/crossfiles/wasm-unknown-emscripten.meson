@@ -1,0 +1,21 @@
+# The Emscripten SDK cache needs to be specified as an `EM_CACHE` environment
+# variable. It can be retrieved with `em-config CACHE`.
+[binaries]
+c = 'emcc'
+cpp = 'em++'
+ar = 'emar'
+ranlib = 'emranlib'
+strip = 'strip'
+pkg-config = 'pkg-config'
+
+[host_machine]
+system = 'emscripten'
+cpu_family = 'wasm32'
+endian = 'little'
+cpu = 'wasm32'
+
+[built-in options]
+default_library = 'static'
+
+[properties]
+sys_root = '$EM_CACHE/sysroot'
