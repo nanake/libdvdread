@@ -28,6 +28,16 @@
 #include <errno.h>
 #include <assert.h>
 
+#if defined(_WIN32)
+# include <winapifamily.h>
+# if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#  if !defined(_WIN32_WINNT) || _WIN32_WINNT < 0x602
+#   undef _WIN32_WINNT
+#   define _WIN32_WINNT 0x602 /* LoadPackagedLibrary is Win8 APP Family */
+#  endif
+# endif
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 #include "../msvc/contrib/win32_cs.h"
@@ -479,7 +489,11 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
   #define CSS_LIB "libdvdcss.so.2"
 #endif
 
+#define WIDEN_(x) L ## x
+#define WIDEN(x) WIDEN_(x)
+
 #if defined(_WIN32)
+# if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     UINT em;
     /* First assume the dso/dll's required by -this- dso are sitting in the
      * same path or can be found in the usual places.  Failing that, let's
@@ -494,6 +508,9 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
     }
     SetErrorMode(em);
     SetLastError(0); // clear the last error
+# else /* WINAPI_PARTITION_DESKTOP */
+    dvdcss_library = LoadPackagedLibrary(WIDEN(CSS_LIB), 0);
+# endif /* WINAPI_PARTITION_DESKTOP */
 #else
   dvdcss_library = dlopen(CSS_LIB, RTLD_LAZY);
 #endif
