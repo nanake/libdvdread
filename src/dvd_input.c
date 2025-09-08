@@ -71,12 +71,12 @@ int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb);
 #else
 
 /* dlopening libdvdcss */
-# if defined(HAVE_DLFCN_H) && !defined(USING_BUILTIN_DLFCN)
+# if defined(HAVE_DLFCN_H)
 #  include <dlfcn.h>
 # else
 #   if defined(_WIN32)
-/* Only needed on MINGW at the moment */
-#    include "../msvc/contrib/dlfcn.c"
+#    define dlsym(h, name)  (void*)GetProcAddress(h, name)
+#    define dlclose(h)      FreeLibrary(h)
 #   endif
 # endif
 
@@ -478,7 +478,25 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
 #else
   #define CSS_LIB "libdvdcss.so.2"
 #endif
+
+#if defined(_WIN32)
+    UINT em;
+    /* First assume the dso/dll's required by -this- dso are sitting in the
+     * same path or can be found in the usual places.  Failing that, let's
+     * let that dso look in the apache root.
+     */
+    em = SetErrorMode(SEM_FAILCRITICALERRORS);
+    dvdcss_library = LoadLibraryExA(CSS_LIB, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+    if (!dvdcss_library)
+    {
+        SetLastError(0); // clear the last error
+        dvdcss_library = LoadLibraryExA(CSS_LIB, NULL, 0);
+    }
+    SetErrorMode(em);
+    SetLastError(0); // clear the last error
+#else
   dvdcss_library = dlopen(CSS_LIB, RTLD_LAZY);
+#endif
 
   if(dvdcss_library != NULL) {
 #ifdef __OS2__

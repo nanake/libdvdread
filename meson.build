@@ -92,18 +92,7 @@ libdvdcss_dependency = dependency('libdvdcss',
     version: '>= 1.2', method: 'pkg-config', required: get_option('libdvdcss'))
 if libdvdcss_dependency.found()
     cdata.set('HAVE_DVDCSS_DVDCSS_H', 1)
-elif host_machine.system() == 'windows'
-    if get_option('dlfcn') in ['external', 'auto']
-        # Using MinGW dlfcn wrapper
-        libdl_dependency = cc.find_library('dl', required: get_option('dlfcn') == 'external')
-        if libdl_dependency.found()
-            cdata.set('HAVE_DLFCN_H', 1)
-        endif
-    endif
-    if not cdata.has('HAVE_DLFCN')
-        cdata.set('USING_BUILTIN_DLFCN', 1)
-    endif
-else
+elif host_machine.system() != 'windows'
     # Using builtin dlfcn (may require linking to libdl depending on the system)
     if not cc.has_function('dlopen', prefix: '#include <dlfcn.h>', args: test_args)
         libdl_dependency = cc.find_library('dl')
