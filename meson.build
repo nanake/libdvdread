@@ -100,6 +100,11 @@ elif host_machine.system() != 'windows'
     cdata.set('HAVE_DLFCN_H', 1)
 endif
 
+if libdvdcss_dependency.found()
+  if cc.has_header('dvdcss/dvdcpxm.h', dependencies: libdvdcss_dependency)
+    cdata.set('HAVE_DVDCSS_DVDCPXM_H', 1)
+  endif
+endif
 # Compiler flag tests
 
 # Compiler flags that should be set
