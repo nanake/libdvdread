@@ -540,6 +540,13 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
                      "Old (pre-0.0.2) version of libdvdcss found. "
                     "libdvdread: You should get the latest version from "
                     "http://www.videolan.org/" );
+        } else if( ( !DVDcss_open || !DVDcss_close || !DVDcss_seek
+            || !DVDcss_read ) &&  dvda_flag == DVD_V ) {
+          DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+                     "Missing symbols in %s, "
+                    "this shouldn't happen !", CSS_LIB);
+          dlclose(dvdcss_library);
+          dvdcss_library = NULL;
         }
       break;
       case DVD_A:
@@ -556,30 +563,22 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
           dlsym(dvdcss_library, U_S "dvdcpxm_read");
         DVDcpxm_init = (int (*)(dvdcss_t, uint8_t *p_mkb))
           dlsym(dvdcss_library, U_S "dvdcpxm_init");
-#else 
+
+        if( ( !DVDcpxm_open || !DVDcpxm_close || !DVDcpxm_seek
+                  || !DVDcpxm_read || !DVDcpxm_init ) && dvda_flag == DVD_A ) {
+          DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+                     "Missing symbols in %s, "
+                    "DVD-Audio support not present in libdvdcss", CSS_LIB);
+          dlclose(dvdcss_library);
+          dvdcss_library = NULL;
+        }
+#else
         dlclose(dvdcss_library);
         dvdcss_library = NULL;
+#endif
       break;
-#endif
     }
-  } else if(!DVDcss_open || !DVDcss_close || !DVDcss_seek
-            || !DVDcss_read) {
-    DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
-               "Missing symbols in %s, "
-              "this shouldn't happen !", CSS_LIB);
-    dlclose(dvdcss_library);
-    dvdcss_library = NULL;
   }
-#ifdef HAVE_DVDCSS_DVDCPXM_H
-  } else if( ( !DVDcpxm_open || !DVDcpxm_close || !DVDcpxm_seek
-            || !DVDcpxm_read || !DVDcpxm_init ) && dvda_flag == DVD_A ) {
-    DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
-               "Missing symbols in %s, "
-              "DVD-Audio support not present in libdvdcss", CSS_LIB);
-    dlclose(dvdcss_library);
-    dvdcss_library = NULL;
-  }
-#endif
 #endif /* HAVE_DVDCSS_DVDCSS_H */
 
   if(dvdcss_library != NULL) {
