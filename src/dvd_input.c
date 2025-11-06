@@ -471,8 +471,8 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
 #ifdef HAVE_DVDCSS_DVDCPXM_H
   /* linking to libdvdcss */
   dvdcss_library = &dvdcss_library;  /* Give it some value != NULL */
-#elif defined( HAVE_DVDCSS_DVDCSS_H)
-  if (dvda_flag ==DVD_V)
+#elif defined( HAVE_DVDCSS_DVDCSS_H )
+  if (dvda_flag == DVD_V )
     dvdcss_library = &dvdcss_library;  /* Give it some value != NULL */
 #else
   /* dlopening libdvdcss */
@@ -522,7 +522,7 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
 #define U_S
 #endif
     /* functions should have the same template*/
-    switch(dvda_flag){
+    switch(dvda_flag) {
       case DVD_V:
       /* hybrid discs encrypt video tracks with css*/
         DVDcss_open_stream = (dvdcss_t (*)(void *, dvdcss_stream_cb *))
