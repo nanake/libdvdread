@@ -1,6 +1,8 @@
 /*
- * Copyright (C) 2002 Samuel Hocevar <sam@zoy.org>,
- *                    Håkan Hjort <d95hjort@dtek.chalmers.se>
+ * Copyright (C) 2002-2025 Samuel Hocevar <sam@zoy.org>,
+ *                         Håkan Hjort <d95hjort@dtek.chalmers.se>
+ *                         Jean-Baptiste Kempf <jb@videolan.org>
+ *                         VideoLAN
  *
  * This file is part of libdvdread.
  *
@@ -20,10 +22,10 @@
  */
 
 #include "config.h"                  /* Required for HAVE_DVDCSS_DVDCSS_H */
-#include <stdio.h>                               /* fprintf */
-#include <stdlib.h>                              /* free */
-#include <fcntl.h>                               /* open */
-#include <unistd.h>                              /* lseek */
+#include <stdio.h>                   /* fprintf */
+#include <stdlib.h>                  /* free */
+#include <fcntl.h>                   /* open */
+#include <unistd.h>                  /* lseek */
 #include <string.h>                  /* strerror */
 #include <errno.h>
 #include <assert.h>
@@ -274,7 +276,7 @@ static int cpxm_init(dvd_input_t dev, uint8_t* p_mkb )
 {
   return DVDcpxm_init(dev->dvdcss, p_mkb);
 }
-#endif
+#endif /* CPXM */
 
 /**
  * initialize and open a DVD device or file.
@@ -288,8 +290,7 @@ static dvd_input_t file_open(void *priv, dvd_logger_cb *logcb,
   /* Allocate the library structure */
   dev = dvd_input_New(priv, logcb);
   if(dev == NULL) {
-    DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
-               "Could not allocate memory.");
+    DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR, "Could not allocate memory.");
     return NULL;
   }
 
@@ -297,7 +298,7 @@ static dvd_input_t file_open(void *priv, dvd_logger_cb *logcb,
   if (stream_cb) {
     if (!stream_cb->pf_read || !stream_cb->pf_seek) {
       DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
-                 "Stream callback provided but lacks of pf_read or pf_seek methods.");
+              "Stream callback provided but lacks of pf_read or pf_seek methods.");
       free(dev);
       return NULL;
     }
@@ -396,7 +397,7 @@ static int file_title(dvd_input_t dev UNUSED, int block UNUSED)
  * read data from the device.
  */
 static int file_read(dvd_input_t dev, void *buffer, int blocks,
-		     int flags UNUSED)
+                     int flags UNUSED)
 {
   size_t len, bytes, blocks_read;
 
@@ -492,6 +493,13 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
 #define WIDEN_(x) L ## x
 #define WIDEN(x) WIDEN_(x)
 
+#ifdef __OS2__
+#define U_S "_"
+#else
+#define U_S
+#endif
+
+/* Actually dlopen */
 #if defined(_WIN32)
 # if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     UINT em;
@@ -515,12 +523,8 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
   dvdcss_library = dlopen(CSS_LIB, RTLD_LAZY);
 #endif
 
+  /* Locate the functions, DVD_V or DVD_A */
   if(dvdcss_library != NULL) {
-#ifdef __OS2__
-#define U_S "_"
-#else
-#define U_S
-#endif
     /* functions should have the same template*/
     switch(dvda_flag) {
       case DVD_V:
@@ -539,7 +543,7 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
           DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
                      "Old (pre-0.0.2) version of libdvdcss found. "
                     "libdvdread: You should get the latest version from "
-                    "http://www.videolan.org/" );
+                    "https://www.videolan.org/" );
         } else if( ( !DVDcss_open || !DVDcss_close || !DVDcss_seek
             || !DVDcss_read ) &&  dvda_flag == DVD_V ) {
           DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
@@ -572,7 +576,9 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
           dlclose(dvdcss_library);
           dvdcss_library = NULL;
         }
-#else
+#else /* We are trying to open a DVD-Audio, but we don't have the DVDcss CPXM */
+        DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+                "DVD-Audio headers not present, update the DVDCSS library");
         dlclose(dvdcss_library);
         dvdcss_library = NULL;
 #endif
@@ -603,11 +609,10 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
         dvdinput_open  = css_open;
         dvdinput_close = cpxm_close;
         dvdinput_seek  = cpxm_seek;
-        /* cpxm title is just seek */
-        dvdinput_title = cpxm_seek;
+        dvdinput_title = cpxm_seek; /* cpxm title is just seek */
         dvdinput_read  = cpxm_read;
         dvdinput_init  = cpxm_init;
-#else 
+#else
         assert(!"libdvdcss compiled without DVD-Audio (CPXM) support");
 #endif
         break;
