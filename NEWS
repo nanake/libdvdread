@@ -1,3 +1,6 @@
+libdvdread (7.0.1)
+ * Fix crashes when dvdcss library is not present
+
 libdvdread (7.0.0)
  * DVD-Audio support:
      * Introduced DVDOpenStreamAudio, DVDOpenAudio for opening DVD-Audio discs
