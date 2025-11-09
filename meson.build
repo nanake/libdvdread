@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 project('libdvdread', 'c',
-    version: '7.0.0',
+    version: '7.0.1',
     meson_version: '>= 0.60.0',
     default_options: ['buildtype=debugoptimized',
                       'c_std=c11',
