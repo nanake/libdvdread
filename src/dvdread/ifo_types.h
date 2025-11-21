@@ -938,6 +938,75 @@ typedef struct {
 #define ATSI_TITLE_TABLE_SIZE 8U
 
 /**
+ * ASVS
+ *
+ * Structures relating to the Audio Still Video Set (ASVS).
+ */
+
+/**
+ * ASVS Frame Groupings (unofficial term):
+ *
+ * Frame groupings are unrelated to DVD-Audio audio groups. When multiple 
+ * groupings exist, they represent sets of frames per audio track (typically
+ * lyric pages or per-track menus). Each DVD-Audio trackpoint requires an
+ * associated still frame.
+ *
+ * Multiple groupings present:
+ *   - Frame records use relative sector offsets from grouping's start_sector
+ *   - High bit (0x8000) set in frame_record_t marks grouping boundaries
+ *
+ * Single grouping only:
+ *   - Frame records contain absolute sector addresses (high bit clear)
+ *   - Seems to indicates simple still frames without menus/lyrics
+ *
+ * The unknown2[72] block likely contains encoder metadata (resolution, color)
+ * and is likely not required for frame extraction.
+ *
+ * there seems to be header offset in the vob file of 35 bytes
+ */
+
+ /**
+ * ASVS Group Entry
+ * Describes a contiguous sequence of frames in the MPEG stream,
+ */
+typedef struct {
+  uint8_t  nr_frames;
+  uint8_t  unknown;
+  uint16_t start_frame; /* seems to be the number of the start frame (index + 1) */
+  uint16_t zero1;
+  uint16_t start_sector; /* start sector of frame VOBU packet in AUDIO_TS.VOB */
+} ATTRIBUTE_PACKED asvs_group_t;
+#define ASVS_GROUP_SIZE 8U
+
+#define ASVS_GROUP_MAX_SIZE 99U
+
+/**
+ * offset in sectors relative to the group start_sector
+ * total number of frames is the sum of nr_frames for each element in asvs_groups 
+ * If high bit set (0x8000): relative offset within group
+ * Otherwise: absolute frame position
+ */
+typedef uint16_t frame_record_t;
+#define ASVS_FRAME_RECORD_SIZE 2U
+
+/**
+ * Audio Still Video Set Management Table. Exclusive to DVD-Audio discs
+ */
+typedef struct {
+  char          asvs_identifier[12]; /* DVDAUDIOASVS */
+  uint16_t      asvs_nr_groups; /* number of elements in asvs_groups */
+  uint16_t      specification_version; /* always 0x0012 */
+  uint16_t      zero1;
+  uint16_t      unknown1; /* always 0002 */
+  uint16_t      zero2;
+  uint16_t      length_sectors; /* seems like length of AUDIO_TS.VOB in sectors */
+  uint8_t       unknown2[72]; /* not sure what these are. 0x00108080 repeateds alot */
+  asvs_group_t  asvs_groups[ASVS_GROUP_MAX_SIZE]; /* size determined by asvs_nr_groups */
+  frame_record_t *frame_offsets_sectors;
+} ATTRIBUTE_PACKED asvs_mat_t;
+#define ASVS_MAT_SIZE 888U
+
+/**
  * PartOfTitle Unit Information.
  */
 typedef struct {
@@ -1058,6 +1127,9 @@ typedef struct {
       /* ATSI */
       atsi_mat_t             *atsi_mat;
       atsi_title_table_t     *atsi_title_table;
+
+      /* ASVS */
+      asvs_mat_t             *asvs_mat;
     };
 
   };
