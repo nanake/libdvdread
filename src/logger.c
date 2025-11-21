@@ -23,6 +23,12 @@
 #include "dvdread/dvd_reader.h"
 #include "logger.h"
 
+#ifdef _WIN32
+    #define TTY_DEVICE "CON"
+#else
+    #define TTY_DEVICE "/dev/tty"
+#endif
+
 void DVDReadLog( void *priv, const dvd_logger_cb *logcb,
                  dvd_logger_level_t level, const char *fmt, ... )
 {
@@ -32,7 +38,12 @@ void DVDReadLog( void *priv, const dvd_logger_cb *logcb,
         logcb->pf_log(priv, level, fmt, list);
     else
     {
-        FILE *stream = (level == DVD_LOGGER_LEVEL_ERROR) ? stderr : stdout;
+        static FILE *tty_stream = NULL;
+        if (!tty_stream)
+            tty_stream = fopen(TTY_DEVICE, "w");
+
+        FILE *stream = (level == DVD_LOGGER_LEVEL_ERROR) ? stderr : tty_stream;
+
         fprintf(stream, "libdvdread: ");
         vfprintf(stream, fmt, list);
         fprintf(stream, "\n");
