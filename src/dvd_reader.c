@@ -1014,9 +1014,18 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
 
   if( title == 0 ) {
     sprintf( filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( ctx->dvd_type ), DVD_TYPE_STRING( ctx->dvd_type ) );
+  } else if(!menu) {
+    /* DVD Content - Tracks/Chapters  */
+    sprintf( filename, "/%s_TS/%cTS_%02d_1.%cOB", DVD_TYPE_STRING( ctx->dvd_type ), STREAM_TYPE_STRING( ctx->dvd_type ),
+            title, STREAM_TYPE_STRING( ctx->dvd_type ) );
   } else {
-    sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( ctx->dvd_type ), STREAM_TYPE_STRING( ctx->dvd_type ),
-            title, menu ? 0 : 1, STREAM_TYPE_STRING( ctx->dvd_type ) );
+    if ( ctx->dvd_type == DVD_V )
+      /* DVD_Video title menu */
+      sprintf( filename, "/%s_TS/%cTS_%02d_0.%cOB", DVD_TYPE_STRING( ctx->dvd_type ), STREAM_TYPE_STRING( ctx->dvd_type ),
+              title, STREAM_TYPE_STRING( ctx->dvd_type ) );
+    else if ( ctx->dvd_type == DVD_A )
+      /* DVD_Audio title menu */
+      sprintf( filename, "/AUDIO_TS/AUDIO_SV.VOB" );
   }
   start = UDFFindFile( ctx, filename, &len );
   if( start == 0 ) return NULL;
@@ -1167,12 +1176,14 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
     break;
   case DVD_READ_MENU_VOBS:
     if( dvd->isImageFile ) {
-      /* there is only one DVD-Audio menu vob, this call should be restricted */
-      if ( ctx->dvd_type == DVD_A && titlenum != 0 ) 
+      /* there is only two DVD-Audio menu vobs, and the second is optional
+       * in the case of DVD-Audio, this should return 0 for AUDIO_TS.VOB, which is the main menu
+       * AUDIO_SV.VOB is the Audio Still Video Set (ASVS), and contains the title menus */
+      if ( ctx->dvd_type == DVD_A && titlenum > 1 )
         Log2( ctx, "Defaulting to the only menu on DVD-Audio discs" );
-      return DVDOpenVOBUDF( ctx, ( ctx->dvd_type == DVD_V ? titlenum : 0 ), 1 );
+      return DVDOpenVOBUDF( ctx, ( ctx->dvd_type == DVD_V ? titlenum : titlenum > 0 ), 1 );
     } else {
-      return DVDOpenVOBPath( ctx, ( ctx->dvd_type == DVD_V ? titlenum : 0 ), 1 );
+      return DVDOpenVOBPath( ctx, ( ctx->dvd_type == DVD_V ? titlenum : titlenum > 0 ), 1 );
     }
     break;
   case DVD_READ_TITLE_VOBS:
