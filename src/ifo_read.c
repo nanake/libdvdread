@@ -94,6 +94,8 @@ static int ifoRead_VMG(ifo_handle_t *ifofile);
 static int ifoRead_AMG(ifo_handle_t *ifofile);
 /* Can be used to make simple dvd-a playback, no menus*/
 static int ifoRead_SAMG(ifo_handle_t *ifofile);
+/* for the still video set */
+static int ifoRead_ASVS(ifo_handle_t *ifofile);
 
 static int ifoRead_VTS(ifo_handle_t *ifofile);
 static int ifoRead_ATS(ifo_handle_t *ifofile);
@@ -823,6 +825,75 @@ static int ifoRead_SAMG(ifo_handle_t *ifofile) {
   }
 
   return 1;
+}
+
+static int ifoRead_ASVS(ifo_handle_t *ifofile){
+
+  struct ifo_handle_private_s *ifop = PRIV(ifofile);
+  asvs_mat_t *asvs_mat;
+
+  asvs_mat = calloc(1, sizeof(asvs_mat_t));
+
+  if(!asvs_mat)
+    return 0;
+
+  ifofile->asvs_mat = asvs_mat;
+
+  if(!DVDFileSeek_(ifop->file, 0)) {
+    free(ifofile->asvs_mat);
+    ifofile->asvs_mat = NULL;
+    return 0;
+  }
+
+  if(!DVDReadBytes(ifop->file, asvs_mat, ASVS_MAT_SIZE)) {
+    free(ifofile->asvs_mat);
+    ifofile->asvs_mat = NULL;
+    return 0;
+  }
+
+  if(strncmp("DVDAUDIOASVS", asvs_mat->asvs_identifier, 12) != 0) {
+    free(ifofile->asvs_mat);
+    ifofile->asvs_mat = NULL;
+    return 0;
+  }
+
+  B2N_16(asvs_mat->asvs_nr_groups);
+  B2N_16(asvs_mat->specification_version);
+  B2N_16(asvs_mat->length_sectors);
+
+  int total_nr_frames = 0;
+  for (int i = 0; i < asvs_mat->asvs_nr_groups; i++ ) {
+    B2N_16(asvs_mat->asvs_groups[i].start_frame);
+    B2N_16(asvs_mat->asvs_groups[i].start_sector);
+    CHECK_ZERO(asvs_mat->asvs_groups[i].zero1);
+    total_nr_frames+=asvs_mat->asvs_groups[i].start_sector;
+  }
+
+
+  asvs_mat->frame_offsets_sectors = calloc(total_nr_frames, ASVS_FRAME_RECORD_SIZE);
+  if(!asvs_mat->frame_offsets_sectors) {
+    free(ifofile->asvs_mat);
+    ifofile->asvs_mat = NULL;
+    return 0;
+  }
+
+  if(!DVDReadBytes(ifop->file, asvs_mat->frame_offsets_sectors,
+                   total_nr_frames * ASVS_FRAME_RECORD_SIZE )) {
+    free(asvs_mat->frame_offsets_sectors);
+    free(ifofile->asvs_mat);
+    ifofile->asvs_mat = NULL;
+    return 0;
+  }
+
+  for(int i = 0; i < total_nr_frames; i++)
+    B2N_16(asvs_mat->frame_offsets_sectors[i]);
+
+
+  CHECK_VALUE(asvs_mat->specification_version == 0x0012);
+  CHECK_ZERO(asvs_mat->zero1);
+  CHECK_ZERO(asvs_mat->zero2);
+  return 1;
+
 }
 
 int ifoRead_TT(ifo_handle_t *ifofile) {
