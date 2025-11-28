@@ -473,6 +473,16 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
     if(!ifoRead_SAMG(ifofile))
       goto ifoOpen_fail;
 
+    /* The Audio Still Video Set (ASVS) is optional, though usually exists */
+    ifop->file = DVDOpenFile(ctx, 2, backup ? DVD_READ_ASVS_INFO_BACKUP
+                             : DVD_READ_ASVS_INFO);
+    if(!ifop->file)
+      Log1(ctx, "Disc does not have a still video set");
+    else {
+      if(!ifoRead_ASVS(ifofile))
+        goto ifoOpen_fail;
+    }
+
     return ifofile;
   }
 
