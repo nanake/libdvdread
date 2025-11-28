@@ -187,6 +187,8 @@ typedef enum {
                                   the title set are opened and read as a
                                   single file. */
   DVD_READ_SAMG_INFO,        /* for the AUDIO_PP.IFO */
+  DVD_READ_ASVS_INFO,        /* for the AUDIO_SV.IFO */
+  DVD_READ_ASVS_INFO_BACKUP, /* for the AUDIO_SV.BUP */
 } dvd_read_domain_t;
 
 /**
