@@ -1011,18 +1011,23 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   char filename[ MAX_UDF_FILE_NAME_LEN ];
   uint32_t start, len;
   dvd_file_t *dvd_file;
-
+  /* stream type must be set to determine decryption method*/
+  /* DVD-Audio discs contain both AOBs and VOBs */
+  /* DVD_V = VOB, DVD_A = AOB */
+  dvd_type_t stream_type;
   if( title == 0 ) {
+    stream_type = DVD_V;
     sprintf( filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( ctx->dvd_type ), DVD_TYPE_STRING( ctx->dvd_type ) );
   } else if(!menu) {
     /* DVD Content - Tracks/Chapters  */
-    sprintf( filename, "/%s_TS/%cTS_%02d_1.%cOB", DVD_TYPE_STRING( ctx->dvd_type ), STREAM_TYPE_STRING( ctx->dvd_type ),
-            title, STREAM_TYPE_STRING( ctx->dvd_type ) );
+    stream_type = ctx->dvd_type;
+    sprintf( filename, "/%s_TS/%cTS_%02d_1.%cOB", DVD_TYPE_STRING( ctx->dvd_type ),
+            STREAM_TYPE_STRING( ctx->dvd_type ), title, STREAM_TYPE_STRING( ctx->dvd_type ) );
   } else {
+    stream_type = DVD_V;
     if ( ctx->dvd_type == DVD_V )
       /* DVD_Video title menu */
-      sprintf( filename, "/%s_TS/%cTS_%02d_0.%cOB", DVD_TYPE_STRING( ctx->dvd_type ), STREAM_TYPE_STRING( ctx->dvd_type ),
-              title, STREAM_TYPE_STRING( ctx->dvd_type ) );
+      sprintf( filename, "/VIDEO_TS/VTS_%02d_0.VOB", title );
     else if ( ctx->dvd_type == DVD_A )
       /* DVD_Audio title menu */
       sprintf( filename, "/AUDIO_TS/AUDIO_SV.VOB" );
@@ -1035,7 +1040,7 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   dvd_file->ctx = ctx;
 
   /* css vars not used in CPXM */
-  if( ctx->dvd_type == DVD_V )
+  if( stream_type == DVD_V )
       /*Hack*/ dvd_file->css_title = title << 1 | menu;
 
   dvd_file->lb_start = start;
@@ -1053,7 +1058,7 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
     }
   }
 
-  if( ctx->dvd_type == DVD_V && ctx->rd->css_state == 1 /* Need key init */ ) {
+  if( stream_type == DVD_V && ctx->rd->css_state == 1 /* Need key init */ ) {
     initAllCSSKeys( ctx );
     ctx->rd->css_state = 2;
   }
@@ -1063,6 +1068,7 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   }
   */
 
+  dvdinput_set_stream( ctx->rd->dev, stream_type );
   return dvd_file;
 }
 
@@ -1085,11 +1091,15 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
     dvd_input_t dev;
 
     if( title == 0 ) {
-      /* there can not be an AUDIO_TS.AOB, there is however sometimes an AUDIO_TS.VOB menu */
+      /* the root menu is AUDIO_TS.VOB or VIDEO_TS.VOB */
       sprintf(filename, "%s_TS.VOB", DVD_TYPE_STRING( ctx->dvd_type ) );
-    } else if ( ctx->dvd_type == DVD_V ) {
+    } else {
       /* there are no ATS_%02i_0.AOB's */
-      sprintf( filename, "VTS_%02i_0.VOB", title );
+      if ( ctx->dvd_type == DVD_V ) 
+        sprintf( filename, "VTS_%02i_0.VOB", title );
+      else
+        /* Remaining title menus would be in the still videos VOB */
+        sprintf( filename, "AUDIO_SV.VOB" );
     }
     if( !findDVDFile( ctx, filename, full_path ) ) {
       free( dvd_file );
@@ -1112,6 +1122,8 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
     dvd_file->title_devs[ 0 ] = dev;
     dvdinput_title( dvd_file->title_devs[0], 0);
     dvd_file->filesize = dvd_file->title_sizes[ 0 ];
+    /* menus are always VOB streams */
+    dvdinput_set_stream(dev, DVD_V);
 
   } else {
     int i;
@@ -1130,6 +1142,8 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
 
       dvd_file->title_sizes[ i ] = fileinfo.st_size / DVD_VIDEO_LB_LEN;
       dvd_file->title_devs[ i ] = dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL );
+      /* setting type of stream will determine what decryption to use */
+      dvdinput_set_stream( dvd_file->title_devs[ i ], ctx->dvd_type );
       dvdinput_title( dvd_file->title_devs[ i ], 0 );
       dvd_file->filesize += dvd_file->title_sizes[ i ];
     }
