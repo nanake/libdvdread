@@ -65,6 +65,8 @@ extern int         (*dvdinput_title) (dvd_input_t, int);
 extern int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
 /* run to initialize DVD-Audio encryption */
 extern int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb);
+
+extern void        dvdinput_set_stream(dvd_input_t, dvd_type_t);
 /**
  * Setup function accessed by dvd_reader.c.  Returns 1 if there is CSS support.
  */
