@@ -1191,6 +1191,24 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
     }
     strcpy( filename, "/AUDIO_TS/AUDIO_PP.IFO" );
     break;
+  case DVD_READ_ASVS_INFO:
+    /* no other way to reach ASVS menu*/
+    if( ctx->dvd_type == DVD_V ) {
+      Log1( ctx, "ASVS IFO is exclusive to DVD-Audio" );
+      return NULL;
+    }
+    strcpy( filename, "/AUDIO_TS/AUDIO_SV.IFO" );
+
+    break;
+  case DVD_READ_ASVS_INFO_BACKUP:
+    /* no other way to reach ASVS menu*/
+    if( ctx->dvd_type == DVD_V ) {
+      Log1( ctx, "ASVS IFO Backup is exclusive to DVD-Audio" );
+      return NULL;
+    }
+    strcpy( filename, "/AUDIO_TS/AUDIO_SV.BUP" );
+
+    break;
   default:
     Log1( ctx, "Invalid domain for file open." );
     return NULL;
@@ -1382,6 +1400,24 @@ int DVDFileStat( dvd_reader_t *reader, int titlenum,
       return -1;
     }
     strcpy( filename, "/AUDIO_TS/AUDIO_PP.IFO" );
+
+    break;
+  case DVD_READ_ASVS_INFO:
+    /* no other way to reach ASVS menu*/
+    if( reader->dvd_type == DVD_V ) {
+      Log1( reader, "ASVS IFO is exclusive to DVD-Audio" );
+      return -1;
+    }
+    strcpy( filename, "/AUDIO_TS/AUDIO_SV.IFO" );
+
+    break;
+  case DVD_READ_ASVS_INFO_BACKUP:
+    /* no other way to reach ASVS menu*/
+    if( reader->dvd_type == DVD_V ) {
+      Log1( reader, "ASVS IFO Backup is exclusive to DVD-Audio" );
+      return -1;
+    }
+    strcpy( filename, "/AUDIO_TS/AUDIO_SV.BUP" );
 
     break;
   default:
