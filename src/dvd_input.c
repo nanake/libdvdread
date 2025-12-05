@@ -75,8 +75,6 @@ int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb);
 # define DVDcpxm_open_stream(a, b) \
     dvdcpxm_open_stream((void*)(a), (dvdcss_stream_cb*)(b))
 # define DVDcpxm_open(a) dvdcss_open((char*)(a))
-# define DVDcpxm_close   dvdcpxm_close
-# define DVDcpxm_seek    dvdcpxm_seek
 # define DVDcpxm_read    dvdcpxm_read
 # define DVDcpxm_init    dvdcpxm_init
 #endif
@@ -102,10 +100,6 @@ static int      (*DVDcss_read)  (dvdcss_t, void *, int, int);
 #define DVDCSS_SEEK_KEY (1 << 1)
 /* function to setup the cpxm struct */
 #ifdef HAVE_DVDCSS_DVDCPXM_H
-static dvdcss_t (*DVDcpxm_open_stream) (void *, dvdcss_stream_cb *);
-static dvdcss_t (*DVDcpxm_open)  (const char *);
-static int      (*DVDcpxm_close) (dvdcss_t);
-static int      (*DVDcpxm_seek)  (dvdcss_t, int, int);
 static int      (*DVDcpxm_read)  (dvdcss_t, void *, int, int);
 static int      (*DVDcpxm_init)  (dvdcss_t, uint8_t* p_mkb);
 #endif
@@ -222,6 +216,11 @@ static int css_seek(dvd_input_t dev, int blocks)
  */
 static int css_title(dvd_input_t dev, int block)
 {
+#ifdef HAVE_DVDCSS_DVDCPXM_H
+  if (dev->stream_type == DVD_A)
+    return DVDcss_seek(dev->dvdcss, block, DVDINPUT_NOFLAGS);
+  else
+#endif
   return DVDcss_seek(dev->dvdcss, block, DVDCSS_SEEK_KEY);
 }
 
@@ -230,6 +229,11 @@ static int css_title(dvd_input_t dev, int block)
  */
 static int css_read(dvd_input_t dev, void *buffer, int blocks, int flags)
 {
+#ifdef HAVE_DVDCSS_DVDCPXM_H
+  if (dev->stream_type == DVD_A)
+    return DVDcpxm_read(dev->dvdcss, buffer, blocks, flags);
+  else
+#endif
   return DVDcss_read(dev->dvdcss, buffer, blocks, flags);
 }
 
@@ -248,34 +252,6 @@ static int css_close(dvd_input_t dev)
 }
 
 #ifdef HAVE_DVDCSS_DVDCPXM_H
-/**
- * seek into the device.
- */
-static int cpxm_seek(dvd_input_t dev, int blocks)
-{
-  /* DVDINPUT_NOFLAGS should match the DVDCSS_NOFLAGS value. */
-  return DVDcpxm_seek(dev->dvdcss, blocks, DVDINPUT_NOFLAGS);
-}
-
-/**
- * read data from the device.
- */
-static int cpxm_read(dvd_input_t dev, void *buffer, int blocks, int flags)
-{
-  return DVDcpxm_read(dev->dvdcss, buffer, blocks, flags);
-}
-
-static int cpxm_close(dvd_input_t dev)
-{
-  int ret;
-
-  ret = DVDcpxm_close(dev->dvdcss);
-
-  free(dev);
-
-  return ret;
-}
-
 /**
  * Setup Datastructure.
  */
@@ -533,63 +509,49 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
   /* Locate the functions, DVD_V or DVD_A */
   if(dvdcss_library != NULL) {
     /* functions should have the same template*/
-    switch(dvda_flag) {
-      case DVD_V:
-      /* hybrid discs encrypt video tracks with css*/
-        DVDcss_open_stream = (dvdcss_t (*)(void *, dvdcss_stream_cb *))
-          dlsym(dvdcss_library, U_S "dvdcss_open_stream");
-        DVDcss_open = (dvdcss_t (*)(const char*))
-          dlsym(dvdcss_library, U_S "dvdcss_open");
-        DVDcss_close = (int (*)(dvdcss_t))
-          dlsym(dvdcss_library, U_S "dvdcss_close");
-        DVDcss_seek = (int (*)(dvdcss_t, int, int))
-          dlsym(dvdcss_library, U_S "dvdcss_seek");
-        DVDcss_read = (int (*)(dvdcss_t, void*, int, int))
-          dlsym(dvdcss_library, U_S "dvdcss_read");
-        if(dlsym(dvdcss_library, U_S "dvdcss_crack")) {
-          DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
-                     "Old (pre-0.0.2) version of libdvdcss found. "
-                    "libdvdread: You should get the latest version from "
-                    "https://www.videolan.org/" );
-        } else if( ( !DVDcss_open || !DVDcss_close || !DVDcss_seek
-            || !DVDcss_read ) &&  dvda_flag == DVD_V ) {
-          DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
-                     "Missing symbols in %s, "
-                    "this shouldn't happen !", CSS_LIB);
-          dlclose(dvdcss_library);
-          dvdcss_library = NULL;
-        }
-      break;
-      case DVD_A:
+    /* hybrid discs encrypt video tracks with css*/
+    DVDcss_open_stream = (dvdcss_t (*)(void *, dvdcss_stream_cb *))
+      dlsym(dvdcss_library, U_S "dvdcss_open_stream");
+    DVDcss_open = (dvdcss_t (*)(const char*))
+      dlsym(dvdcss_library, U_S "dvdcss_open");
+    DVDcss_close = (int (*)(dvdcss_t))
+      dlsym(dvdcss_library, U_S "dvdcss_close");
+    DVDcss_seek = (int (*)(dvdcss_t, int, int))
+      dlsym(dvdcss_library, U_S "dvdcss_seek");
+    DVDcss_read = (int (*)(dvdcss_t, void*, int, int))
+      dlsym(dvdcss_library, U_S "dvdcss_read");
+    if (dvda_flag == DVD_A) {
 #ifdef HAVE_DVDCSS_DVDCPXM_H
-        DVDcpxm_open_stream = (dvdcss_t (*)(void *, dvdcss_stream_cb *))
-          dlsym(dvdcss_library, U_S "dvdcss_open_stream");
-        DVDcpxm_open = (dvdcss_t (*)(const char*))
-          dlsym(dvdcss_library, U_S "dvdcss_open");
-        DVDcpxm_close = (int (*)(dvdcss_t))
-          dlsym(dvdcss_library, U_S "dvdcpxm_close");
-        DVDcpxm_seek = (int (*)(dvdcss_t, int, int))
-          dlsym(dvdcss_library, U_S "dvdcpxm_seek");
-        DVDcpxm_read = (int (*)(dvdcss_t, void*, int, int))
-          dlsym(dvdcss_library, U_S "dvdcpxm_read");
-        DVDcpxm_init = (int (*)(dvdcss_t, uint8_t *p_mkb))
-          dlsym(dvdcss_library, U_S "dvdcpxm_init");
-
-        if( ( !DVDcpxm_open || !DVDcpxm_close || !DVDcpxm_seek
-                  || !DVDcpxm_read || !DVDcpxm_init ) && dvda_flag == DVD_A ) {
-          DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
-                     "Missing symbols in %s, "
-                    "DVD-Audio support not present in libdvdcss", CSS_LIB);
-          dlclose(dvdcss_library);
-          dvdcss_library = NULL;
-        }
-#else /* We are trying to open a DVD-Audio, but we don't have the DVDcss CPXM */
-        DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
-                "DVD-Audio headers not present, update the DVDCSS library");
-        dlclose(dvdcss_library);
-        dvdcss_library = NULL;
+      DVDcpxm_read = (int (*)(dvdcss_t, void*, int, int))
+        dlsym(dvdcss_library, U_S "dvdcpxm_read");
+      DVDcpxm_init = (int (*)(dvdcss_t, uint8_t *p_mkb))
+        dlsym(dvdcss_library, U_S "dvdcpxm_init");
+#else
+    DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+            "DVD-Audio headers not present, update the DVDCSS library");
+    dlclose(dvdcss_library);
+    dvdcss_library = NULL;
 #endif
-      break;
+    }
+    if(dlsym(dvdcss_library, U_S "dvdcss_crack")) {
+      DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+                "Old (pre-0.0.2) version of libdvdcss found. "
+                "libdvdread: You should get the latest version from "
+                "https://www.videolan.org/" );
+    } else if(!DVDcss_open || !DVDcss_close || !DVDcss_seek || !DVDcss_read) {
+      DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+                 "Missing symbols in %s, "
+                "this shouldn't happen !", CSS_LIB);
+      dlclose(dvdcss_library);
+      dvdcss_library = NULL;
+#ifdef HAVE_DVDCSS_DVDCPXM_H
+      } else if(!DVDcpxm_read || !DVDcpxm_init) {
+      DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+              "Missing symbols for DVD-Audio in %s, "
+              "this shouldn't happen !", CSS_LIB);
+      dlclose(dvdcss_library);
+      dvdcss_library = NULL;
+#endif
     }
   }
 #endif /* HAVE_DVDCSS_DVDCSS_H */
@@ -603,26 +565,19 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
     */
 
     /* libdvdcss wrapper functions */
-    switch(dvda_flag){
-      case DVD_V:
-        dvdinput_open  = css_open;
-        dvdinput_close = css_close;
-        dvdinput_seek  = css_seek;
-        dvdinput_title = css_title;
-        dvdinput_read  = css_read;
-        break;
-      case DVD_A:
+    dvdinput_open  = css_open;
+    dvdinput_close = css_close;
+    dvdinput_seek  = css_seek;
+    dvdinput_title = css_title;
+    dvdinput_read  = css_read;
+
+    /* additional setup function that must be run for DVD_A decryption */
+    if (dvda_flag == DVD_A) {
 #ifdef HAVE_DVDCSS_DVDCPXM_H
-        dvdinput_open  = css_open;
-        dvdinput_close = cpxm_close;
-        dvdinput_seek  = cpxm_seek;
-        dvdinput_title = cpxm_seek; /* cpxm title is just seek */
-        dvdinput_read  = cpxm_read;
-        dvdinput_init  = cpxm_init;
+    dvdinput_init  = cpxm_init;
 #else
-        assert(!"libdvdcss compiled without DVD-Audio (CPXM) support");
+    assert(!"libdvdcss compiled without DVD-Audio (CPXM) support");
 #endif
-        break;
     }
     return 1;
 
