@@ -913,6 +913,27 @@ typedef struct {
 } ATTRIBUTE_PACKED atsi_track_pointer_t;
 #define ATSI_TRACK_POINTER_SIZE 12U
 
+/* the bellow entries are likely related to still frames, they are still largly undocumented
+ * likely contain some information on duration of still images */
+typedef struct {
+  uint8_t  unknown_1; /* always 0x01 */
+  uint8_t  unknown_2; /* probably a flag. sometimes 00, sometimes 04 */
+  uint16_t start_value; /* seems like a set of ranges, next entry starts where this ends */
+  uint16_t end_value;
+} ATTRIBUTE_PACKED atsi_asvs_range_t;
+#define ATSI_ASVS_RANGES_TABLE_SIZE 6U
+
+/* there is one set of these per frame group, resets at 01 when at start of group */
+typedef struct {
+  uint8_t  frame_index; /* overall frame index? */
+  uint8_t  unknown_1; /* zero? */
+  uint16_t unknown_2;
+  uint16_t unknown_3;
+  uint16_t unknown_4;
+  uint16_t unknown_5;
+} ATTRIBUTE_PACKED atsi_asvs_frame_t;
+#define ATSI_ASVS_FRAME_TABLE_SIZE 10U
+
 typedef struct {
   uint16_t unknown_1; /* will be 0x0000*/
   uint8_t  nr_tracks; /* unsure if this holds up for other files*/
@@ -925,6 +946,10 @@ typedef struct {
   uint16_t unknown_5; /* will be 0x0000*/
   atsi_track_timestamp_t *atsi_track_timestamp_rows; /*length determined by nr_tracks*/
   atsi_track_pointer_t   *atsi_track_pointer_rows;
+
+  /* these entries only exist when theres an ASVS */
+  atsi_asvs_range_t      *atsi_asvs_range_rows; /* length determined by nr_tracks */
+  atsi_asvs_frame_t      *atsi_track_still_frame_rows;  /* length determined by the ASVS struct, total nr of frames */
 } ATTRIBUTE_PACKED atsi_title_record_t;
 #define ATSI_TITLE_ROW_TABLE_SIZE 16U
 

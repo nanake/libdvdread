@@ -192,7 +192,7 @@ CHECK_STRUCT_SIZE(atsi_mat_t,             0, ATSI_MAT_SIZE);
 CHECK_STRUCT_SIZE(atsi_title_index_t,     0, ATSI_TITLE_INDEX_SIZE);
 CHECK_STRUCT_SIZE(atsi_track_timestamp_t, 0, ATSI_TRACK_TIMESTAMP_SIZE);
 CHECK_STRUCT_SIZE(atsi_track_pointer_t,   0, ATSI_TRACK_POINTER_SIZE);
-CHECK_STRUCT_SIZE(atsi_title_record_t,    2, ATSI_TITLE_ROW_TABLE_SIZE);
+CHECK_STRUCT_SIZE(atsi_title_record_t,    4, ATSI_TITLE_ROW_TABLE_SIZE);
 CHECK_STRUCT_SIZE(atsi_title_table_t,     2, ATSI_TITLE_TABLE_SIZE);
 CHECK_STRUCT_SIZE(downmix_coeff_t,        0, DOWNMIX_COEFF_SIZE);
 
