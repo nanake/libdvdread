@@ -139,6 +139,12 @@ struct dvd_input_s {
   dvd_logger_cb *logcb;
   off_t ipos;
 
+  /* This variable keeps track of the current files stream_type,
+   * and in turn determined the decryption method to use */
+  /* DVD_A -> AOB */
+  /* DVD_V -> VOB */
+  dvd_type_t stream_type;
+
   /* dummy file input */
   int fd;
   /* stream input */
@@ -153,6 +159,7 @@ static dvd_input_t dvd_input_New(void *priv, dvd_logger_cb *logcb)
       dev->priv = priv;
       dev->logcb = logcb;
       dev->ipos = 0;
+      dev->stream_type = DVD_V;
 
       /* Initialize all inputs to safe defaults */
       dev->dvdcss = NULL;
@@ -631,4 +638,10 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
     dvdinput_read  = file_read;
     return 0;
   }
+}
+
+/* change the stream type, this will set the decryption method */
+void dvdinput_set_stream(dvd_input_t dev, dvd_type_t decryption_type)
+{
+    dev->stream_type = decryption_type;
 }
