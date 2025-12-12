@@ -72,9 +72,6 @@ int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb);
 /* linking cpxm functions*/
 #ifdef HAVE_DVDCSS_DVDCPXM_H
 # include <dvdcss/dvdcpxm.h>
-# define DVDcpxm_open_stream(a, b) \
-    dvdcpxm_open_stream((void*)(a), (dvdcss_stream_cb*)(b))
-# define DVDcpxm_open(a) dvdcss_open((char*)(a))
 # define DVDcpxm_read    dvdcpxm_read
 # define DVDcpxm_init    dvdcpxm_init
 #endif
