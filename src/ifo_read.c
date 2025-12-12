@@ -740,6 +740,11 @@ void ifoClose(ifo_handle_t *ifofile) {
         free(ifofile->samg_mat);
       }
 
+      if(ifofile->asvs_mat){
+        free(ifofile->asvs_mat->frame_offsets_sectors);
+        free(ifofile->asvs_mat);
+      }
+
       if(ifofile->info_table_first_sector){
         free(ifofile->info_table_first_sector->tracks_info);
         free(ifofile->info_table_first_sector);
