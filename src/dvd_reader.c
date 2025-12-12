@@ -1145,6 +1145,12 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
       /* setting type of stream will determine what decryption to use */
       dvdinput_set_stream( dvd_file->title_devs[ i ], stream_type );
 
+      /* if function is defined, cpxm was imported so call init */
+      /* should have already been initialized in  dvdinput_setup, will copy over
+       * decryption context to each dev dvdcss instance */
+      if( dvdinput_init && stream_type == DVD_A )
+        dvdinput_init( dvd_file->title_devs[ i ], NULL );
+
       dvdinput_title( dvd_file->title_devs[ i ], 0 );
       dvd_file->filesize += dvd_file->title_sizes[ i ];
     }
