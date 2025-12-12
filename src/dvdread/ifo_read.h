@@ -224,6 +224,27 @@ DVDREAD_API int ifoRead_TT(ifo_handle_t *);
 DVDREAD_API int ifoRead_TIF(ifo_handle_t *, int);
 
 /**
+ * handle = ifoRead_SAMG(ifofile);
+ *
+ * the SAMG menu contains all the information for all the ATS and AMG
+ * But only for audio titles, and without any menu information
+ * is loaded in ifoOpen as a part of the audio manager
+ * Can be for simple audio playback
+ *
+ */
+DVDREAD_API ifo_handle_t *ifoOpenSAMG(dvd_reader_t *ctx);
+
+/**
+ * handle = ifoOpenASVS(ifofile);
+ *
+ * the ASVS ifo contains the sector addresses of each still frame
+ * in Audio_sv.vob, to access audio_sv.vob load menu > 0 in dvdopenvob
+ * is loaded in ifoOpen as a part of the audio manager
+ *
+ */
+DVDREAD_API ifo_handle_t *ifoOpenASVS(dvd_reader_t *ctx);
+
+/**
  * The following functions are used for freeing parsed sections of the
  * ifo_handle_t structure and the allocated substructures.  The free calls
  * below are safe:  they will not mind if you attempt to free part of an IFO
