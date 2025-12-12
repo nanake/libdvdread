@@ -58,7 +58,7 @@ int         (*dvdinput_close) (dvd_input_t);
 int         (*dvdinput_seek)  (dvd_input_t, int);
 int         (*dvdinput_title) (dvd_input_t, int);
 int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
-int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb);
+int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb) = NULL;
 
 #ifdef HAVE_DVDCSS_DVDCSS_H
 /* linking to libdvdcss */
