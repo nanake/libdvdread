@@ -1085,7 +1085,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
   dvd_file->ctx = ctx;
 
   /* css vars aren't used in CPXM */
-  if ( ctx->dvd_type == DVD_V )
+  if ( stream_type == DVD_V )
   /*Hack*/ dvd_file->css_title = title << 1 | menu;
 
   if( menu ) {
