@@ -21,7 +21,7 @@
 #define LIBDVDREAD_ATTRIBUTES_H
 
 #ifdef DVDREAD_API_EXPORT
-#  if defined(_WIN32)
+#  if defined(_WIN32) || defined(__OS2__)
 #    define DVDREAD_API  __declspec(dllexport)
 #  elif defined(__GNUC__) && __GNUC__ >= 4
 #    define DVDREAD_API  __attribute__((visibility("default")))
