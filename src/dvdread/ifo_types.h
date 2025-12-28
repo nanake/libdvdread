@@ -1091,6 +1091,133 @@ typedef struct {
 } ATTRIBUTE_PACKED vts_tmapt_t;
 #define VTS_TMAPT_SIZE 8U
 
+/**
+ * DVD-VR Structures
+ *
+ * Structures in the DVD-VR format (DVD-R, DVD-RW, DVD+RW, DVD-RAM)
+ * For DVDs produced with a DVD-VR recorder
+ */
+
+typedef struct {
+    uint8_t supported;   /* Encrypted Title Key Status */
+    uint8_t title_key[8];/* This needs to be decrypted using media key */
+} ATTRIBUTE_PACKED cprm_info_t;
+#define CPRM_INFO_SIZE 9U
+
+typedef struct {
+  /* Suffix numbers are decimal offsets */
+  /* 0 */
+  char     id[12];
+  uint32_t vmg_ea;         /* end address */
+  uint8_t  zero_16[12];
+  uint32_t vmgi_ea;        /* includes playlist info after this structure */
+  uint16_t version;        /* specification version */
+  /* 34 */                 /* Different from DVD-Video from here */
+  uint8_t  zero_34[30];
+  uint8_t  data_64[3];
+  uint8_t  txt_encoding;   /* as per VideoTextDataUsage.pdf */
+  uint8_t  data_68[30];
+  /* 98 */
+  char     disc_info1[64]; /* format name, or copy of disc_info2. */
+  char     disc_info2[64]; /* format name, time or user label.. */
+  uint8_t  zero_226[30];
+  /* 256 */
+  uint32_t pgit_sa;        /* program info table start address */
+  uint32_t info_260_sa;    /* ? start address */
+  uint8_t  zero_264[3];
+  cprm_info_t cprm_info;
+  uint8_t  zero_276[28];
+  /* 304 */
+  uint32_t def_psi_sa;     /* default program set info start address */
+  uint32_t info_308_sa;    /* ? start address */
+  uint32_t info_312_sa;    /* user defined program set info start address? */
+  uint32_t info_316_sa;    /* ? start address */
+  uint8_t  zero_320[32];
+  uint32_t txt_attr_sa;    /* extra attributes for programs (chan id etc.) */
+  uint32_t info_356_sa;    /* ? start address */
+  uint8_t  zero_360[152];
+} ATTRIBUTE_PACKED rtav_vmgi_t; /*Real Time AV (from DVD_RTAV dir)*/
+
+typedef struct {
+    uint8_t audio_attr[3];
+} ATTRIBUTE_PACKED audio_attr_vr_t;
+
+typedef struct {
+    uint8_t pgtm[5];
+} ATTRIBUTE_PACKED pgtm_t;
+
+typedef struct {
+    uint32_t ptm;
+    uint16_t ptm_extra; /* extra to DSI pkts */
+} ATTRIBUTE_PACKED ptm_t;
+
+typedef struct {
+    uint16_t vob_attr;
+    pgtm_t   vob_timestamp;
+    uint8_t  data1;
+    uint8_t  vob_format_id;
+    ptm_t    vob_v_s_ptm;
+    ptm_t    vob_v_e_ptm;
+} ATTRIBUTE_PACKED vvob_t; /* Virtual VOB */
+
+typedef struct {
+    uint8_t  data[12];
+} ATTRIBUTE_PACKED adj_vob_t;
+
+typedef struct {
+    uint16_t nr_of_time_info;
+    uint16_t nr_of_vobu_info;
+    uint16_t time_offset;
+    uint32_t vob_offset;
+} ATTRIBUTE_PACKED vobu_map_t;
+
+typedef struct {
+    uint8_t  data[7];
+} ATTRIBUTE_PACKED time_info_t;
+
+typedef struct {
+    uint8_t  data1;
+    /* only 14 bits are used for size,
+     * but use full 16 for easy access.  */
+    uint16_t vobu_size;
+} ATTRIBUTE_PACKED vobu_info_t;
+
+typedef struct {
+    uint16_t zero1;
+    uint8_t  nr_of_pgi;
+    uint8_t  nr_of_vob_formats;
+    uint32_t pgit_ea;
+} ATTRIBUTE_PACKED pgiti_t; /* info for ProGram Info Table */
+
+typedef struct {
+    uint16_t video_attr;
+    uint8_t  nr_of_audio_streams;
+    uint8_t  data1;
+    audio_attr_t  audio_attr0;
+    audio_attr_t  audio_attr1;
+    uint8_t  data2[50];
+} ATTRIBUTE_PACKED vob_format_t;
+
+typedef struct {
+    uint16_t nr_of_programs;
+} ATTRIBUTE_PACKED pgi_gi_t; /* global info for ProGram Info */
+
+typedef struct  {
+    uint8_t  data1;
+    uint8_t  nr_of_psi;
+    uint16_t nr_of_programs;  /* Num programs on disc */
+} ATTRIBUTE_PACKED psi_gi_t; /* global info for Program Set Info */
+
+typedef struct  {
+    uint8_t  data1;
+    uint8_t  data2;
+    uint16_t nr_of_programs;  /* Num programs in program set */
+    char     label[64];       /* ASCII. Might not be NUL terminated */
+    char     title[64];       /* Could be same as label, NUL, or another charset */
+    uint16_t prog_set_id;     /* On LG V1.1 discs this is program set ID */
+    uint16_t first_prog_id;   /* ID of first program in this program set */
+    char     data3[6];
+} ATTRIBUTE_PACKED psi_t;
 
 #if PRAGMA_PACK
 #pragma pack()
