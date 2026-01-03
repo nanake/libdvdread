@@ -1270,7 +1270,8 @@ typedef struct  {
 typedef enum{
     IFO_UNKNOWN,
     IFO_VIDEO,
-    IFO_AUDIO
+    IFO_AUDIO,
+    IFO_VIDEO_RECORDING
 } ifo_format_t;
 
 /* format type will be used in order to reduce ammount of code refactoring, hopefully add some 
