@@ -1217,121 +1217,121 @@ void ifo_print(dvd_reader_t *dvd, int title) {
 
   switch(ifohandle->ifo_format){
     case (IFO_VIDEO):
-  if(ifohandle->vmgi_mat) {
+      if(ifohandle->vmgi_mat) {
 
-    printf("VMG top level\n-------------\n");
-    ifoPrint_VMGI_MAT(ifohandle->vmgi_mat);
+        printf("VMG top level\n-------------\n");
+        ifoPrint_VMGI_MAT(ifohandle->vmgi_mat);
 
-    printf("\nFirst Play PGC\n--------------\n");
-    if(ifohandle->first_play_pgc)
-      ifoPrint_PGC(ifohandle->first_play_pgc);
-    else
-      printf("No First Play PGC present\n");
+        printf("\nFirst Play PGC\n--------------\n");
+        if(ifohandle->first_play_pgc)
+          ifoPrint_PGC(ifohandle->first_play_pgc);
+        else
+          printf("No First Play PGC present\n");
 
-    printf("\nTitle Track search pointer table\n");
-    printf(  "------------------------------------------------\n");
-    ifoPrint_TT_SRPT(ifohandle->tt_srpt);
+        printf("\nTitle Track search pointer table\n");
+        printf(  "------------------------------------------------\n");
+        ifoPrint_TT_SRPT(ifohandle->tt_srpt);
 
-    printf("\nMenu PGCI Unit table\n");
-    printf(  "--------------------\n");
-    if(ifohandle->pgci_ut) {
-      ifoPrint_PGCI_UT(ifohandle->pgci_ut);
-    } else {
-      printf("No PGCI Unit table present\n");
-    }
+        printf("\nMenu PGCI Unit table\n");
+        printf(  "--------------------\n");
+        if(ifohandle->pgci_ut) {
+          ifoPrint_PGCI_UT(ifohandle->pgci_ut);
+        } else {
+          printf("No PGCI Unit table present\n");
+        }
 
-    printf("\nParental Management Information table\n");
-    printf(  "------------------------------------\n");
-    if(ifohandle->ptl_mait) {
-      ifoPrint_PTL_MAIT(ifohandle->ptl_mait);
-    } else {
-      printf("No Parental Management Information present\n");
-    }
+        printf("\nParental Management Information table\n");
+        printf(  "------------------------------------\n");
+        if(ifohandle->ptl_mait) {
+          ifoPrint_PTL_MAIT(ifohandle->ptl_mait);
+        } else {
+          printf("No Parental Management Information present\n");
+        }
 
-    printf("\nVideo Title Set Attribute Table\n");
-    printf(  "-------------------------------\n");
-    ifoPrint_VTS_ATRT(ifohandle->vts_atrt);
+        printf("\nVideo Title Set Attribute Table\n");
+        printf(  "-------------------------------\n");
+        ifoPrint_VTS_ATRT(ifohandle->vts_atrt);
 
-    printf("\nText Data Manager Information\n");
-    printf(  "-----------------------------\n");
-    if(ifohandle->txtdt_mgi) {
-      //ifo_print_TXTDT_MGI(&(vmgi->txtdt_mgi));
-    } else {
-      printf("No Text Data Manager Information present\n");
-    }
+        printf("\nText Data Manager Information\n");
+        printf(  "-----------------------------\n");
+        if(ifohandle->txtdt_mgi) {
+          //ifo_print_TXTDT_MGI(&(vmgi->txtdt_mgi));
+        } else {
+          printf("No Text Data Manager Information present\n");
+        }
 
-    printf("\nMenu Cell Address table\n");
-    printf(  "-----------------\n");
-    if(ifohandle->menu_c_adt) {
-      ifoPrint_C_ADT(ifohandle->menu_c_adt);
-    } else {
-      printf("No Menu Cell Address table present\n");
-    }
+        printf("\nMenu Cell Address table\n");
+        printf(  "-----------------\n");
+        if(ifohandle->menu_c_adt) {
+          ifoPrint_C_ADT(ifohandle->menu_c_adt);
+        } else {
+          printf("No Menu Cell Address table present\n");
+        }
 
-    printf("\nVideo Manager Menu VOBU address map\n");
-    printf(  "-----------------\n");
-    if(ifohandle->menu_vobu_admap) {
-      ifoPrint_VOBU_ADMAP(ifohandle->menu_vobu_admap);
-    } else {
-      printf("No Menu VOBU address map present\n");
-    }
-  }
+        printf("\nVideo Manager Menu VOBU address map\n");
+        printf(  "-----------------\n");
+        if(ifohandle->menu_vobu_admap) {
+          ifoPrint_VOBU_ADMAP(ifohandle->menu_vobu_admap);
+        } else {
+          printf("No Menu VOBU address map present\n");
+        }
+      }
 
 
-  if(ifohandle->vtsi_mat) {
+      if(ifohandle->vtsi_mat) {
 
-    printf("VTS top level\n-------------\n");
-    ifoPrint_VTSI_MAT(ifohandle->vtsi_mat);
+        printf("VTS top level\n-------------\n");
+        ifoPrint_VTSI_MAT(ifohandle->vtsi_mat);
 
-    printf("\nPart of Title Track search pointer table\n");
-    printf(  "----------------------------------------------\n");
-    ifoPrint_VTS_PTT_SRPT(ifohandle->vts_ptt_srpt);
+        printf("\nPart of Title Track search pointer table\n");
+        printf(  "----------------------------------------------\n");
+        ifoPrint_VTS_PTT_SRPT(ifohandle->vts_ptt_srpt);
 
-    printf("\nPGCI Unit table\n");
-    printf(  "--------------------\n");
-    ifoPrint_PGCIT(ifohandle->vts_pgcit, 0);
+        printf("\nPGCI Unit table\n");
+        printf(  "--------------------\n");
+        ifoPrint_PGCIT(ifohandle->vts_pgcit, 0);
 
-    printf("\nMenu PGCI Unit table\n");
-    printf(  "--------------------\n");
-    if(ifohandle->pgci_ut) {
-      ifoPrint_PGCI_UT(ifohandle->pgci_ut);
-    } else {
-      printf("No Menu PGCI Unit table present\n");
-    }
+        printf("\nMenu PGCI Unit table\n");
+        printf(  "--------------------\n");
+        if(ifohandle->pgci_ut) {
+          ifoPrint_PGCI_UT(ifohandle->pgci_ut);
+        } else {
+          printf("No Menu PGCI Unit table present\n");
+        }
 
-    printf("\nVTS Time Map table\n");
-    printf(  "-----------------\n");
-    if(ifohandle->vts_tmapt) {
-      ifoPrint_VTS_TMAPT(ifohandle->vts_tmapt);
-    } else {
-      printf("No VTS Time Map table present\n");
-    }
+        printf("\nVTS Time Map table\n");
+        printf(  "-----------------\n");
+        if(ifohandle->vts_tmapt) {
+          ifoPrint_VTS_TMAPT(ifohandle->vts_tmapt);
+        } else {
+          printf("No VTS Time Map table present\n");
+        }
 
-    printf("\nMenu Cell Address table\n");
-    printf(  "-----------------\n");
-    if(ifohandle->menu_c_adt) {
-      ifoPrint_C_ADT(ifohandle->menu_c_adt);
-    } else {
-      printf("No Cell Address table present\n");
-    }
+        printf("\nMenu Cell Address table\n");
+        printf(  "-----------------\n");
+        if(ifohandle->menu_c_adt) {
+          ifoPrint_C_ADT(ifohandle->menu_c_adt);
+        } else {
+          printf("No Cell Address table present\n");
+        }
 
-    printf("\nVideo Title Set Menu VOBU address map\n");
-    printf(  "-----------------\n");
-    if(ifohandle->menu_vobu_admap) {
-      ifoPrint_VOBU_ADMAP(ifohandle->menu_vobu_admap);
-    } else {
-      printf("No Menu VOBU address map present\n");
-    }
+        printf("\nVideo Title Set Menu VOBU address map\n");
+        printf(  "-----------------\n");
+        if(ifohandle->menu_vobu_admap) {
+          ifoPrint_VOBU_ADMAP(ifohandle->menu_vobu_admap);
+        } else {
+          printf("No Menu VOBU address map present\n");
+        }
 
-    printf("\nCell Address table\n");
-    printf(  "-----------------\n");
-    ifoPrint_C_ADT(ifohandle->vts_c_adt);
+        printf("\nCell Address table\n");
+        printf(  "-----------------\n");
+        ifoPrint_C_ADT(ifohandle->vts_c_adt);
 
-    printf("\nVideo Title Set VOBU address map\n");
-    printf(  "-----------------\n");
-    ifoPrint_VOBU_ADMAP(ifohandle->vts_vobu_admap);
-  }
-        break;
+        printf("\nVideo Title Set VOBU address map\n");
+        printf(  "-----------------\n");
+        ifoPrint_VOBU_ADMAP(ifohandle->vts_vobu_admap);
+      }
+      break;
     case(IFO_AUDIO):
 
       if(ifohandle->samg_mat){
