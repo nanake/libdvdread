@@ -40,7 +40,8 @@
 
 typedef enum{
     DVD_V = 0,
-    DVD_A= 1,
+    DVD_A = 1,
+    DVD_VR = 2,
 } dvd_type_t;
 
 struct dvd_reader_s
