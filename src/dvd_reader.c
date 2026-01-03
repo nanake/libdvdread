@@ -461,8 +461,15 @@ static int cpxm_init_condition( dvd_reader_t* ctx, dvd_type_t type, int have_css
     if ( !p_mkb )
       Log2(ctx, "There is no MKB on this DVD-Audio disc, so there likely no encryption");
     return dvdinput_init( ctx->rd->dev, p_mkb );
-  }
-  else
+  } else if ( type == DVD_VR && have_css ) {
+    /* open ifo to supply decryption context */
+    ifo_handle_t* ifo = ifoOpen( ctx, 0 );
+    rtav_vmgi_t* rtav_vmgi = ifo->rtav_vmgi;
+    /* pass the cprm title key to libdvdcss for decryption */
+    int ret = dvdinput_init( ctx->rd->dev, rtav_vmgi->cprm_info.title_key );
+    ifoClose(ifo);
+    return ret;
+  } else
     return 0;
 }
 

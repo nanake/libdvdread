@@ -134,6 +134,7 @@ struct dvd_input_s {
    * and in turn determined the decryption method to use */
   /* DVD_A -> AOB */
   /* DVD_V -> VOB */
+  /* DVD_VR -> VRO with cprm */
   dvd_type_t stream_type;
 
   /* dummy file input */
@@ -214,7 +215,7 @@ static int css_seek(dvd_input_t dev, int blocks)
 static int css_title(dvd_input_t dev, int block)
 {
 #ifdef HAVE_DVDCSS_DVDCPXM_H
-  if (dev->stream_type == DVD_A)
+  if (dev->stream_type == DVD_A || dev->stream_type == DVD_VR)
     return DVDcss_seek(dev->dvdcss, block, DVDINPUT_NOFLAGS);
   else
 #endif
@@ -227,7 +228,7 @@ static int css_title(dvd_input_t dev, int block)
 static int css_read(dvd_input_t dev, void *buffer, int blocks, int flags)
 {
 #ifdef HAVE_DVDCSS_DVDCPXM_H
-  if (dev->stream_type == DVD_A)
+  if (dev->stream_type == DVD_A || dev->stream_type == DVD_VR)
     return DVDcpxm_read(dev->dvdcss, buffer, blocks, flags);
   else
 #endif
@@ -517,7 +518,7 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
       dlsym(dvdcss_library, U_S "dvdcss_seek");
     DVDcss_read = (int (*)(dvdcss_t, void*, int, int))
       dlsym(dvdcss_library, U_S "dvdcss_read");
-    if (dvda_flag == DVD_A) {
+    if (dvda_flag == DVD_A || dvda_flag == DVD_VR ) {
 #ifdef HAVE_DVDCSS_DVDCPXM_H
       DVDcpxm_read = (int (*)(dvdcss_t, void*, int, int))
         dlsym(dvdcss_library, U_S "dvdcpxm_read");
@@ -542,7 +543,7 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
       dlclose(dvdcss_library);
       dvdcss_library = NULL;
 #ifdef HAVE_DVDCSS_DVDCPXM_H
-      } else if(!DVDcpxm_read || !DVDcpxm_init) {
+      } else if( (dvda_flag != DVD_V) && (!DVDcpxm_read || !DVDcpxm_init) ) {
       DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
               "Missing symbols for DVD-Audio in %s, "
               "this shouldn't happen !", CSS_LIB);
@@ -569,7 +570,7 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
     dvdinput_read  = css_read;
 
     /* additional setup function that must be run for DVD_A decryption */
-    if (dvda_flag == DVD_A) {
+    if (dvda_flag == DVD_A || dvda_flag == DVD_VR) {
 #ifdef HAVE_DVDCSS_DVDCPXM_H
     dvdinput_init  = cpxm_init;
 #else
