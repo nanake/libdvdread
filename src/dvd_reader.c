@@ -895,6 +895,9 @@ static int findDVDFile( dvd_reader_t *dvd, const char *file, char *filename )
   /* Strip off the directory for our search */
   if( !strncasecmp( (dvd->dvd_type == DVD_V) ? "/VIDEO_TS/" : "/AUDIO_TS/", file, 10 ) ) {
     nodirfile = &(file[ 10 ]);
+  /* DVD-VR check */
+  } else if ( !strncasecmp( "/DVD_RTAV/", file, 10 ) ) {
+    nodirfile = &(file[ 10 ]);
   } else {
     nodirfile = file;
   }
@@ -904,14 +907,27 @@ static int findDVDFile( dvd_reader_t *dvd, const char *file, char *filename )
     char video_path[ PATH_MAX + 1 ];
 
     /* Try also with adding the path, just in case. */
-    sprintf( video_path, "%s/%s_TS/", dvd->rd->path_root, DVD_TYPE_STRING( dvd->dvd_type ) );
-    ret = findDirFile( video_path, nodirfile, filename );
-    if( ret < 0 ) {
-      /* Try with the path, but in lower case. */
-      sprintf( video_path, "%s/%s_ts/", dvd->rd->path_root, (dvd->dvd_type == DVD_V) ? "video" : "audio" );
+    if ( dvd->dvd_type == DVD_VR ) {
+      sprintf( video_path, "%s/DVD_RTAV/", dvd->rd->path_root );
       ret = findDirFile( video_path, nodirfile, filename );
       if( ret < 0 ) {
-        return 0;
+        /* Try with the path, but in lower case. */
+        sprintf( video_path, "%s/dvd_rtav/", dvd->rd->path_root );
+        ret = findDirFile( video_path, nodirfile, filename );
+        if( ret < 0 ) {
+          return 0;
+        }
+      }
+    } else {
+      sprintf( video_path, "%s/%s_TS/", dvd->rd->path_root, DVD_TYPE_STRING( dvd->dvd_type ) );
+      ret = findDirFile( video_path, nodirfile, filename );
+      if( ret < 0 ) {
+        /* Try with the path, but in lower case. */
+        sprintf( video_path, "%s/%s_ts/", dvd->rd->path_root, (dvd->dvd_type == DVD_V) ? "video" : "audio" );
+        ret = findDirFile( video_path, nodirfile, filename );
+        if( ret < 0 ) {
+          return 0;
+        }
       }
     }
   }
@@ -1020,9 +1036,16 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   dvd_file_t *dvd_file;
   /* stream type must be set to determine decryption method*/
   /* DVD-Audio discs contain both AOBs and VOBs */
-  /* DVD_V = VOB, DVD_A = AOB */
-  dvd_type_t stream_type = ( menu ) ? DVD_V : ctx->dvd_type;
-  if( title == 0 ) {
+  /* DVD_V = VOB with css, DVD_A = AOB with CPPM, DVD_VR = VRO with CPRM */
+  dvd_type_t stream_type = (ctx->dvd_type == DVD_VR) ? DVD_VR :
+        (menu ? DVD_V : ctx->dvd_type);
+
+  if ( ctx->dvd_type == DVD_VR && menu )
+    return NULL;
+
+  if ( ctx->dvd_type == DVD_VR ) {
+    sprintf( filename, "/DVD_RTAV/VR_MOVIE.VRO" );
+  } else if( title == 0 ) {
     sprintf( filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( ctx->dvd_type ), DVD_TYPE_STRING( ctx->dvd_type ) );
   } else if(!menu) {
     /* DVD Content - Tracks/Chapters  */
@@ -1051,7 +1074,8 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   dvd_file->filesize = len / DVD_VIDEO_LB_LEN;
 
   /* Calculate the complete file size for every file in the VOBS, AOBS */
-  if( !menu ) {
+  /* DVD-VR uses UDF 2.0 which allows for larger file sizes, 1GB limit does not exist */
+  if( !menu && ctx->dvd_type != DVD_VR ) {
     int cur;
 
     for( cur = 2; cur < 10; cur++ ) {
@@ -1085,11 +1109,20 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
   /* menus are always VOB streams, title type depends on disc disc */
   /* for now will set as the dvd_type,
    * when hybrid discs are implemented set as title type */
-  dvd_type_t stream_type = ( menu ) ? DVD_V : ctx->dvd_type;
+  /* DVD_V = VOB with css, DVD_A = AOB with CPPM, DVD_VR = VRO with CPRM */
+  dvd_type_t stream_type = (ctx->dvd_type == DVD_VR) ? DVD_VR :
+        (menu ? DVD_V : ctx->dvd_type);
 
   dvd_file = calloc( 1, sizeof( dvd_file_t ) );
   if( !dvd_file ) return NULL;
   dvd_file->ctx = ctx;
+
+  /* DVD-VR has no menu vobs */
+  if ( ctx->dvd_type == DVD_VR && menu ) {
+    free( dvd_file );
+    return NULL;
+  }
+
 
   /* css vars aren't used in CPXM */
   if ( stream_type == DVD_V )
@@ -1133,37 +1166,74 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
     dvdinput_set_stream( dev, stream_type );
 
   } else {
-    int i;
 
-    for( i = 0; i < TITLES_MAX; ++i ) {
+    /* DVD-VR uses UDF 2.0 which allows for larger file sizes, 1GB limit does not exist */
+    /* will only return one file, treating it as a single fragment with one title dev */
+    if ( ctx->dvd_type == DVD_VR ) {
+      sprintf( filename, "VR_MOVIE.VRO");
 
-      sprintf( filename, "%cTS_%02i_%i.%cOB", STREAM_TYPE_STRING( ctx->dvd_type ), title, i + 1 , STREAM_TYPE_STRING( ctx->dvd_type ));
       if( !findDVDFile( ctx, filename, full_path ) ) {
-        break;
+        free( dvd_file );
+        return NULL;
       }
-
       if( dvdstat( full_path, &fileinfo ) < 0 ) {
         Log0(ctx, "Can't stat() %s.", filename );
-        break;
+        free( dvd_file );
+        return NULL;
       }
 
-      dvd_file->title_sizes[ i ] = fileinfo.st_size / DVD_VIDEO_LB_LEN;
-      dvd_file->title_devs[ i ] = dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL );
-      /* setting type of stream will determine what decryption to use */
-      dvdinput_set_stream( dvd_file->title_devs[ i ], stream_type );
+      dvd_file->title_sizes[ 0 ] = fileinfo.st_size / DVD_VIDEO_LB_LEN;
+      dvd_file->title_devs[ 0 ] = dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL );
 
-      /* if function is defined, cpxm was imported so call init */
-      /* should have already been initialized in  dvdinput_setup, will copy over
-       * decryption context to each dev dvdcss instance */
-      if( dvdinput_init && stream_type == DVD_A )
-        dvdinput_init( dvd_file->title_devs[ i ], NULL );
+      if( !dvd_file->title_devs[ 0 ] ) {
+        free( dvd_file );
+        return NULL;
+      }
 
-      dvdinput_title( dvd_file->title_devs[ i ], 0 );
-      dvd_file->filesize += dvd_file->title_sizes[ i ];
-    }
-    if( !dvd_file->title_devs[ 0 ] ) {
-      free( dvd_file );
-      return NULL;
+      dvdinput_set_stream( dvd_file->title_devs[ 0 ], stream_type );
+
+      /* Initialize CPRM */
+      if( dvdinput_init )
+        dvdinput_init( dvd_file->title_devs[ 0 ], NULL );
+
+      dvdinput_title( dvd_file->title_devs[ 0 ], 0 );
+      dvd_file->filesize = dvd_file->title_sizes[ 0 ];
+
+    } else {
+
+      int i;
+
+      for( i = 0; i < TITLES_MAX; ++i ) {
+
+        sprintf( filename, "%cTS_%02i_%i.%cOB", STREAM_TYPE_STRING( ctx->dvd_type ), title, i + 1 , STREAM_TYPE_STRING( ctx->dvd_type ));
+        if( !findDVDFile( ctx, filename, full_path ) ) {
+          break;
+        }
+
+        if( dvdstat( full_path, &fileinfo ) < 0 ) {
+          Log0(ctx, "Can't stat() %s.", filename );
+          break;
+        }
+
+        dvd_file->title_sizes[ i ] = fileinfo.st_size / DVD_VIDEO_LB_LEN;
+        dvd_file->title_devs[ i ] = dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL );
+        /* setting type of stream will determine what decryption to use */
+        dvdinput_set_stream( dvd_file->title_devs[ i ], stream_type );
+
+        /* if function is defined, cpxm was imported so call init */
+        /* should have already been initialized in  dvdinput_setup, will copy over
+         * decryption context to each dev dvdcss instance */
+        if( dvdinput_init && stream_type == DVD_A )
+          dvdinput_init( dvd_file->title_devs[ i ], NULL );
+
+        dvdinput_title( dvd_file->title_devs[ i ], 0 );
+        dvd_file->filesize += dvd_file->title_sizes[ i ];
+      }
+      if( !dvd_file->title_devs[ 0 ] ) {
+        free( dvd_file );
+        return NULL;
+      }
+
     }
   }
 
@@ -1183,7 +1253,9 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
 
   switch( domain ) {
   case DVD_READ_INFO_FILE:
-    if( titlenum == 0 ) {
+    if ( ctx->dvd_type == DVD_VR )
+      sprintf( filename, "/DVD_RTAV/VR_MANGR.IFO" );
+    else if( titlenum == 0 ) {
       sprintf( filename, "/%s_TS/%s_TS.IFO", DVD_TYPE_STRING( ctx->dvd_type ),
               DVD_TYPE_STRING( ctx->dvd_type ) );
     } else {
@@ -1193,7 +1265,9 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
     do_cache = 1;
     break;
   case DVD_READ_INFO_BACKUP_FILE:
-    if( titlenum == 0 ) {
+    if ( ctx->dvd_type == DVD_VR )
+      sprintf( filename, "/DVD_RTAV/VR_MANGR.BUP" );
+    else if( titlenum == 0 ) {
       sprintf( filename,  "/%s_TS/%s_TS.BUP", DVD_TYPE_STRING( ctx->dvd_type ),
               DVD_TYPE_STRING( ctx->dvd_type ) );
     } else {
@@ -1207,7 +1281,10 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
       /* there is only two DVD-Audio menu vobs, and the second is optional
        * in the case of DVD-Audio, this should return 0 for AUDIO_TS.VOB, which is the main menu
        * AUDIO_SV.VOB is the Audio Still Video Set (ASVS), and contains the title menus */
-      if ( ctx->dvd_type == DVD_A && titlenum > 1 )
+      if ( ctx->dvd_type == DVD_VR ) {
+        Log1( ctx, "There is no DVD-VR menu VOB" );
+        return NULL; 
+      } else if ( ctx->dvd_type == DVD_A && titlenum > 1 )
         Log2( ctx, "Defaulting to the only menu on DVD-Audio discs" );
       return DVDOpenVOBUDF( ctx, ( ctx->dvd_type == DVD_V ? titlenum : titlenum > 0 ), 1 );
     } else {
