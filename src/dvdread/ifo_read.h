@@ -245,6 +245,38 @@ DVDREAD_API ifo_handle_t *ifoOpenSAMG(dvd_reader_t *ctx);
 DVDREAD_API ifo_handle_t *ifoOpenASVS(dvd_reader_t *ctx);
 
 /**
+ * okay = ifoRead_PGIT(ifofile);
+ *
+ * Reads the Program Information Table (PGIT).
+ * This structure contains the technical definitions for the recordings, including
+ * video attributes (aspect ratio, resolution), audio stream counts, and formats.
+ * Use this data to configure the decoder element (ES format) before playback starts.
+ */
+DVDREAD_API int ifoRead_PGIT(ifo_handle_t *ifofile);
+
+/**
+ * okay = ifoRead_PG_GI(ifofile);
+ *
+ * Reads the Program General Information (PG_GI).
+ * This is the master database of all physical video clips ("Programs") on the disc.
+ * It provides the raw byte offsets, durations, and timestamps (PGTM) for every
+ * recording. This is required to locate content sectors and to generate "Title 0"
+ * (the raw/original timeline).
+ */
+DVDREAD_API int ifoRead_PG_GI(ifo_handle_t *ifofile);
+
+/**
+ * okay = ifoRead_PS_GI(ifofile);
+ *
+ * Reads the Program Set General Information (PS_GI).
+ * This defines the user-created "Titles" (Playlists) and their text labels.
+ * It maps logical groupings of content to the physical programs found in PG_GI.
+ * Use this to build the main navigation menu and "Next/Prev" chapter logic
+ * intended by the user.
+ */
+DVDREAD_API int ifoRead_PS_GI(ifo_handle_t *ifofile);
+
+/**
  * The following functions are used for freeing parsed sections of the
  * ifo_handle_t structure and the allocated substructures.  The free calls
  * below are safe:  they will not mind if you attempt to free part of an IFO
@@ -264,6 +296,7 @@ DVDREAD_API void ifoFree_VOBU_ADMAP(ifo_handle_t *);
 DVDREAD_API void ifoFree_TITLE_VOBU_ADMAP(ifo_handle_t *);
 DVDREAD_API void ifoFree_TXTDT_MGI(ifo_handle_t *);
 DVDREAD_API void ifoFree_TT(ifo_handle_t *);
+DVDREAD_API void ifoFree_PG_GI(ifo_handle_t *);
 
 #ifdef __cplusplus
 };
