@@ -551,37 +551,59 @@ ifo_handle_t *ifoOpen(dvd_reader_t *ctx, int title) {
 ifo_handle_t *ifoOpenVMGI(dvd_reader_t *ctx) {
   struct ifo_handle_private_s *ifop;
 
-  for(int backup = ifoGetBupFlag(ctx, 0); backup <= 1; backup++)
+  const char *filename_prefix;
+  int (*reader_func)(ifo_handle_t *);
+  int result_format;
+
+  /* function should handle all ifo types gracefully */
+  switch(ctx->dvd_type) {
+    case DVD_VR:
+      filename_prefix = "VR_MANGR";
+      reader_func = ifoRead_RTAV_VMGI;
+      result_format = IFO_VIDEO_RECORDING;
+      break;
+    case DVD_V:
+      filename_prefix = "VIDEO_TS";
+      reader_func = ifoRead_VMG;
+      result_format = IFO_VIDEO;
+      break;
+    default: /* Fallback to DVD_A (Audio) */
+      filename_prefix = "AUDIO_TS";
+      reader_func = ifoRead_AMG;
+      result_format = IFO_AUDIO;
+      break;
+  }
+
+  for(int backup = ifoGetBupFlag(ctx, 0); backup <= 1; backup++) 
   {
     ifop = calloc(1, sizeof(*ifop));
-    if(!ifop)
-      return NULL;
+    if(!ifop) return NULL;
 
-    const dvd_read_domain_t domain = backup ? DVD_READ_INFO_BACKUP_FILE
+    const dvd_read_domain_t domain = backup ? DVD_READ_INFO_BACKUP_FILE 
                                             : DVD_READ_INFO_FILE;
     const char *ext = backup ? "BUP" : "IFO";
 
     ifop->ctx = ctx;
+
     ifop->file = DVDOpenFile(ctx, 0, domain);
-    if(!ifop->file) { /* Should really catch any error */
-      Log1(ctx, "Can't open file %s_TS.%s.", 
-           DVD_TYPE_STRING( ctx->dvd_type ), ext);
+
+    if(!ifop->file) {
+      Log1(ctx, "Can't open file %s.%s", filename_prefix, ext);
       free(ifop);
-      return NULL;
+      continue;
     }
 
-    if((ctx->dvd_type == DVD_V ? ifoRead_VMG : ifoRead_AMG)(&ifop->handle)){
-      ifop->handle.ifo_format = ctx->dvd_type == DVD_V ? IFO_VIDEO : IFO_AUDIO;
+    if(reader_func(&ifop->handle)) {
+      ifop->handle.ifo_format = result_format;
       return &ifop->handle;
-     }
+    }
 
-    Log1(ctx, "ifoOpenVMGI(): Invalid main menu IFO (%s_TS.%s).", 
-         DVD_TYPE_STRING( ctx->dvd_type ), ext);
+    Log1(ctx, "ifoOpenVMGI(): Invalid main menu IFO (%s.%s).", filename_prefix, ext);
     ifoClose(&ifop->handle);
   }
+
   return NULL;
 }
-
 
 ifo_handle_t *ifoOpenVTSI(dvd_reader_t *ctx, int title) {
   struct ifo_handle_private_s *ifop;
