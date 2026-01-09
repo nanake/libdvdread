@@ -45,6 +45,7 @@ DVDREAD_API ifo_handle_t *ifoOpen(dvd_reader_t *, int );
  * Opens an IFO and reads in _only_ the vmgi_mat data.  This call can be used
  * together with the calls below to read in each segment of the IFO file on
  * demand. If the dvd_reader opened an DVD-Audio Disc, this will open the AMGI
+ * if the dvd_reader opened a DVD-VR disc, this will open the RTAV_VMGI
  */
 DVDREAD_API ifo_handle_t *ifoOpenVMGI(dvd_reader_t *);
 
@@ -224,7 +225,7 @@ DVDREAD_API int ifoRead_TT(ifo_handle_t *);
 DVDREAD_API int ifoRead_TIF(ifo_handle_t *, int);
 
 /**
- * handle = ifoRead_SAMG(ifofile);
+ * handle = ifoOpen_SAMG(ifofile);
  *
  * the SAMG menu contains all the information for all the ATS and AMG
  * But only for audio titles, and without any menu information
