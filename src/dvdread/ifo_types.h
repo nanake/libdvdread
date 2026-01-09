@@ -1095,7 +1095,7 @@ typedef struct {
  * DVD-VR Structures
  *
  * Structures in the DVD-VR format (DVD-R, DVD-RW, DVD+RW, DVD-RAM)
- * For DVDs produced with a DVD-VR recorder
+ * For DVDs produced with a DVD-VR recorder, which can be a cam-corder or something that resembles a dvd-player
  */
 
 typedef struct {
@@ -1123,12 +1123,12 @@ typedef struct {
   uint8_t  zero_226[30];
   /* 256 */
   uint32_t pgit_sa;        /* program info table start address */
-  uint32_t info_260_sa;    /* ? start address */
-  uint8_t  zero_264[3];
+  uint32_t org_pgci_sa;    /* start address for the original raw recordings? */
+  uint8_t  zero_264[7];
   cprm_info_t cprm_info;
-  uint8_t  zero_276[28];
+  uint8_t  zero_280[24];
   /* 304 */
-  uint32_t def_psi_sa;     /* default program set info start address */
+  uint32_t def_psi_sa;     /* default program set info start address, user defined */
   uint32_t info_308_sa;    /* ? start address */
   uint32_t info_312_sa;    /* user defined program set info start address? */
   uint32_t info_316_sa;    /* ? start address */
@@ -1137,87 +1137,123 @@ typedef struct {
   uint32_t info_356_sa;    /* ? start address */
   uint8_t  zero_360[152];
 } ATTRIBUTE_PACKED rtav_vmgi_t; /*Real Time AV (from DVD_RTAV dir)*/
+#define RTAV_VMGI_SIZE 512U
 
 typedef struct {
-    uint8_t audio_attr[3];
+  uint8_t audio_attr[3];
 } ATTRIBUTE_PACKED audio_attr_vr_t;
 
 typedef struct {
-    uint8_t pgtm[5];
+  uint8_t pgtm[5];
 } ATTRIBUTE_PACKED pgtm_t;
 
 typedef struct {
-    uint32_t ptm;
-    uint16_t ptm_extra; /* extra to DSI pkts */
+  uint32_t ptm;
+  uint16_t ptm_extra; /* extra to DSI pkts */
 } ATTRIBUTE_PACKED ptm_t;
 
 typedef struct {
-    uint16_t vob_attr;
-    pgtm_t   vob_timestamp;
-    uint8_t  data1;
-    uint8_t  vob_format_id;
-    ptm_t    vob_v_s_ptm;
-    ptm_t    vob_v_e_ptm;
-} ATTRIBUTE_PACKED vvob_t; /* Virtual VOB */
-
-typedef struct {
-    uint8_t  data[12];
+  uint8_t  data[12];
 } ATTRIBUTE_PACKED adj_vob_t;
+#define ADJ_VOB_SIZE 12U
 
 typedef struct {
-    uint16_t nr_of_time_info;
-    uint16_t nr_of_vobu_info;
-    uint16_t time_offset;
-    uint32_t vob_offset;
-} ATTRIBUTE_PACKED vobu_map_t;
-
-typedef struct {
-    uint8_t  data[7];
+  uint8_t  data[7];
 } ATTRIBUTE_PACKED time_info_t;
+#define TIME_INFO_SIZE 7U
 
 typedef struct {
-    uint8_t  data1;
-    /* only 14 bits are used for size,
-     * but use full 16 for easy access.  */
-    uint16_t vobu_size;
+  uint8_t  data1;
+  /* only 14 bits are used for size,
+   * but use full 16 for easy access.  */
+  uint16_t vobu_size;
 } ATTRIBUTE_PACKED vobu_info_t;
+#define VOBU_INFO_SIZE 3U
 
 typedef struct {
-    uint16_t zero1;
-    uint8_t  nr_of_pgi;
-    uint8_t  nr_of_vob_formats;
-    uint32_t pgit_ea;
-} ATTRIBUTE_PACKED pgiti_t; /* info for ProGram Info Table */
+  uint16_t vob_attr;
+  pgtm_t   vob_timestamp;
+  uint8_t  data1;
+  uint8_t  vob_format_id;
+  ptm_t    vob_v_s_ptm;
+  ptm_t    vob_v_e_ptm;
+} ATTRIBUTE_PACKED vvob_t; /* Virtual VOB */
+#define VVOB_SIZE 21U
 
 typedef struct {
-    uint16_t video_attr;
-    uint8_t  nr_of_audio_streams;
-    uint8_t  data1;
-    audio_attr_t  audio_attr0;
-    audio_attr_t  audio_attr1;
-    uint8_t  data2[50];
+  uint16_t nr_of_time_info;
+  uint16_t nr_of_vobu_info;
+  uint16_t time_offset;
+  uint32_t vob_offset;
+
+  time_info_t* time_infos;
+  vobu_info_t* vobu_infos;
+} ATTRIBUTE_PACKED vobu_map_t;
+#define VOBU_MAP_SIZE 10U
+
+/* This struct can not be packed, since adj_info may be skipped */
+typedef struct {
+  vvob_t      header;       /* The 21-byte header */
+
+  /* Always allocated. Contains valid data ONLY if (header.vob_attr & 0x80) */
+  /* optional */
+  adj_vob_t   adj_info;     /* The Optional ADJ block */
+  /* optional */
+
+  vobu_map_t  map;          /* The Time Map */
+} program_t;
+
+typedef struct {
+  uint16_t video_attr;
+  uint8_t  nr_of_audio_streams;
+  uint8_t  data1;
+  audio_attr_vr_t  audio_attr0;
+  audio_attr_vr_t  audio_attr1;
+  uint8_t  data2[50];
 } ATTRIBUTE_PACKED vob_format_t;
+#define VOB_FORMAT_SIZE 60U
 
+/* codec settings, done automatically by demuxer */
 typedef struct {
-    uint16_t nr_of_programs;
-} ATTRIBUTE_PACKED pgi_gi_t; /* global info for ProGram Info */
+  uint16_t zero1;
+  uint8_t  nr_of_pgi;
+  uint8_t  nr_of_vob_formats;
+  uint32_t pgit_ea;
+
+  vob_format_t* vob_formats;
+} ATTRIBUTE_PACKED pgit_t; /* Program Info Table */
+#define PGIT_SIZE 8U
+
+/* this defines individual video recordings (clips, programs) */
+typedef struct {
+  uint16_t nr_of_programs;
+
+  uint32_t* program_offsets; /* vobu start addresses */
+  program_t* programs;
+} ATTRIBUTE_PACKED pg_gi_t; /* program locations table */
+#define PG_GI_SIZE 2U
 
 typedef struct  {
-    uint8_t  data1;
-    uint8_t  nr_of_psi;
-    uint16_t nr_of_programs;  /* Num programs on disc */
-} ATTRIBUTE_PACKED psi_gi_t; /* global info for Program Set Info */
-
-typedef struct  {
-    uint8_t  data1;
-    uint8_t  data2;
-    uint16_t nr_of_programs;  /* Num programs in program set */
-    char     label[64];       /* ASCII. Might not be NUL terminated */
-    char     title[64];       /* Could be same as label, NUL, or another charset */
-    uint16_t prog_set_id;     /* On LG V1.1 discs this is program set ID */
-    uint16_t first_prog_id;   /* ID of first program in this program set */
-    char     data3[6];
+  uint8_t  data1;
+  uint8_t  data2;
+  uint16_t nr_of_programs;  /* Num programs in program set */
+  char     label[64];       /* ASCII. Might not be NUL terminated */
+  char     title[64];       /* Could be same as label, NUL, or another charset */
+  uint16_t prog_set_id;     /* On LG V1.1 discs this is program set ID */
+  uint16_t first_prog_id;   /* ID of first program in this program set */
+  char     data3[6];
 } ATTRIBUTE_PACKED psi_t;
+#define PSI_SIZE 142U
+
+/* this is like a playlist menu, it defines titles (groups of clips) */
+typedef struct  {
+  uint8_t  data1;
+  uint8_t  nr_of_psi;
+  uint16_t total_nr_of_programs;  /* Num programs on disc */
+
+  psi_t*   psi_items;
+} ATTRIBUTE_PACKED ps_gi_t; /* global info for Program Set*/
+#define PS_GI_SIZE 4U
 
 #if PRAGMA_PACK
 #pragma pack()
@@ -1282,6 +1318,15 @@ typedef struct {
 
       /* ASVS */
       asvs_mat_t             *asvs_mat;
+    };
+
+    struct{
+      /* VMGI_MAT for DVD-VR */
+      rtav_vmgi_t            *rtav_vmgi;
+      pgit_t                 *pgit; /* vob formats */
+      pg_gi_t                *pg_gi; /* address map of recordings */
+      ps_gi_t                *ps_gi; /* titles, labels for recordings */
+
     };
 
   };

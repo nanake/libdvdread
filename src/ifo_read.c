@@ -406,7 +406,9 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
       return NULL;
   }
 
-  if (title)
+  if ( ctx->dvd_type == DVD_VR )
+    snprintf(ifo_filename, 13, "VR_MANGR.IFO" );
+  else if (title)
     snprintf(ifo_filename, 13, "%cTS_%02d_0.%s", STREAM_TYPE_STRING( ctx->dvd_type )
              ,title, backup ? "BUP" : "IFO");
   else
@@ -494,6 +496,11 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
       goto ifoOpen_fail;
 
     return ifofile;
+  }
+
+  if(ifoRead_RTAV_VMGI(ifofile)){
+    ifofile->ifo_format=IFO_VIDEO_RECORDING;
+    /* TODO: add logic for reading the rest of the information tables */
   }
 
 ifoOpen_fail:
