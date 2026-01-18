@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 project('libdvdread', 'c',
-    version: '7.0.1',
+    version: '7.1.0',
     meson_version: '>= 0.60.0',
     default_options: ['buildtype=debugoptimized',
                       'c_std=c11',
@@ -24,7 +24,7 @@ if cc.get_id() == 'msvc' or cc.get_id() == 'clang-cl'
 endif
 
 # The version number for the shared library
-dvdread_soname_version = '8.1.0'
+dvdread_soname_version = '8.2.0'
 
 dvdread_version = meson.project_version()
 dvdread_version_split = dvdread_version.split('.')
