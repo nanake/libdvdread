@@ -855,6 +855,18 @@ dvd_reader_t *DVDOpenStreamAudio( void *priv, const dvd_logger_cb *logcb,
   return DVDOpenCommon( priv, logcb, NULL, stream_cb, DVD_A );
 }
 
+dvd_reader_t *DVDOpenVideoRecording( void *priv, const dvd_logger_cb *logcb,
+                                     const char *ppath )
+{
+  return DVDOpenCommon( priv, logcb, ppath, NULL, DVD_VR );
+}
+
+dvd_reader_t *DVDOpenStreamVideoRecording( void *priv, const dvd_logger_cb *logcb,
+                                           dvd_reader_stream_cb *stream_cb )
+{
+  return DVDOpenCommon( priv, logcb, NULL, stream_cb, DVD_VR     );
+}
+
 void DVDClose( dvd_reader_t *dvd )
 {
   if( dvd ) {
