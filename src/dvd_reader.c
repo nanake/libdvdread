@@ -769,39 +769,90 @@ DVDOpen_error:
   return NULL;
 }
 
-dvd_reader_t *DVDOpen( const char *ppath)
+/* opens the disc temporarily to peek at the file structure
+ * helps determine how to treat the disc (as DVD-VR, DVD-Audio or DVD-Video)
+ */
+static dvd_type_t DVDProbeType( const char *ppath, void *stream,
+                                dvd_reader_stream_cb *stream_cb  )
 {
-    return DVDOpenCommon( NULL, NULL, ppath, NULL , DVD_V);
+  /* set DVD_V as the fallback */
+  dvd_type_t ret =  DVD_V;
+  int have_css;
+  uint32_t HAS_AUDIO_TS = 0, HAS_VIDEO_TS = 0, HAS_DVD_RTAV = 0;
+
+  /* open the disc temporarily for probing */
+  dvd_reader_t *ctx = calloc(1, sizeof(*ctx));
+  if(!ctx)
+    return ret;
+
+  have_css = dvdinput_setup( ctx->priv, &ctx->logcb, DVD_V );
+
+  if (stream && stream_cb)
+    ctx->rd = DVDOpenImageFile( ctx, NULL, stream_cb, have_css );
+  else if (ppath)
+    ctx->rd = DVDOpenImageFile( ctx, ppath, NULL, have_css );
+
+  if (!ctx->rd) {
+    free(ctx);
+    return DVD_V;
+  }
+
+  /* check for ifos */
+  UDFFindFile( ctx, "/AUDIO_TS/AUDIO_TS.IFO", &HAS_AUDIO_TS );
+  UDFFindFile( ctx, "/DVD_RTAV/VR_MANGR.IFO", &HAS_DVD_RTAV );
+  UDFFindFile( ctx, "/VIDEO_TS/VIDEO_TS.IFO", &HAS_VIDEO_TS );
+
+  /* if the disc only has dvd-a, play that.
+   * if the disc has dvd-vr, play that 
+   * otherwise default to dvd-v */
+  if ( HAS_AUDIO_TS && !HAS_VIDEO_TS )
+    ret = DVD_A;
+  else if ( HAS_DVD_RTAV )
+    ret = DVD_VR;
+
+  DVDClose(ctx);
+
+  return ret;
+}
+
+dvd_reader_t *DVDOpen( const char *ppath )
+{
+  dvd_type_t type_flag = DVDProbeType( ppath, NULL, NULL );
+  return DVDOpenCommon( NULL, NULL, ppath, NULL , type_flag );
 }
 
 dvd_reader_t *DVDOpenStream( void *stream,
-                             dvd_reader_stream_cb *stream_cb)
+                             dvd_reader_stream_cb *stream_cb )
 {
-    return DVDOpenCommon( stream, NULL, NULL, stream_cb,  DVD_V );
+  dvd_type_t type_flag = DVDProbeType( NULL, stream, stream_cb );
+  return DVDOpenCommon( stream, NULL, NULL, stream_cb,  type_flag );
 }
 
 dvd_reader_t *DVDOpen2( void *priv, const dvd_logger_cb *logcb,
                         const char *ppath)
 {
-    return DVDOpenCommon( priv, logcb, ppath, NULL, DVD_V);
+  dvd_type_t type_flag = DVDProbeType( ppath, NULL, NULL );
+  return DVDOpenCommon( priv, logcb, ppath, NULL, type_flag );
 }
 
 dvd_reader_t *DVDOpenStream2( void *priv, const dvd_logger_cb *logcb,
                               dvd_reader_stream_cb *stream_cb )
 {
-    return DVDOpenCommon( priv, logcb, NULL, stream_cb, DVD_V );
+  /* Fix: Pass NULL for stream, do NOT pass priv as stream */
+  dvd_type_t type_flag = DVDProbeType( NULL, NULL, stream_cb );
+  return DVDOpenCommon( priv, logcb, NULL, stream_cb, type_flag );
 }
 
 dvd_reader_t *DVDOpenAudio( void *priv, const dvd_logger_cb *logcb,
                             const char *ppath )
 {
-    return DVDOpenCommon( priv, logcb, ppath, NULL, DVD_A );
+  return DVDOpenCommon( priv, logcb, ppath, NULL, DVD_A );
 }
 
 dvd_reader_t *DVDOpenStreamAudio( void *priv, const dvd_logger_cb *logcb,
                                   dvd_reader_stream_cb *stream_cb )
 {
-    return DVDOpenCommon( priv, logcb, NULL, stream_cb, DVD_A );
+  return DVDOpenCommon( priv, logcb, NULL, stream_cb, DVD_A );
 }
 
 void DVDClose( dvd_reader_t *dvd )
