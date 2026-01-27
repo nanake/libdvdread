@@ -507,7 +507,18 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
 
   if(ifoRead_RTAV_VMGI(ifofile)){
     ifofile->ifo_format=IFO_VIDEO_RECORDING;
-    /* TODO: add logic for reading the rest of the information tables */
+
+    /* PS_GI and PGIT are required for the module */
+    if(!ifoRead_PS_GI(ifofile))
+      goto ifoOpen_fail;
+
+    if(!ifoRead_PGIT(ifofile))
+      goto ifoOpen_fail;
+
+    /* likely empty */
+    if(!ifoRead_PG_GI(ifofile))
+      goto ifoOpen_fail;
+
   }
 
 ifoOpen_fail:
