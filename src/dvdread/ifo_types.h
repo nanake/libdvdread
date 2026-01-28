@@ -1114,7 +1114,8 @@ typedef struct {
   uint16_t version;        /* specification version */
   /* 34 */                 /* Different from DVD-Video from here */
   uint8_t  zero_34[30];
-  uint8_t  data_64[3];
+  uint8_t  tm_zone;        /* time zone */
+  uint16_t still_tm;       /* still time for still pictures */
   uint8_t  txt_encoding;   /* as per VideoTextDataUsage.pdf */
   uint8_t  data_68[30];
   /* 98 */

@@ -1343,6 +1343,7 @@ static int ifoRead_RTAV_VMGI(ifo_handle_t *ifofile) {
   }
 
   B2N_16(ifofile->rtav_vmgi->version);
+  B2N_16(ifofile->rtav_vmgi->still_tm);
   B2N_32(ifofile->rtav_vmgi->vmg_ea);
   B2N_32(ifofile->rtav_vmgi->vmgi_ea);
   B2N_32(ifofile->rtav_vmgi->org_pgci_sa);
