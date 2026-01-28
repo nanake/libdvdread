@@ -1471,7 +1471,6 @@ int ifoRead_PGC_GI(ifo_handle_t *ifofile) {
 
   if(!pgc_gi->pgi) {
     free(ifofile->pgc_gi->program_offsets);
-    free(ifofile->pgc_gi->programs);
     free(ifofile->pgc_gi);
     ifofile->pgc_gi= NULL;
     return 0;
@@ -1521,15 +1520,12 @@ int ifoRead_PGC_GI(ifo_handle_t *ifofile) {
     if(pgc_gi->pgi[i].map.nr_of_time_info > 0) {
       pgc_gi->pgi[i].map.time_infos = calloc(pgc_gi->pgi[i].map.nr_of_time_info,
                                                  TIME_INFO_SIZE);
-      if(!pgc_gi->pgi[i].map.time_infos) {
-        free(pgc_gi->pgi[i].map.time_infos);
+      if(!pgc_gi->pgi[i].map.time_infos)
         goto fail3;
-      }
 
       if(!DVDReadBytes(ifop->file, pgc_gi->pgi[i].map.time_infos,
                        pgc_gi->pgi[i].map.nr_of_time_info * TIME_INFO_SIZE)) {
         free(pgc_gi->pgi[i].map.time_infos);
-        free(pgc_gi->pgi[i].map.vobu_infos);
         goto fail3;
       }
 
@@ -1542,7 +1538,6 @@ int ifoRead_PGC_GI(ifo_handle_t *ifofile) {
                                                  VOBU_INFO_SIZE);
       if(!pgc_gi->pgi[i].map.vobu_infos) {
         free(pgc_gi->pgi[i].map.time_infos);
-        free(pgc_gi->pgi[i].map.vobu_infos);
         goto fail3;
       }
 
