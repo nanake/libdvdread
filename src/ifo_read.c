@@ -1425,7 +1425,12 @@ int ifoRead_PGC_GI(ifo_handle_t *ifofile) {
 
   ifofile->pgc_gi = pgc_gi;
 
-  if(!DVDFileSeek_(ifop->file, ifofile->rtav_vmgi->org_pgci_sa)) {
+  /* the pgc_gi directly follows pgci */
+  uint32_t pgc_gi_sa = ifofile->rtav_vmgi->org_pgci_sa
+                     + PGCI_SIZE
+                     + ifofile->pgci->nr_of_vob_formats * VOB_FORMAT_SIZE;
+
+  if(!DVDFileSeek_(ifop->file, pgc_gi_sa )) {
     free(ifofile->pgc_gi);
     ifofile->pgc_gi = NULL;
     return 0;
@@ -1496,6 +1501,12 @@ int ifoRead_PGC_GI(ifo_handle_t *ifofile) {
       if(!DVDReadBytes(ifop->file, &pgc_gi->pgi[i].adj_info, ADJ_VOB_SIZE))
         goto fail3;
     }
+
+    /* since we're reading a struct that isn't packed , we have to
+     * skip the padding this way */
+    uint16_t pad2;
+    if(!DVDReadBytes(ifop->file, &pad2, sizeof(pad2)))
+      goto fail3;
 
     /* header of this table */
     if(!DVDReadBytes(ifop->file, &pgc_gi->pgi[i].map, VOBU_MAP_SIZE))
