@@ -246,36 +246,36 @@ DVDREAD_API ifo_handle_t *ifoOpenSAMG(dvd_reader_t *ctx);
 DVDREAD_API ifo_handle_t *ifoOpenASVS(dvd_reader_t *ctx);
 
 /**
- * okay = ifoRead_PGIT(ifofile);
+ * okay = ifoRead_PGCI(ifofile);
  *
- * Reads the Program Information Table (PGIT).
+ * Reads the Program Chain Information Table (pgci).
  * This structure contains the technical definitions for the recordings, including
  * video attributes (aspect ratio, resolution), audio stream counts, and formats.
  * Use this data to configure the decoder element (ES format) before playback starts.
  */
-DVDREAD_API int ifoRead_PGIT(ifo_handle_t *ifofile);
+DVDREAD_API int ifoRead_PGCI(ifo_handle_t *ifofile);
 
 /**
- * okay = ifoRead_PG_GI(ifofile);
+ * okay = ifoRead_PGC_GI(ifofile);
  *
- * Reads the Program General Information (PG_GI).
+ * Reads the Program Chain General Information (pgc_gi).
  * This is the master database of all physical video clips ("Programs") on the disc.
  * It provides the raw byte offsets, durations, and timestamps (PGTM) for every
  * recording. This is required to locate content sectors and to generate "Title 0"
  * (the raw/original timeline).
  */
-DVDREAD_API int ifoRead_PG_GI(ifo_handle_t *ifofile);
+DVDREAD_API int ifoRead_PGC_GI(ifo_handle_t *ifofile);
 
 /**
- * okay = ifoRead_PS_GI(ifofile);
+ * okay = ifoRead_UD_PGCIT(ifofile);
  *
- * Reads the Program Set General Information (PS_GI).
+ * Reads the Program Set General Information (ud_pgcit).
  * This defines the user-created "Titles" (Playlists) and their text labels.
- * It maps logical groupings of content to the physical programs found in PG_GI.
+ * It maps logical groupings of content to the physical programs found in pgc_gi.
  * Use this to build the main navigation menu and "Next/Prev" chapter logic
  * intended by the user.
  */
-DVDREAD_API int ifoRead_PS_GI(ifo_handle_t *ifofile);
+DVDREAD_API int ifoRead_UD_PGCIT(ifo_handle_t *ifofile);
 
 /**
  * The following functions are used for freeing parsed sections of the
@@ -297,7 +297,7 @@ DVDREAD_API void ifoFree_VOBU_ADMAP(ifo_handle_t *);
 DVDREAD_API void ifoFree_TITLE_VOBU_ADMAP(ifo_handle_t *);
 DVDREAD_API void ifoFree_TXTDT_MGI(ifo_handle_t *);
 DVDREAD_API void ifoFree_TT(ifo_handle_t *);
-DVDREAD_API void ifoFree_PG_GI(ifo_handle_t *);
+DVDREAD_API void ifoFree_PGC_GI(ifo_handle_t *);
 
 #ifdef __cplusplus
 };

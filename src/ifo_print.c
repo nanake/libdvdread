@@ -1214,9 +1214,9 @@ static void ifoPrint_RTAV_VMGI(rtav_vmgi_t *vmgi) {
   printf("VMG End Address: %08x\n", vmgi->vmg_ea);
   printf("VMGI End Address: %08x\n", vmgi->vmgi_ea);
 
-  printf("PGIT Start Address: %08x\n", vmgi->pgit_sa);
+  printf("PGCI Start Address: %08x\n", vmgi->org_pgci_sa);
   printf("ORG_PGCI Start Address: %08x\n", vmgi->org_pgci_sa);
-  printf("DEF_PSI Start Address: %08x\n", vmgi->def_psi_sa);
+  printf("UD_PGCI Start Address: %08x\n", vmgi->ud_pgcit_sa);
 
   printf("Text Encoding: 0x%02x\n", vmgi->txt_encoding);
   printf("Disc Info 1: %.64s\n", vmgi->disc_info1);
@@ -1224,40 +1224,40 @@ static void ifoPrint_RTAV_VMGI(rtav_vmgi_t *vmgi) {
 
 }
 
-static void ifoPrint_PGIT(pgit_t *pgit) {
+static void ifoPrint_PGCI(pgci_t *pgci) {
   int i;
-  if (!pgit) {
-    printf("No PGIT present\n");
+  if (!pgci) {
+    printf("No PGCI present\n");
     return;
   }
 
-  printf("Program Information Table (PGIT)\n");
-  printf("Number of VOB Formats: %d\n", pgit->nr_of_vob_formats);
-  printf("PGIT End Address: %08x\n", pgit->pgit_ea);
+  printf("Program Information Table (pgci)\n");
+  printf("Number of VOB Formats: %d\n", pgci->nr_of_vob_formats);
+  printf("ORG_PGCI Length: %08x\n", pgci->len_org_pgci);
 
-  for(i = 0; i < pgit->nr_of_vob_formats; i++) {
+  for(i = 0; i < pgci->nr_of_vob_formats; i++) {
     printf("  Format %2i: Video Attr 0x%04x, Audio Streams: %d\n", 
            i + 1,
-           pgit->vob_formats[i].video_attr, 
-           pgit->vob_formats[i].nr_of_audio_streams);
+           pgci->vob_formats[i].video_attr,
+           pgci->vob_formats[i].nr_of_audio_streams);
   }
 }
 
-static void ifoPrint_PG_GI(pg_gi_t *pg_gi) {
+static void ifoPrint_PGC_GI(pgc_gi_t *pgc_gi) {
   int i;
-  if (!pg_gi) {
-    printf("No PG_GI present\n");
+  if (!pgc_gi) {
+    printf("No pgc_gi present\n");
     return;
   }
 
-  printf("Program General Information (PG_GI)\n");
-  printf("Number of Programs: %d\n", pg_gi->nr_of_programs);
+  printf("Program General Information (PGC_GI)\n");
+  printf("Number of Programs: %d\n", pgc_gi->nr_of_programs);
 
-  for(i = 0; i < pg_gi->nr_of_programs; i++) {
-    program_t *prog = &pg_gi->programs[i];
+  for(i = 0; i < pgc_gi->nr_of_programs; i++) {
+    pgi_t *prog = &pgc_gi->pgi[i];
 
     printf("\n  Program %3i:\n", i + 1);
-    printf("    Start Byte Offset: %08x\n", pg_gi->program_offsets[i]);
+    printf("    Start Byte Offset: %08x\n", pgc_gi->program_offsets[i]);
     printf("    VOB Attribute: 0x%04x\n", prog->header.vob_attr);
 
     printf("    Timestamp (PGTM): %02x %02x %02x %02x %02x\n",
@@ -1280,19 +1280,19 @@ static void ifoPrint_PG_GI(pg_gi_t *pg_gi) {
   }
 }
 
-static void ifoPrint_PS_GI(ps_gi_t *ps_gi) {
+static void ifoPrint_ud_pgcit(ud_pgcit_t *ud_pgcit) {
   int i;
-  if (!ps_gi) {
-    printf("No PS_GI present\n");
+  if (!ud_pgcit) {
+    printf("No UD_PGCIT present\n");
     return;
   }
 
-  printf("Program Set General Information (PS_GI)\n");
-  printf("Total Number of Programs on Disc: %d\n", ps_gi->total_nr_of_programs);
-  printf("Number of Program Sets (Playlists): %d\n", ps_gi->nr_of_psi);
+  printf("Program Set General Information (UD_PGCIT)\n");
+  printf("Total Number of Programs on Disc: %d\n", ud_pgcit->total_nr_of_programs);
+  printf("Number of Program Sets (Playlists): %d\n", ud_pgcit->nr_of_pgci);
 
-  for(i = 0; i < ps_gi->nr_of_psi; i++) {
-    psi_t *item = &ps_gi->psi_items[i];
+  for(i = 0; i < ud_pgcit->nr_of_pgci; i++) {
+    ud_pgci_t *item = &ud_pgcit->ud_pgci_items[i];
     printf("\n  Playlist %2i:\n", i + 1);
     printf("    Label: %.64s\n", item->label);
     printf("    Programs in Set: %d\n", item->nr_of_programs);
@@ -1475,22 +1475,22 @@ void ifo_print(dvd_reader_t *dvd, int title) {
         printf("No RTAV VMGI present\n");
       }
 
-      if(ifohandle->pgit) {
+      if(ifohandle->pgci) {
         printf("\nProgram Information Table (Tech Specs)\n");
         printf("--------------------------------------\n");
-        ifoPrint_PGIT(ifohandle->pgit);
+        ifoPrint_PGCI(ifohandle->pgci);
       }
 
-      if(ifohandle->pg_gi) {
+      if(ifohandle->pgc_gi) {
         printf("\nProgram General Information (Original Content)\n");
         printf("----------------------------------------------\n");
-        ifoPrint_PG_GI(ifohandle->pg_gi);
+        ifoPrint_PGC_GI(ifohandle->pgc_gi);
       }
 
-      if(ifohandle->ps_gi) {
+      if(ifohandle->ud_pgcit) {
         printf("\nProgram Set General Information (Playlists)\n");
         printf("-------------------------------------------\n");
-        ifoPrint_PS_GI(ifohandle->ps_gi);
+        ifoPrint_ud_pgcit(ifohandle->ud_pgcit);
       }
       break;
     case(IFO_UNKNOWN): 

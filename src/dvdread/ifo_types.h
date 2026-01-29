@@ -1122,21 +1122,21 @@ typedef struct {
   char     disc_info2[64]; /* format name, time or user label.. */
   uint8_t  zero_226[30];
   /* 256 */
-  uint32_t pgit_sa;        /* program info table start address */
-  uint32_t org_pgci_sa;    /* start address for the original raw recordings? */
+  uint32_t org_pgci_sa;    /* original program chain start address */
+  uint32_t org_pgci_ea;    /* end address for the org_pgci */
   uint8_t  zero_264[7];
   cprm_info_t cprm_info;
   uint8_t  zero_280[24];
   /* 304 */
-  uint32_t def_psi_sa;     /* default program set info start address, user defined */
+  uint32_t ud_pgcit_sa;     /* user defined program chain information table */
   uint32_t info_308_sa;    /* ? start address */
-  uint32_t info_312_sa;    /* user defined program set info start address? */
+  uint32_t info_312_sa;
   uint32_t info_316_sa;    /* ? start address */
   uint8_t  zero_320[32];
-  uint32_t txt_attr_sa;    /* extra attributes for programs (chan id etc.) */
-  uint32_t info_356_sa;    /* ? start address */
+  uint32_t txtdt_mg_sa;    /* extra attributes for programs (chan id etc.) */
+  uint32_t mnfit_sa;       /* manufacturer information table */
   uint8_t  zero_360[152];
-} ATTRIBUTE_PACKED rtav_vmgi_t; /*Real Time AV (from DVD_RTAV dir)*/
+} ATTRIBUTE_PACKED rtav_vmgi_t;
 #define RTAV_VMGI_SIZE 512U
 
 typedef struct {
@@ -1201,7 +1201,7 @@ typedef struct {
   /* optional */
 
   vobu_map_t  map;          /* The Time Map */
-} program_t;
+} pgi_t;
 
 typedef struct {
   uint16_t video_attr;
@@ -1218,20 +1218,19 @@ typedef struct {
   uint16_t zero1;
   uint8_t  nr_of_pgi;
   uint8_t  nr_of_vob_formats;
-  uint32_t pgit_ea;
+  uint32_t len_org_pgci; /* length of PGCI + PGC_GI */
 
   vob_format_t* vob_formats;
-} ATTRIBUTE_PACKED pgit_t; /* Program Info Table */
-#define PGIT_SIZE 8U
+} ATTRIBUTE_PACKED pgci_t; /* Program Info Table */
+#define PGCI_SIZE 8U
 
 /* this defines individual video recordings (clips, programs) */
 typedef struct {
-  uint16_t nr_of_programs;
-
+  uint16_t  nr_of_programs;
   uint32_t* program_offsets; /* vobu start addresses */
-  program_t* programs;
-} ATTRIBUTE_PACKED pg_gi_t; /* program locations table */
-#define PG_GI_SIZE 2U
+  pgi_t*    pgi;
+} ATTRIBUTE_PACKED pgc_gi_t; /* program locations table */
+#define PGC_GI_SIZE 2U
 
 typedef struct  {
   uint8_t  data1;
@@ -1242,18 +1241,17 @@ typedef struct  {
   uint16_t prog_set_id;     /* On LG V1.1 discs this is program set ID */
   uint16_t first_prog_id;   /* ID of first program in this program set */
   char     data3[6];
-} ATTRIBUTE_PACKED psi_t;
-#define PSI_SIZE 142U
+} ATTRIBUTE_PACKED ud_pgci_t;
+#define UD_PGCI_SIZE 142U
 
 /* this is like a playlist menu, it defines titles (groups of clips) */
 typedef struct  {
-  uint8_t  data1;
-  uint8_t  nr_of_psi;
-  uint16_t total_nr_of_programs;  /* Num programs on disc */
-
-  psi_t*   psi_items;
-} ATTRIBUTE_PACKED ps_gi_t; /* global info for Program Set*/
-#define PS_GI_SIZE 4U
+  uint8_t    data1;
+  uint8_t    nr_of_pgci;
+  uint16_t   total_nr_of_programs;  /* Num programs on disc */
+  ud_pgci_t* ud_pgci_items;
+} ATTRIBUTE_PACKED ud_pgcit_t; /* global info for Program Set*/
+#define UD_PGCIT_SIZE 4U
 
 #if PRAGMA_PACK
 #pragma pack()
@@ -1324,9 +1322,13 @@ typedef struct {
     struct{
       /* VMGI_MAT for DVD-VR */
       rtav_vmgi_t            *rtav_vmgi;
-      pgit_t                 *pgit; /* vob formats */
-      pg_gi_t                *pg_gi; /* address map of recordings */
-      ps_gi_t                *ps_gi; /* titles, labels for recordings */
+
+      /* these two together make up the org_pgci, describe the VRO file's contents */
+      pgci_t                 *pgci;      /* Program cell information table */
+      pgc_gi_t               *pgc_gi;    /* Program cell general information table */
+
+      /* the user defined pgci */
+      ud_pgcit_t             *ud_pgcit;  /* titles, labels for recordings */
 
     };
 

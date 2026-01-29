@@ -201,9 +201,9 @@ CHECK_STRUCT_SIZE(atsi_title_record_t,    4, ATSI_TITLE_ROW_TABLE_SIZE);
 CHECK_STRUCT_SIZE(atsi_title_table_t,     2, ATSI_TITLE_TABLE_SIZE);
 CHECK_STRUCT_SIZE(downmix_coeff_t,        0, DOWNMIX_COEFF_SIZE);
 CHECK_STRUCT_SIZE(rtav_vmgi_t,            0, RTAV_VMGI_SIZE);
-CHECK_STRUCT_SIZE(pgit_t,                 1, PGIT_SIZE);
-CHECK_STRUCT_SIZE(pg_gi_t,                2, PG_GI_SIZE);
-CHECK_STRUCT_SIZE(ps_gi_t,                1, PS_GI_SIZE);
+CHECK_STRUCT_SIZE(pgci_t,                 1, PGCI_SIZE);
+CHECK_STRUCT_SIZE(pgc_gi_t,               2, PGC_GI_SIZE);
+CHECK_STRUCT_SIZE(ud_pgcit_t,             1, UD_PGCIT_SIZE);
 
 static void read_video_attr(video_attr_t *va) {
   getbits_state_t state;
@@ -508,15 +508,13 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
   if(ifoRead_RTAV_VMGI(ifofile)){
     ifofile->ifo_format=IFO_VIDEO_RECORDING;
 
-    /* PS_GI and PGIT are required for the module */
-    if(!ifoRead_PS_GI(ifofile))
+    if(!ifoRead_UD_PGCIT(ifofile))
       goto ifoOpen_fail;
 
-    if(!ifoRead_PGIT(ifofile))
+    if(!ifoRead_PGCI(ifofile))
       goto ifoOpen_fail;
 
-    /* likely empty */
-    if(!ifoRead_PG_GI(ifofile))
+    if(!ifoRead_PGC_GI(ifofile))
       goto ifoOpen_fail;
 
   }
@@ -749,18 +747,18 @@ void ifoFree_TT(ifo_handle_t *ifofile){
   }
 }
 
-DVDREAD_API void ifoFree_PG_GI(ifo_handle_t *ifofile) {
+DVDREAD_API void ifoFree_PGC_GI(ifo_handle_t *ifofile) {
   if(!ifofile)
     return;
 
-  for(int k = 0; k < ifofile->pg_gi->nr_of_programs; k++){
-    free(ifofile->pg_gi->programs[k].map.time_infos);
-    free(ifofile->pg_gi->programs[k].map.vobu_infos);
+  for(int k = 0; k < ifofile->pgc_gi->nr_of_programs; k++){
+    free(ifofile->pgc_gi->pgi[k].map.time_infos);
+    free(ifofile->pgc_gi->pgi[k].map.vobu_infos);
   }
-  free(ifofile->pg_gi->program_offsets);
-  free(ifofile->pg_gi->programs);
-  free(ifofile->pg_gi);
-  ifofile->pg_gi= NULL;
+  free(ifofile->pgc_gi->program_offsets);
+  free(ifofile->pgc_gi->pgi);
+  free(ifofile->pgc_gi);
+  ifofile->pgc_gi= NULL;
 }
 
 void ifoClose(ifo_handle_t *ifofile) {
@@ -816,15 +814,15 @@ void ifoClose(ifo_handle_t *ifofile) {
     case IFO_VIDEO_RECORDING:
       if(ifofile->rtav_vmgi)
         free(ifofile->rtav_vmgi);
-      if(ifofile->ps_gi) {
-        free(ifofile->ps_gi->psi_items);
-        free(ifofile->ps_gi);
+      if(ifofile->ud_pgcit) {
+        free(ifofile->ud_pgcit->ud_pgci_items);
+        free(ifofile->ud_pgcit);
       }
-      if(ifofile->pg_gi)
-        ifoFree_PG_GI(ifofile);
-      if(ifofile->pgit){
-        free(ifofile->pgit->vob_formats);
-        free(ifofile->pgit);
+      if(ifofile->pgc_gi)
+        ifoFree_PGC_GI(ifofile);
+      if(ifofile->pgci){
+        free(ifofile->pgci->vob_formats);
+        free(ifofile->pgci);
       }
       break;
     case IFO_UNKNOWN:
@@ -1347,14 +1345,14 @@ static int ifoRead_RTAV_VMGI(ifo_handle_t *ifofile) {
   B2N_16(ifofile->rtav_vmgi->version);
   B2N_32(ifofile->rtav_vmgi->vmg_ea);
   B2N_32(ifofile->rtav_vmgi->vmgi_ea);
-  B2N_32(ifofile->rtav_vmgi->pgit_sa);
-  B2N_32(ifofile->rtav_vmgi->def_psi_sa);
   B2N_32(ifofile->rtav_vmgi->org_pgci_sa);
+  B2N_32(ifofile->rtav_vmgi->ud_pgcit_sa);
+  B2N_32(ifofile->rtav_vmgi->org_pgci_ea);
   B2N_32(ifofile->rtav_vmgi->info_308_sa);
   B2N_32(ifofile->rtav_vmgi->info_312_sa);
   B2N_32(ifofile->rtav_vmgi->info_316_sa);
-  B2N_32(ifofile->rtav_vmgi->txt_attr_sa);
-  B2N_32(ifofile->rtav_vmgi->info_356_sa);
+  B2N_32(ifofile->rtav_vmgi->txtdt_mg_sa);
+  B2N_32(ifofile->rtav_vmgi->mnfit_sa);
 
 
   CHECK_ZERO(ifofile->rtav_vmgi->zero_16);
@@ -1368,185 +1366,185 @@ static int ifoRead_RTAV_VMGI(ifo_handle_t *ifofile) {
 
 }
 
-int ifoRead_PGIT(ifo_handle_t *ifofile) {
+int ifoRead_PGCI(ifo_handle_t *ifofile) {
   struct ifo_handle_private_s *ifop = PRIV(ifofile);
-  pgit_t *pgit;
+  pgci_t *pgci;
 
-  pgit = malloc(sizeof(pgit_t));
+  pgci = malloc(sizeof(pgci_t));
 
-  if(!pgit)
+  if(!pgci)
     return 0;
 
-  ifofile->pgit= pgit;
+  ifofile->pgci= pgci;
 
-  if(!DVDFileSeek_(ifop->file, ifofile->rtav_vmgi->pgit_sa)) {
-    free(ifofile->pgit);
-    ifofile->pgit = NULL;
-    return 0;
-  }
-
-  if(!DVDReadBytes(ifop->file, pgit, PGIT_SIZE)) {
-    free(ifofile->pgit);
-    ifofile->pgit = NULL;
+  if(!DVDFileSeek_(ifop->file, ifofile->rtav_vmgi->org_pgci_sa)) {
+    free(ifofile->pgci);
+    ifofile->pgci = NULL;
     return 0;
   }
 
-  pgit->vob_formats = calloc(ifofile->pgit->nr_of_vob_formats, VOB_FORMAT_SIZE);
-
-  if(!pgit->vob_formats) {
-    free(ifofile->pgit->vob_formats);
-    free(ifofile->pgit);
-    ifofile->pgit = NULL;
+  if(!DVDReadBytes(ifop->file, pgci, PGCI_SIZE)) {
+    free(ifofile->pgci);
+    ifofile->pgci = NULL;
     return 0;
   }
 
-  if(!DVDReadBytes(ifop->file, pgit->vob_formats, pgit->nr_of_vob_formats * VOB_FORMAT_SIZE)) {
-    free(ifofile->pgit->vob_formats);
-    free(ifofile->pgit);
-    ifofile->pgit = NULL;
+  pgci->vob_formats = calloc(ifofile->pgci->nr_of_vob_formats, VOB_FORMAT_SIZE);
+
+  if(!pgci->vob_formats) {
+    free(ifofile->pgci->vob_formats);
+    free(ifofile->pgci);
+    ifofile->pgci = NULL;
     return 0;
   }
 
-  for (int i = 0; i < pgit->nr_of_vob_formats ; i++)
-    B2N_16(pgit->vob_formats[i].video_attr);
+  if(!DVDReadBytes(ifop->file, pgci->vob_formats, pgci->nr_of_vob_formats * VOB_FORMAT_SIZE)) {
+    free(ifofile->pgci->vob_formats);
+    free(ifofile->pgci);
+    ifofile->pgci = NULL;
+    return 0;
+  }
 
-  B2N_32(pgit->pgit_ea);
-  CHECK_ZERO(pgit->zero1);
+  for (int i = 0; i < pgci->nr_of_vob_formats ; i++)
+    B2N_16(pgci->vob_formats[i].video_attr);
+
+  B2N_32(pgci->len_org_pgci);
+  CHECK_ZERO(pgci->zero1);
   return 1;
 
 }
 
-int ifoRead_PG_GI(ifo_handle_t *ifofile) {
+int ifoRead_PGC_GI(ifo_handle_t *ifofile) {
   struct ifo_handle_private_s *ifop = PRIV(ifofile);
-  pg_gi_t *pg_gi;
+  pgc_gi_t *pgc_gi;
 
-  pg_gi = malloc(sizeof(pg_gi_t));
+  pgc_gi = malloc(sizeof(pgc_gi_t));
 
-  if(!pg_gi)
+  if(!pgc_gi)
     return 0;
 
-  ifofile->pg_gi = pg_gi;
+  ifofile->pgc_gi = pgc_gi;
 
   if(!DVDFileSeek_(ifop->file, ifofile->rtav_vmgi->org_pgci_sa)) {
-    free(ifofile->pg_gi);
-    ifofile->pg_gi = NULL;
+    free(ifofile->pgc_gi);
+    ifofile->pgc_gi = NULL;
     return 0;
   }
 
-  if(!DVDReadBytes(ifop->file, pg_gi, PG_GI_SIZE)) {
-    free(ifofile->pg_gi);
-    ifofile->pg_gi= NULL;
+  if(!DVDReadBytes(ifop->file, pgc_gi, PGC_GI_SIZE)) {
+    free(ifofile->pgc_gi);
+    ifofile->pgc_gi= NULL;
     return 0;
   }
 
-  B2N_16(pg_gi->nr_of_programs);
+  B2N_16(pgc_gi->nr_of_programs);
 
   /* there is a case where the original program info table is undefined or overwritten, regardless this should not be the default table used when we are navigating the disc */
-  if ( pg_gi->nr_of_programs == 0 ) {
-    free(ifofile->pg_gi);
-    ifofile->pg_gi= NULL;
+  if ( pgc_gi->nr_of_programs == 0 ) {
+    free(ifofile->pgc_gi);
+    ifofile->pgc_gi= NULL;
     return 1;
   }
 
-  pg_gi->program_offsets = calloc(pg_gi->nr_of_programs, sizeof(uint32_t));
+  pgc_gi->program_offsets = calloc(pgc_gi->nr_of_programs, sizeof(uint32_t));
 
-  if(!pg_gi->program_offsets) {
-    free(ifofile->pg_gi);
-    ifofile->pg_gi= NULL;
+  if(!pgc_gi->program_offsets) {
+    free(ifofile->pgc_gi);
+    ifofile->pgc_gi= NULL;
     return 0;
   }
 
-  if(!DVDReadBytes(ifop->file, pg_gi->program_offsets, pg_gi->nr_of_programs * sizeof(uint32_t))) {
-    free(ifofile->pg_gi->program_offsets);
-    free(ifofile->pg_gi);
-    ifofile->pg_gi= NULL;
+  if(!DVDReadBytes(ifop->file, pgc_gi->program_offsets, pgc_gi->nr_of_programs * sizeof(uint32_t))) {
+    free(ifofile->pgc_gi->program_offsets);
+    free(ifofile->pgc_gi);
+    ifofile->pgc_gi= NULL;
     return 0;
   }
 
-  pg_gi->programs= calloc(pg_gi->nr_of_programs, sizeof(program_t));
+  pgc_gi->pgi= calloc(pgc_gi->nr_of_programs, sizeof(pgi_t));
 
-  if(!pg_gi->programs) {
-    free(ifofile->pg_gi->program_offsets);
-    free(ifofile->pg_gi->programs);
-    free(ifofile->pg_gi);
-    ifofile->pg_gi= NULL;
+  if(!pgc_gi->pgi) {
+    free(ifofile->pgc_gi->program_offsets);
+    free(ifofile->pgc_gi->programs);
+    free(ifofile->pgc_gi);
+    ifofile->pgc_gi= NULL;
     return 0;
   }
 
   int i, j;
-  for(i = 0; i < pg_gi->nr_of_programs; i++) {
-    B2N_32(pg_gi->program_offsets[i]);
+  for(i = 0; i < pgc_gi->nr_of_programs; i++) {
+    B2N_32(pgc_gi->program_offsets[i]);
 
     if(!DVDFileSeek_(ifop->file, ifofile->rtav_vmgi->org_pgci_sa
-                     + pg_gi->program_offsets[i]))
+                     + pgc_gi->program_offsets[i]))
       goto fail3;
 
-    if(!DVDReadBytes(ifop->file, &pg_gi->programs[i].header, VVOB_SIZE)) {
+    if(!DVDReadBytes(ifop->file, &pgc_gi->pgi[i].header, VVOB_SIZE)) {
       goto fail3;
    }
 
-    B2N_16(pg_gi->programs[i].header.vob_attr);
-    B2N_16(pg_gi->programs[i].header.vob_v_e_ptm.ptm_extra);
-    B2N_16(pg_gi->programs[i].header.vob_v_s_ptm.ptm_extra);
-    B2N_32(pg_gi->programs[i].header.vob_v_e_ptm.ptm);
-    B2N_32(pg_gi->programs[i].header.vob_v_s_ptm.ptm);
+    B2N_16(pgc_gi->pgi[i].header.vob_attr);
+    B2N_16(pgc_gi->pgi[i].header.vob_v_e_ptm.ptm_extra);
+    B2N_16(pgc_gi->pgi[i].header.vob_v_s_ptm.ptm_extra);
+    B2N_32(pgc_gi->pgi[i].header.vob_v_e_ptm.ptm);
+    B2N_32(pgc_gi->pgi[i].header.vob_v_s_ptm.ptm);
 
 
 
     /* this entry is supposedly optional, and will not exist without this flag */
-    if(pg_gi->programs[i].header.vob_attr & 0x80) {
-      if(!DVDReadBytes(ifop->file, &pg_gi->programs[i].adj_info, ADJ_VOB_SIZE))
+    if(pgc_gi->pgi[i].header.vob_attr & 0x80) {
+      if(!DVDReadBytes(ifop->file, &pgc_gi->pgi[i].adj_info, ADJ_VOB_SIZE))
         goto fail3;
     }
 
     /* header of this table */
-    if(!DVDReadBytes(ifop->file, &pg_gi->programs[i].map, VOBU_MAP_SIZE))
+    if(!DVDReadBytes(ifop->file, &pgc_gi->pgi[i].map, VOBU_MAP_SIZE))
       goto fail3;
 
-    B2N_16(pg_gi->programs[i].map.nr_of_time_info);
-    B2N_16(pg_gi->programs[i].map.nr_of_vobu_info);
-    B2N_16(pg_gi->programs[i].map.time_offset);
-    B2N_32(pg_gi->programs[i].map.vob_offset);
+    B2N_16(pgc_gi->pgi[i].map.nr_of_time_info);
+    B2N_16(pgc_gi->pgi[i].map.nr_of_vobu_info);
+    B2N_16(pgc_gi->pgi[i].map.time_offset);
+    B2N_32(pgc_gi->pgi[i].map.vob_offset);
 
-    if(pg_gi->programs[i].map.nr_of_time_info > 0) {
-      pg_gi->programs[i].map.time_infos = calloc(pg_gi->programs[i].map.nr_of_time_info,
+    if(pgc_gi->pgi[i].map.nr_of_time_info > 0) {
+      pgc_gi->pgi[i].map.time_infos = calloc(pgc_gi->pgi[i].map.nr_of_time_info,
                                                  TIME_INFO_SIZE);
-      if(!pg_gi->programs[i].map.time_infos) {
-        free(pg_gi->programs[i].map.time_infos);
+      if(!pgc_gi->pgi[i].map.time_infos) {
+        free(pgc_gi->pgi[i].map.time_infos);
         goto fail3;
       }
 
-      if(!DVDReadBytes(ifop->file, pg_gi->programs[i].map.time_infos,
-                       pg_gi->programs[i].map.nr_of_time_info * TIME_INFO_SIZE)) {
-        free(pg_gi->programs[i].map.time_infos);
-        free(pg_gi->programs[i].map.vobu_infos);
+      if(!DVDReadBytes(ifop->file, pgc_gi->pgi[i].map.time_infos,
+                       pgc_gi->pgi[i].map.nr_of_time_info * TIME_INFO_SIZE)) {
+        free(pgc_gi->pgi[i].map.time_infos);
+        free(pgc_gi->pgi[i].map.vobu_infos);
         goto fail3;
       }
 
     } else {
-      pg_gi->programs[i].map.time_infos = NULL;
+      pgc_gi->pgi[i].map.time_infos = NULL;
     }
 
-    if(pg_gi->programs[i].map.nr_of_vobu_info > 0) {
-      pg_gi->programs[i].map.vobu_infos = calloc(pg_gi->programs[i].map.nr_of_vobu_info,
+    if(pgc_gi->pgi[i].map.nr_of_vobu_info > 0) {
+      pgc_gi->pgi[i].map.vobu_infos = calloc(pgc_gi->pgi[i].map.nr_of_vobu_info,
                                                  VOBU_INFO_SIZE);
-      if(!pg_gi->programs[i].map.vobu_infos) {
-        free(pg_gi->programs[i].map.time_infos);
-        free(pg_gi->programs[i].map.vobu_infos);
+      if(!pgc_gi->pgi[i].map.vobu_infos) {
+        free(pgc_gi->pgi[i].map.time_infos);
+        free(pgc_gi->pgi[i].map.vobu_infos);
         goto fail3;
       }
 
-      if(!DVDReadBytes(ifop->file, pg_gi->programs[i].map.vobu_infos,
-                     pg_gi->programs[i].map.nr_of_vobu_info * VOBU_INFO_SIZE)) {
-        free(pg_gi->programs[i].map.time_infos);
-        free(pg_gi->programs[i].map.vobu_infos);
+      if(!DVDReadBytes(ifop->file, pgc_gi->pgi[i].map.vobu_infos,
+                     pgc_gi->pgi[i].map.nr_of_vobu_info * VOBU_INFO_SIZE)) {
+        free(pgc_gi->pgi[i].map.time_infos);
+        free(pgc_gi->pgi[i].map.vobu_infos);
         goto fail3;
       }
-      for(j = 0; j<pg_gi->programs[i].map.nr_of_vobu_info; j++)
-        B2N_16(pg_gi->programs[i].map.vobu_infos[j].vobu_size);
+      for(j = 0; j<pgc_gi->pgi[i].map.nr_of_vobu_info; j++)
+        B2N_16(pgc_gi->pgi[i].map.vobu_infos[j].vobu_size);
 
     } else {
-      pg_gi->programs[i].map.vobu_infos = NULL;
+      pgc_gi->pgi[i].map.vobu_infos = NULL;
     }
   }
 
@@ -1554,61 +1552,60 @@ int ifoRead_PG_GI(ifo_handle_t *ifofile) {
 
 fail3:
   for(int k = 0; k < i; k++){
-    free(ifofile->pg_gi->programs[k].map.time_infos);
-    free(ifofile->pg_gi->programs[k].map.vobu_infos);
+    free(ifofile->pgc_gi->pgi[k].map.time_infos);
+    free(ifofile->pgc_gi->pgi[k].map.vobu_infos);
   }
-  free(ifofile->pg_gi->program_offsets);
-  free(ifofile->pg_gi->programs);
-  free(ifofile->pg_gi);
-  ifofile->pg_gi= NULL;
+  free(ifofile->pgc_gi->program_offsets);
+  free(ifofile->pgc_gi->pgi);
+  free(ifofile->pgc_gi);
+  ifofile->pgc_gi= NULL;
   return 0;
 }
 
-int ifoRead_PS_GI(ifo_handle_t *ifofile) {
+int ifoRead_UD_PGCIT(ifo_handle_t *ifofile) {
   struct ifo_handle_private_s *ifop = PRIV(ifofile);
-  ps_gi_t *ps_gi;
+  ud_pgcit_t *ud_pgcit;
 
-  ps_gi = malloc(sizeof(ps_gi_t));
+  ud_pgcit = malloc(sizeof(ud_pgcit_t));
 
-  if(!ps_gi)
+  if(!ud_pgcit)
     return 0;
 
-  ifofile->ps_gi= ps_gi;
+  ifofile->ud_pgcit = ud_pgcit;
 
-  if(!DVDFileSeek_(ifop->file, ifofile->rtav_vmgi->def_psi_sa)) {
-    free(ifofile->ps_gi);
-    ifofile->ps_gi = NULL;
-    return 0;
-  }
-
-  if(!DVDReadBytes(ifop->file, ps_gi, PS_GI_SIZE)) {
-    free(ifofile->ps_gi);
-    ifofile->ps_gi = NULL;
+  if(!DVDFileSeek_(ifop->file, ifofile->rtav_vmgi->ud_pgcit_sa)) {
+    free(ifofile->ud_pgcit);
+    ifofile->ud_pgcit = NULL;
     return 0;
   }
 
-  B2N_16(ps_gi->total_nr_of_programs);
-
-  ps_gi->psi_items = calloc(ps_gi->nr_of_psi, PSI_SIZE);
-
-  if(!ps_gi->psi_items) {
-    free(ps_gi->psi_items);
-    free(ifofile->ps_gi);
-    ifofile->ps_gi = NULL;
+  if(!DVDReadBytes(ifop->file, ud_pgcit, UD_PGCIT_SIZE)) {
+    free(ifofile->ud_pgcit);
+    ifofile->ud_pgcit = NULL;
     return 0;
   }
 
-  if(!DVDReadBytes(ifop->file, ps_gi->psi_items, ps_gi->nr_of_psi * PSI_SIZE)) {
-    free(ps_gi->psi_items);
-    free(ifofile->ps_gi);
-    ifofile->ps_gi = NULL;
+  B2N_16(ud_pgcit->total_nr_of_programs);
+
+  ud_pgcit->ud_pgci_items = calloc(ud_pgcit->nr_of_pgci, UD_PGCI_SIZE);
+
+  if(!ud_pgcit->ud_pgci_items) {
+    free(ifofile->ud_pgcit);
+    ifofile->ud_pgcit = NULL;
     return 0;
   }
 
-  for(int i = 0; i < ps_gi->nr_of_psi; i++) {
-    B2N_16(ps_gi->psi_items[i].nr_of_programs);
-    B2N_16(ps_gi->psi_items[i].prog_set_id);
-    B2N_16(ps_gi->psi_items[i].first_prog_id);
+  if(!DVDReadBytes(ifop->file, ud_pgcit->ud_pgci_items, ud_pgcit->nr_of_pgci * UD_PGCI_SIZE)) {
+    free(ud_pgcit->ud_pgci_items);
+    free(ifofile->ud_pgcit);
+    ifofile->ud_pgcit = NULL;
+    return 0;
+  }
+
+  for(int i = 0; i < ud_pgcit->nr_of_pgci; i++) {
+    B2N_16(ud_pgcit->ud_pgci_items[i].nr_of_programs);
+    B2N_16(ud_pgcit->ud_pgci_items[i].prog_set_id);
+    B2N_16(ud_pgcit->ud_pgci_items[i].first_prog_id);
   }
 
   return 1;
