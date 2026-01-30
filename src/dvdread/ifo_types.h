@@ -1245,14 +1245,45 @@ typedef struct  {
 } ATTRIBUTE_PACKED ud_pgci_t;
 #define UD_PGCI_SIZE 142U
 
+typedef struct  {
+  uint8_t    ep_ty; /* type */
+  uint8_t    ep_ptm[6]; /* entry point time pts */
+} ATTRIBUTE_PACKED m_c_epi_t;
+#define M_C_EPI_SIZE 7U
+
+typedef struct  {
+  uint8_t    type;
+  uint8_t    reserved;
+  union {
+    struct {
+      uint8_t group_id;
+      uint8_t start_image;
+    } still_id;
+    uint16_t m_vobi_srpn;
+  };
+  uint8_t    end_image; /* will be zero if type is movie cell */
+  uint8_t    c_epi_n; /* used to allocate m_c_epi */
+  uint8_t    c_v_s_ptm[6];
+  uint8_t    c_v_e_ptm[6];
+  m_c_epi_t* m_c_epi; /*  movie cell entry points. seekable chapters */
+} ATTRIBUTE_PACKED m_c_gi_t;
+#define M_C_GI_SIZE 18U
+
+#define MOVIE_CELL_TYPE 0
+#define STILL_CELL_TYPE 2
+
 /* this is like a playlist menu, it defines titles (groups of clips) */
 typedef struct  {
   uint8_t    data1;
   uint8_t    nr_of_pgci;
   uint16_t   total_nr_of_programs;  /* Num programs on disc */
   ud_pgci_t* ud_pgci_items;
+  uint32_t*  ci_offsets;
+  m_c_gi_t*  m_c_gi;
 } ATTRIBUTE_PACKED ud_pgcit_t; /* global info for Program Set*/
 #define UD_PGCIT_SIZE 4U
+
+#define CI_OFFSET_SIZE 4U
 
 #if PRAGMA_PACK
 #pragma pack()

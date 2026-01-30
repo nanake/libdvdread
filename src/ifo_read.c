@@ -203,7 +203,9 @@ CHECK_STRUCT_SIZE(downmix_coeff_t,        0, DOWNMIX_COEFF_SIZE);
 CHECK_STRUCT_SIZE(rtav_vmgi_t,            0, RTAV_VMGI_SIZE);
 CHECK_STRUCT_SIZE(pgci_t,                 1, PGCI_SIZE);
 CHECK_STRUCT_SIZE(pgc_gi_t,               2, PGC_GI_SIZE);
-CHECK_STRUCT_SIZE(ud_pgcit_t,             1, UD_PGCIT_SIZE);
+CHECK_STRUCT_SIZE(ud_pgcit_t,             3, UD_PGCIT_SIZE);
+CHECK_STRUCT_SIZE(m_c_gi_t,               1, M_C_GI_SIZE);
+CHECK_STRUCT_SIZE(m_c_epi_t,              0, M_C_EPI_SIZE);
 
 static void read_video_attr(video_attr_t *va) {
   getbits_state_t state;
