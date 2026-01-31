@@ -763,6 +763,19 @@ DVDREAD_API void ifoFree_PGC_GI(ifo_handle_t *ifofile) {
   ifofile->pgc_gi= NULL;
 }
 
+DVDREAD_API void ifoFree_UD_PGCIT(ifo_handle_t *ifofile) {
+  for ( int j = 0; j < ifofile->ud_pgcit->total_nr_of_programs ; j++ ) {
+    if(ifofile->ud_pgcit->m_c_gi[j].c_epi_n > 0)
+      free(ifofile->ud_pgcit->m_c_gi[j].m_c_epi);
+  }
+
+  free(ifofile->ud_pgcit->m_c_gi);
+  free(ifofile->ud_pgcit->ci_offsets);
+  free(ifofile->ud_pgcit->ud_pgci_items);
+  free(ifofile->ud_pgcit);
+  ifofile->ud_pgcit = NULL;
+}
+
 void ifoClose(ifo_handle_t *ifofile) {
   if(!ifofile)
     return;
@@ -816,10 +829,8 @@ void ifoClose(ifo_handle_t *ifofile) {
     case IFO_VIDEO_RECORDING:
       if(ifofile->rtav_vmgi)
         free(ifofile->rtav_vmgi);
-      if(ifofile->ud_pgcit) {
-        free(ifofile->ud_pgcit->ud_pgci_items);
-        free(ifofile->ud_pgcit);
-      }
+      if(ifofile->ud_pgcit)
+        ifoFree_UD_PGCIT(ifofile);
       if(ifofile->pgc_gi)
         ifoFree_PGC_GI(ifofile);
       if(ifofile->pgci){
@@ -1617,7 +1628,98 @@ int ifoRead_UD_PGCIT(ifo_handle_t *ifofile) {
     B2N_16(ud_pgcit->ud_pgci_items[i].first_prog_id);
   }
 
+  ud_pgcit->ci_offsets = calloc(ud_pgcit->total_nr_of_programs, CI_OFFSET_SIZE);
+
+  if(!ud_pgcit->ci_offsets) {
+    free(ud_pgcit->ud_pgci_items);
+    free(ifofile->ud_pgcit);
+    ifofile->ud_pgcit = NULL;
+    return 0;
+  }
+
+  if(!DVDReadBytes(ifop->file, ud_pgcit->ci_offsets,
+                   ud_pgcit->total_nr_of_programs * CI_OFFSET_SIZE)) {
+    free(ud_pgcit->ci_offsets);
+    free(ud_pgcit->ud_pgci_items);
+    free(ifofile->ud_pgcit);
+    ifofile->ud_pgcit = NULL;
+    return 0;
+  }
+
+  ud_pgcit->m_c_gi = calloc(ud_pgcit->total_nr_of_programs, sizeof(m_c_gi_t) );
+  if(!ud_pgcit->m_c_gi) {
+    free(ud_pgcit->ci_offsets);
+    free(ud_pgcit->ud_pgci_items);
+    free(ifofile->ud_pgcit);
+    ifofile->ud_pgcit = NULL;
+    return 0;
+  }
+
+  int i;
+  for ( i = 0; i < ud_pgcit->total_nr_of_programs; i++ ) {
+    B2N_32(ud_pgcit->ci_offsets[i]);
+
+    if(!DVDFileSeek_(ifop->file,
+                     ifofile->rtav_vmgi->ud_pgcit_sa + ud_pgcit->ci_offsets[i])) {
+      for (int j = 0; j < i; j++) {
+        if(ud_pgcit->m_c_gi[j].c_epi_n > 0)
+          free(ud_pgcit->m_c_gi[j].m_c_epi);
+      }
+      free(ud_pgcit->m_c_gi);
+      free(ifofile->ud_pgcit->ci_offsets);
+      free(ud_pgcit->ud_pgci_items);
+      free(ifofile->ud_pgcit);
+      ifofile->ud_pgcit = NULL;
+      return 0;
+    }
+
+    if(!DVDReadBytes(ifop->file, &ud_pgcit->m_c_gi[i], M_C_GI_SIZE)) {
+      for (int j = 0; j < i; j++) {
+        if(ud_pgcit->m_c_gi[j].c_epi_n > 0)
+          free(ud_pgcit->m_c_gi[j].m_c_epi);
+      }
+      free(ud_pgcit->m_c_gi);
+      free(ud_pgcit->ci_offsets);
+      free(ud_pgcit->ud_pgci_items);
+      free(ifofile->ud_pgcit);
+      ifofile->ud_pgcit = NULL;
+      return 0;
+    }
+
+    B2N_16(ud_pgcit->m_c_gi[i].m_vobi_srpn);
+
+    if(ud_pgcit->m_c_gi[i].c_epi_n > 0){
+      ud_pgcit->m_c_gi[i].m_c_epi = calloc(ud_pgcit->m_c_gi[i].c_epi_n, M_C_EPI_SIZE );
+
+      if(!ud_pgcit->m_c_gi[i].m_c_epi)
+        goto fail4;
+
+      if(!DVDReadBytes(ifop->file, ud_pgcit->m_c_gi[i].m_c_epi,
+                       ud_pgcit->m_c_gi[i].c_epi_n * M_C_EPI_SIZE)) {
+        free(ud_pgcit->m_c_gi[i].m_c_epi);
+        goto fail4;
+      }
+
+    }
+
+  }
+
   return 1;
+
+fail4:
+
+  for ( int j = 0; j < i; j++ ) {
+    if(ud_pgcit->m_c_gi[j].c_epi_n > 0)
+      free(ud_pgcit->m_c_gi[j].m_c_epi);
+  }
+
+  free(ud_pgcit->m_c_gi);
+  free(ud_pgcit->ci_offsets);
+  free(ud_pgcit->ud_pgci_items);
+  free(ifofile->ud_pgcit);
+  ifofile->ud_pgcit = NULL;
+  return 0;
+
 }
 
 static int ifoRead_VTS(ifo_handle_t *ifofile) {
