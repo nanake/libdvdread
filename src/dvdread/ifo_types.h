@@ -1159,7 +1159,9 @@ typedef struct {
 #define ADJ_VOB_SIZE 12U
 
 typedef struct {
-  uint8_t  data[7];
+  uint16_t  vobu_entn; /* entry vobu */
+  uint8_t   tm_diff;   /* time difference */
+  uint32_t  vobu_adr;  /* time difference */
 } ATTRIBUTE_PACKED time_info_t;
 #define TIME_INFO_SIZE 7U
 

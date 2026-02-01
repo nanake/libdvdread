@@ -1542,6 +1542,11 @@ int ifoRead_PGC_GI(ifo_handle_t *ifofile) {
         goto fail3;
       }
 
+      for(int j = 0; j < pgc_gi->pgi[i].map.nr_of_time_info; j++) {
+        B2N_16(pgc_gi->pgi[i].map.time_infos[j].vobu_entn);
+        B2N_32(pgc_gi->pgi[i].map.time_infos[j].vobu_adr);
+      }
+
     } else {
       pgc_gi->pgi[i].map.time_infos = NULL;
     }
