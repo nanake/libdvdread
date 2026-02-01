@@ -750,7 +750,7 @@ void ifoFree_TT(ifo_handle_t *ifofile){
 }
 
 DVDREAD_API void ifoFree_PGC_GI(ifo_handle_t *ifofile) {
-  if(!ifofile)
+  if(!ifofile || !ifofile->pgc_gi)
     return;
 
   for(int k = 0; k < ifofile->pgc_gi->nr_of_programs; k++){
