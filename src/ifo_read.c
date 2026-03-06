@@ -1693,6 +1693,12 @@ int ifoRead_UD_PGCIT(ifo_handle_t *ifofile) {
 
     B2N_16(ud_pgcit->m_c_gi[i].m_vobi_srpn);
 
+    B2N_32(ud_pgcit->m_c_gi[i].c_v_s_ptm.ptm);
+    B2N_16(ud_pgcit->m_c_gi[i].c_v_s_ptm.ptm_extra);
+
+    B2N_32(ud_pgcit->m_c_gi[i].c_v_e_ptm.ptm);
+    B2N_16(ud_pgcit->m_c_gi[i].c_v_e_ptm.ptm_extra);
+
     if(ud_pgcit->m_c_gi[i].c_epi_n > 0){
       ud_pgcit->m_c_gi[i].m_c_epi = calloc(ud_pgcit->m_c_gi[i].c_epi_n, M_C_EPI_SIZE );
 
@@ -1703,6 +1709,11 @@ int ifoRead_UD_PGCIT(ifo_handle_t *ifofile) {
                        ud_pgcit->m_c_gi[i].c_epi_n * M_C_EPI_SIZE)) {
         free(ud_pgcit->m_c_gi[i].m_c_epi);
         goto fail4;
+      }
+
+      for( int j = 0; j > ud_pgcit->m_c_gi[j].c_epi_n; j++){
+        B2N_32(ud_pgcit->m_c_gi[i].m_c_epi[j].ep_ptm.ptm);
+        B2N_16(ud_pgcit->m_c_gi[i].m_c_epi[j].ep_ptm.ptm_extra);
       }
 
     }
