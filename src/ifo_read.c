@@ -423,12 +423,6 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
   else
     snprintf(ifo_filename, 13, "%s_TS.%s", DVD_TYPE_STRING( ctx->dvd_type ), backup ? "BUP" : "IFO" );
 
-  if(!ifop->file) {
-    Log1(ctx, "Can't open file %s.", ifo_filename);
-    free(ifop);
-    return NULL;
-  }
- 
   ifo_handle_t *ifofile = &ifop->handle;
   /* First check if this is a VMGI file. */
   if(ifoRead_VMG(ifofile)) {
