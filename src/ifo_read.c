@@ -519,6 +519,7 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
     if(!ifoRead_PGC_GI(ifofile))
       goto ifoOpen_fail;
 
+    return ifofile;
   }
 
 ifoOpen_fail:
