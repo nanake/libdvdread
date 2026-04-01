@@ -58,6 +58,9 @@
 #include "md5.h"
 #include "dvdread/ifo_read.h"
 
+#define BYTES_TO_DVD_BLOCKS_CEIL(bytes) \
+  (((uint64_t)(bytes) + DVD_VIDEO_LB_LEN - 1) / DVD_VIDEO_LB_LEN)
+
 #if defined(_WIN32)
 # include <windows.h>
 # include "msvc/contrib/win32_cs.h"
@@ -900,14 +903,15 @@ static dvd_file_t *DVDOpenFileUDF( dvd_reader_t *ctx, const char *filename,
   }
   dvd_file->ctx = ctx;
   dvd_file->lb_start = start;
-  dvd_file->filesize = len / DVD_VIDEO_LB_LEN;
+  dvd_file->filesize = BYTES_TO_DVD_BLOCKS_CEIL(len);
 
   /* Read the whole file in cache (unencrypted) if asked and if it doesn't
    * exceed 128KB */
   if( do_cache && len < 64 * DVD_VIDEO_LB_LEN ) {
     int ret;
+    size_t cache_bytes = (size_t)dvd_file->filesize * DVD_VIDEO_LB_LEN;
 
-    dvd_file->cache = malloc( len );
+    dvd_file->cache = malloc( cache_bytes );
     if( !dvd_file->cache )
         return dvd_file;
 
@@ -1034,7 +1038,7 @@ static dvd_file_t *DVDOpenFilePath( dvd_reader_t *ctx, const char *filename )
     dvdinput_close( dev );
     return NULL;
   }
-  dvd_file->title_sizes[ 0 ] = fileinfo.st_size / DVD_VIDEO_LB_LEN;
+  dvd_file->title_sizes[ 0 ] = BYTES_TO_DVD_BLOCKS_CEIL(fileinfo.st_size);
   dvd_file->title_devs[ 0 ] = dev;
   dvd_file->filesize = dvd_file->title_sizes[ 0 ];
 
@@ -1134,7 +1138,7 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
       /*Hack*/ dvd_file->css_title = title << 1 | menu;
 
   dvd_file->lb_start = start;
-  dvd_file->filesize = len / DVD_VIDEO_LB_LEN;
+  dvd_file->filesize = BYTES_TO_DVD_BLOCKS_CEIL(len);
 
   /* Calculate the complete file size for every file in the VOBS, AOBS */
   /* DVD-VR uses UDF 2.0 which allows for larger file sizes, 1GB limit does not exist */
@@ -1145,7 +1149,7 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
       sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( ctx->dvd_type ), 
               STREAM_TYPE_STRING( ctx->dvd_type ), title, cur, STREAM_TYPE_STRING( ctx->dvd_type ) );
       if( !UDFFindFile( ctx, filename, &len ) ) break;
-      dvd_file->filesize += len / DVD_VIDEO_LB_LEN;
+      dvd_file->filesize += BYTES_TO_DVD_BLOCKS_CEIL(len);
     }
   }
 
@@ -1222,7 +1226,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
       free( dvd_file );
       return NULL;
     }
-    dvd_file->title_sizes[ 0 ] = fileinfo.st_size / DVD_VIDEO_LB_LEN;
+    dvd_file->title_sizes[ 0 ] = BYTES_TO_DVD_BLOCKS_CEIL(fileinfo.st_size);
     dvd_file->title_devs[ 0 ] = dev;
     dvdinput_title( dvd_file->title_devs[0], 0);
     dvd_file->filesize = dvd_file->title_sizes[ 0 ];
@@ -1245,7 +1249,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
         return NULL;
       }
 
-      dvd_file->title_sizes[ 0 ] = fileinfo.st_size / DVD_VIDEO_LB_LEN;
+      dvd_file->title_sizes[ 0 ] = BYTES_TO_DVD_BLOCKS_CEIL(fileinfo.st_size);
       dvd_file->title_devs[ 0 ] = dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL );
 
       if( !dvd_file->title_devs[ 0 ] ) {
@@ -1278,7 +1282,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
           break;
         }
 
-        dvd_file->title_sizes[ i ] = fileinfo.st_size / DVD_VIDEO_LB_LEN;
+        dvd_file->title_sizes[ i ] = BYTES_TO_DVD_BLOCKS_CEIL(fileinfo.st_size);
         dvd_file->title_devs[ i ] = dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL );
         /* setting type of stream will determine what decryption to use */
         dvdinput_set_stream( dvd_file->title_devs[ i ], stream_type );
