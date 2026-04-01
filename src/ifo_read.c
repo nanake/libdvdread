@@ -1373,7 +1373,6 @@ static int ifoRead_RTAV_VMGI(ifo_handle_t *ifofile) {
   CHECK_ZERO(ifofile->rtav_vmgi->zero_16);
   CHECK_ZERO(ifofile->rtav_vmgi->zero_34);
   CHECK_ZERO(ifofile->rtav_vmgi->zero_226);
-  CHECK_ZERO(ifofile->rtav_vmgi->zero_264);
   CHECK_ZERO(ifofile->rtav_vmgi->zero_280);
   CHECK_ZERO(ifofile->rtav_vmgi->zero_320);
   CHECK_ZERO(ifofile->rtav_vmgi->zero_360);
