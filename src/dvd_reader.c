@@ -1365,7 +1365,7 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
     }
     break;
   case DVD_READ_TITLE_VOBS:
-    if( titlenum == 0 ) return NULL;
+    if( titlenum == 0 && ctx->dvd_type != DVD_VR ) return NULL;
     if( dvd->isImageFile ) {
       return DVDOpenVOBUDF( ctx, titlenum, 0 );
     } else {
