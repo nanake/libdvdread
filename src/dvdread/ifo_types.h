@@ -1125,7 +1125,7 @@ typedef struct {
   /* 256 */
   uint32_t org_pgci_sa;    /* original program chain start address */
   uint32_t org_pgci_ea;    /* end address for the org_pgci */
-  uint8_t  zero_264[7];
+  uint8_t  unknown_264[7];
   cprm_info_t cprm_info;
   uint8_t  zero_280[24];
   /* 304 */
