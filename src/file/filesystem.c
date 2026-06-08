@@ -24,7 +24,7 @@ static void default_filesystem_close(dvd_reader_filesystem_h *fs) {
   free(fs);
 }
 
-dvd_reader_filesystem_h* InitInternalFilesystem() {
+dvd_reader_filesystem_h* InitInternalFilesystem(void) {
   dvd_reader_filesystem_h* fs = calloc( 1, sizeof(dvd_reader_filesystem_h));
   if (!fs) {
     return NULL;

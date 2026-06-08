@@ -41,6 +41,6 @@ int stat_default(dvd_reader_filesystem_h *fs, const char *path, dvdstat_t* statb
  * bundled with libdvdread. This includes initializing the default internal
  * implmentations of file_open, dir_open, stat, etc.
  */
-dvd_reader_filesystem_h* InitInternalFilesystem();
+dvd_reader_filesystem_h* InitInternalFilesystem(void);
 
 #endif
