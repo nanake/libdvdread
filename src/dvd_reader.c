@@ -877,25 +877,26 @@ static int findDirFile(dvd_reader_t *ctx, const char *path, const char *file, ch
     return -2;
   }
 
-  int result = 0;
-  do
-  {
-    result = dir->read(dir, &entry);
-    if (result < 0) {
-      Log0(ctx, "findDirFile: Error reading dir %s (errorno: %d)", path, result);
-      return -1;
+  int ret = -1;
+  for( ;; ) {
+    int result = dir->read(dir, &entry);
+    if( result < 0 ) {
+      Log0(ctx, "findDirFile: Error reading dir %s (error: %d)", path, result);
+      break;
     }
+    if( result > 0 )
+      break;
     if( !strcasecmp( entry.d_name, file ) ) {
       sprintf( filename, "%s%s%s", path,
                ( ( path[ strlen( path ) - 1 ] == '/' ) ? "" : "/" ),
                entry.d_name );
-      dir->close(dir);
-      return 0;
+      ret = 0;
+      break;
     }
-  } while (result == 0);
+  }
 
   dir->close(dir);
-  return -1;
+  return ret;
 }
 
 static int findDVDFile( dvd_reader_t *dvd, const char *file, char *filename )
