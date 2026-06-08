@@ -1165,7 +1165,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
       return NULL;
     }
 
-    if (ctx->fs->stat(ctx->fs, full_path, &fileinfo) > 0) {
+    if (ctx->fs->stat(ctx->fs, full_path, &fileinfo) < 0) {
       Log0(ctx, "Can't stat() %s.", filename );
       dvdinput_close(dev);
       free( dvd_file );
