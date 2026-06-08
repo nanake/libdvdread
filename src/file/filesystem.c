@@ -29,9 +29,14 @@ dvd_reader_filesystem_h* InitInternalFilesystem(void) {
   if (!fs) {
     return NULL;
   }
-  fs->dir_open = dir_open_default;
-  fs->stat = stat_default;
-  fs->file_open = file_open_default;
   fs->close = default_filesystem_close;
+  fs->stat = stat_default;
+  fs->dir_open = dir_open_default;
+  fs->dir_read = dir_read_default;
+  fs->dir_close = dir_close_default;
+  fs->file_open = file_open_default;
+  fs->file_read = file_read_default;
+  fs->file_seek = file_seek_default;
+  fs->file_close = file_close_default;
   return fs;
 }

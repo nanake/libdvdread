@@ -390,14 +390,14 @@ static int dir_has_file( dvd_reader_t *ctx, const char *subdir, const char *name
   char path[ PATH_MAX + 1 ];
   dvd_dirent_t entry;
   int found = 0;
-  dvd_dir_h *dir;
+  void *dir;
 
   snprintf( path, sizeof(path), "%s/%s", ctx->rd->path_root, subdir );
   dir = ctx->fs->dir_open( ctx->fs, path );
   if( !dir )
     return 0;
   for( ;; ) {
-    int r = dir->read( dir, &entry );
+    int r = ctx->fs->dir_read( dir, &entry );
     if( r != 0 )
       break;
     if( !strcasecmp( entry.d_name, name ) ) {
@@ -405,7 +405,7 @@ static int dir_has_file( dvd_reader_t *ctx, const char *subdir, const char *name
       break;
     }
   }
-  dir->close( dir );
+  ctx->fs->dir_close( dir );
   return found;
 }
 
@@ -923,7 +923,7 @@ static dvd_file_t *DVDOpenFileUDF( dvd_reader_t *ctx, const char *filename,
 static int findDirFile(dvd_reader_t *ctx, const char *path, const char *file, char *filename )
 {
   dvd_dirent_t entry;
-  dvd_dir_h *dir = ctx->fs->dir_open(ctx->fs, path);
+  void *dir = ctx->fs->dir_open(ctx->fs, path);
   if( !dir ) {
     Log0(ctx, "findDirFile: Could not open dir %s ", path);
     return -2;
@@ -931,7 +931,7 @@ static int findDirFile(dvd_reader_t *ctx, const char *path, const char *file, ch
 
   int ret = -1;
   for( ;; ) {
-    int result = dir->read(dir, &entry);
+    int result = ctx->fs->dir_read(dir, &entry);
     if( result < 0 ) {
       Log0(ctx, "findDirFile: Error reading dir %s (error: %d)", path, result);
       break;
@@ -947,7 +947,7 @@ static int findDirFile(dvd_reader_t *ctx, const char *path, const char *file, ch
     }
   }
 
-  dir->close(dir);
+  ctx->fs->dir_close(dir);
   return ret;
 }
 

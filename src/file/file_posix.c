@@ -31,7 +31,11 @@
 
 #include "filesystem.h"
 
-#ifdef __ANDROID__
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || \
+    defined(__NetBSD__) || defined(__DragonFly__) || \
+    (defined(_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS >= 64)
+/* off_t is already 64 bit; lseek handles off64_t offsets */
+#else
 # undef  lseek
 # define lseek lseek64
 # undef  off_t
@@ -39,45 +43,13 @@
 #endif
 
 
-static int file_close_posix(dvd_file_h *file)
-{
-    if (file) {
-        int ret = close((int)(intptr_t)file->internal);
-        free(file);
-        return ret;
-    }
-    return 0;
-}
-
-static int64_t file_seek_posix(dvd_file_h *file, int64_t offset, int32_t origin)
-{
-    off_t result = lseek((int)(intptr_t)file->internal, offset, origin);
-    if (result == (off_t)-1) {
-        return -1;
-    }
-    return (int64_t)result;
-}
-
-static ssize_t file_read_posix(dvd_file_h *file, char *buf, size_t size)
-{
-    ssize_t result;
-
-    if (size <= 0) {
-        return 0;
-    }
-
-    result = read((int)(intptr_t)file->internal, buf, size);
-    return result;
-}
-
-
-dvd_file_h* file_open_default(dvd_reader_filesystem_h *fs, const char* filename)
+void *file_open_default(dvd_reader_filesystem_h *fs, const char* filename)
 {
     if (!fs)
         return NULL;
 
-    dvd_file_h *file;
-    int fd    = -1;
+    int *handle;
+    int fd;
     int flags = 0;
     int mode  = 0;
 
@@ -98,16 +70,36 @@ dvd_file_h* file_open_default(dvd_reader_filesystem_h *fs, const char* filename)
         return NULL;
     }
 
-    file = calloc(1, sizeof(dvd_file_h));
-    if (!file) {
+    handle = malloc(sizeof(*handle));
+    if (!handle) {
         close(fd);
         return NULL;
     }
+    *handle = fd;
 
-    file->close = file_close_posix;
-    file->read = file_read_posix;
-    file->seek  = file_seek_posix;
-    file->internal = (void*)(intptr_t)fd;
+    return handle;
+}
 
-    return file;
+ssize_t file_read_default(void *file, char *buf, size_t size)
+{
+    if (size == 0) {
+        return 0;
+    }
+
+    return read(*(int*)file, buf, size);
+}
+
+off64_t file_seek_default(void *file, off64_t offset, int whence)
+{
+    return lseek(*(int*)file, offset, whence);
+}
+
+int file_close_default(void *file)
+{
+    if (file) {
+        int ret = close(*(int*)file);
+        free(file);
+        return ret;
+    }
+    return 0;
 }

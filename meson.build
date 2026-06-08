@@ -35,7 +35,7 @@ cdata.set_quoted('PACKAGE_VERSION', dvdread_version)
 #
 
 # Arguments in test_args will be used even on feature tests
-test_args = ['-D_DEFAULT_SOURCE']
+test_args = ['-D_DEFAULT_SOURCE', '-D_LARGEFILE64_SOURCE']
 
 optional_arguments = []
 optional_link_arguments = []

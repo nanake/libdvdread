@@ -35,22 +35,21 @@
 #include <dvdread/dvd_filesystem.h>
 #include "filesystem.h"
 
-static void dir_close_posix(dvd_dir_h *dir)
+void *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
 {
-    if (dir) {
-        closedir((DIR *)dir->internal);
-        free(dir);
-        dir = NULL;
-    }
+    if (!fs)
+        return NULL;
+
+    return opendir(dirname);
 }
 
-static int dir_read_posix(dvd_dir_h *dir, dvd_dirent_t *entry)
+int dir_read_default(void *dir, dvd_dirent_t *entry)
 {
     struct dirent *p_e;
 
 #ifdef USE_READDIR
     errno = 0;
-    p_e = readdir((DIR*)dir->internal);
+    p_e = readdir((DIR*)dir);
     if (!p_e && errno) {
         return -errno;
     }
@@ -58,7 +57,7 @@ static int dir_read_posix(dvd_dir_h *dir, dvd_dirent_t *entry)
     int result;
     struct dirent e;
 
-    result = readdir_r((DIR*)dir->internal, &e, &p_e);
+    result = readdir_r((DIR*)dir, &e, &p_e);
     if (result) {
         return -result;
     }
@@ -73,26 +72,8 @@ static int dir_read_posix(dvd_dir_h *dir, dvd_dirent_t *entry)
     return 0;
 }
 
-dvd_dir_h *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
+void dir_close_default(void *dir)
 {
-    if (!fs)
-        return NULL;
-
-    dvd_dir_h *dir = calloc(1, sizeof(dvd_dir_h));
-
-    if (!dir) {
-        return NULL;
-    }
-
-    dir->close = dir_close_posix;
-    dir->read = dir_read_posix;
-
-    if ((dir->internal = opendir(dirname))) {
-        return dir;
-    }
-
-    free(dir);
-    dir = NULL;
-
-    return NULL;
+    if (dir)
+        closedir((DIR *)dir);
 }

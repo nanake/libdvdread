@@ -121,7 +121,8 @@ struct dvd_input_s {
   /* stream input */
   dvd_reader_stream_cb *stream_cb;
   /* file input */
-  dvd_file_h* file;
+  dvd_reader_filesystem_h *fs;
+  void *file;
 };
 
 static dvd_input_t dvd_input_New(void *priv, dvd_logger_cb *logcb)
@@ -137,6 +138,7 @@ static dvd_input_t dvd_input_New(void *priv, dvd_logger_cb *logcb)
       /* Initialize all inputs to safe defaults */
       dev->dvdcss = NULL;
       dev->stream_cb = NULL;
+      dev->fs = NULL;
       dev->file = NULL;
   }
   return dev;
@@ -275,6 +277,7 @@ static dvd_input_t file_open(void *priv, dvd_logger_cb *logcb,
     free(dev);
     return NULL;
   }
+  dev->fs = fs;
   dev->file = fs->file_open(fs, target);
   if(!dev->file) {
     char buf[256];
@@ -309,7 +312,7 @@ static dvd_input_t file_open(void *priv, dvd_logger_cb *logcb,
  */
 static int file_seek(dvd_input_t dev, int blocks)
 {
-  int64_t pos = -1;
+  off64_t pos = -1;
 
   if(dev->ipos == blocks)
   {
@@ -325,10 +328,8 @@ static int file_seek(dvd_input_t dev, int blocks)
       dev->ipos = blocks;
     }
   } else {
-    /* Returns position as the number of bytes from beginning of file
-     * or -1 on error
-     */
-    pos = dev->file->seek(dev->file, (int64_t)blocks * (int64_t)DVD_VIDEO_LB_LEN, SEEK_SET);
+    /* Returns the offset from the start of the file or -1 on error */
+    pos = dev->fs->file_seek(dev->file, (off64_t)blocks * (off64_t)DVD_VIDEO_LB_LEN, SEEK_SET);
 
     if (pos >= 0) {
       dev->ipos = pos / DVD_VIDEO_LB_LEN;
@@ -339,7 +340,6 @@ static int file_seek(dvd_input_t dev, int blocks)
     return pos;
   }
 
-  /* assert pos % DVD_VIDEO_LB_LEN == 0 */
   return (int) dev->ipos;
 }
 
@@ -372,7 +372,7 @@ static int file_read(dvd_input_t dev, void *buffer, int blocks,
       ret = dev->stream_cb->pf_read(dev->priv, ((char*)buffer) + bytes, len);
     } else {
       /* Returns the number of bytes read or -1 on error */
-      ret = dev->file->read(dev->file, ((char*)buffer) + bytes, len);
+      ret = dev->fs->file_read(dev->file, ((char*)buffer) + bytes, len);
     }
 
     if(ret < 0) {
@@ -412,7 +412,7 @@ static int file_close(dvd_input_t dev)
   /* close file if it was open */
 
   if (dev->file) {
-    ret = dev->file->close(dev->file);
+    ret = dev->fs->file_close(dev->file);
   }
 
   free(dev);

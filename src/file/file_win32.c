@@ -32,45 +32,13 @@
 #include "filesystem.h"
 
 
-static int file_close_win32(dvd_file_h *file)
-{
-    if (file) {
-        int ret = close((int)(intptr_t)file->internal);
-        free(file);
-        return ret;
-    }
-    return 0;
-}
-
-static int64_t file_seek_win32(dvd_file_h *file, int64_t offset, int32_t origin)
-{
-    off64_t result = _lseeki64((int)(intptr_t)file->internal, offset, origin);
-    if (result == (off64_t)-1) {
-        return -1;
-    }
-    return (int64_t)result;
-}
-
-static ssize_t file_read_win32(dvd_file_h *file, char *buf, size_t size)
-{
-    ssize_t result;
-
-    if (size <= 0) {
-        return 0;
-    }
-
-    result = read((int)(intptr_t)file->internal, buf, size);
-    return result;
-}
-
-
-dvd_file_h* file_open_default(dvd_reader_filesystem_h *fs, const char* filename)
+void *file_open_default(dvd_reader_filesystem_h *fs, const char* filename)
 {
     if (!fs)
         return NULL;
 
-    dvd_file_h *file;
-    int fd    = -1;
+    int *handle;
+    int fd;
     wchar_t *wpath;
 
     wpath = _utf8_to_wchar(filename);
@@ -78,21 +46,42 @@ dvd_file_h* file_open_default(dvd_reader_filesystem_h *fs, const char* filename)
         return NULL;
     }
 
-    if ((fd = _wopen(wpath, O_RDONLY | O_BINARY)) < 0) {
-        free(wpath);
+    fd = _wopen(wpath, O_RDONLY | O_BINARY);
+    free(wpath);
+    if (fd < 0) {
         return NULL;
     }
 
-    file = calloc(1, sizeof(dvd_file_h));
-    if (!file) {
+    handle = malloc(sizeof(*handle));
+    if (!handle) {
         close(fd);
         return NULL;
     }
+    *handle = fd;
 
-    file->close = file_close_win32;
-    file->read = file_read_win32;
-    file->seek  = file_seek_win32;
-    file->internal = (void*)(intptr_t)fd;
+    return handle;
+}
 
-    return file;
+ssize_t file_read_default(void *file, char *buf, size_t size)
+{
+    if (size == 0) {
+        return 0;
+    }
+
+    return read(*(int*)file, buf, size);
+}
+
+off64_t file_seek_default(void *file, off64_t offset, int whence)
+{
+    return _lseeki64(*(int*)file, offset, whence);
+}
+
+int file_close_default(void *file)
+{
+    if (file) {
+        int ret = close(*(int*)file);
+        free(file);
+        return ret;
+    }
+    return 0;
 }

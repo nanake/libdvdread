@@ -36,48 +36,16 @@ typedef struct {
 } win32_dir_t;
 
 
-static void dir_close_win32(dvd_dir_h *dir)
-{
-    if (dir) {
-        _findclose(((win32_dir_t*)dir->internal)->handle);
-        free((win32_dir_t*)dir->internal);
-        free(dir);
-        dir = NULL;
-    }
-}
-
-static int dir_read_win32(dvd_dir_h *dir, dvd_dirent_t *entry)
-{
-    win32_dir_t *wdir = (win32_dir_t*)dir->internal;
-    if (wdir->went.name[0]) {
-        if (!WideCharToMultiByte(CP_UTF8, 0, wdir->went.name, -1, entry->d_name, sizeof(entry->d_name), NULL, NULL))
-            entry->d_name[0] = 0; /* allow reading next */
-        wdir->went.name[0] = 0;
-        _wfindnext(wdir->handle, &wdir->went);
-        return 0;
-    }
-    /* end of directory, use a positive value so callers can tell it apart from an error */
-    return 1;
-}
-
-dvd_dir_h *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
+void *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
 {
     if (!fs)
         return NULL;
 
     char    *filespec;
     wchar_t *wfilespec;
-    win32_dir_t *d;
-    dvd_dir_h *dir = calloc(1, sizeof(dvd_dir_h));
+    win32_dir_t *d = calloc(1, sizeof(*d));
 
-    if (!dir) {
-        return NULL;
-    }
-
-    d = calloc(1, sizeof(*d));
-    if (!d)
-    {
-        free(dir);
+    if (!d) {
         return NULL;
     }
 
@@ -96,14 +64,33 @@ dvd_dir_h *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
     d->handle = _wfindfirst(wfilespec, &d->went);
     free(wfilespec);
     if (d->handle != -1) {
-        dir->internal = (void*)d;
-        dir->close = dir_close_win32;
-        dir->read = dir_read_win32;
-        return dir;
+        return d;
     }
 
     fail:
         free(d);
-        free(dir);
         return NULL;
+}
+
+int dir_read_default(void *dir, dvd_dirent_t *entry)
+{
+    win32_dir_t *wdir = (win32_dir_t*)dir;
+    if (wdir->went.name[0]) {
+        if (!WideCharToMultiByte(CP_UTF8, 0, wdir->went.name, -1, entry->d_name, sizeof(entry->d_name), NULL, NULL))
+            entry->d_name[0] = 0; /* allow reading next */
+        wdir->went.name[0] = 0;
+        _wfindnext(wdir->handle, &wdir->went);
+        return 0;
+    }
+    /* end of directory, use a positive value so callers can tell it apart from an error */
+    return 1;
+}
+
+void dir_close_default(void *dir)
+{
+    if (dir) {
+        win32_dir_t *wdir = (win32_dir_t*)dir;
+        _findclose(wdir->handle);
+        free(wdir);
+    }
 }
