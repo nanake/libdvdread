@@ -44,6 +44,10 @@ void DVDReadLog( void *priv, const dvd_logger_cb *logcb,
 
         FILE *stream = (level == DVD_LOGGER_LEVEL_ERROR) ? stderr : tty_stream;
 
+        /* no controlling terminal so fall back to stderr */
+        if (!stream)
+            stream = stderr;
+
         fprintf(stream, "libdvdread: ");
         vfprintf(stream, fmt, list);
         fprintf(stream, "\n");
