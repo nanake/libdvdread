@@ -30,7 +30,9 @@ int stat_default(dvd_reader_filesystem_h *fs, const char *path, dvdstat_t* statb
 
     struct stat posixstatbuf;
     int ret = stat(path, &posixstatbuf);
-    statbuf->size = posixstatbuf.st_size;
-    statbuf->st_mode = posixstatbuf.st_mode;
+    if (ret == 0) {
+        statbuf->size = posixstatbuf.st_size;
+        statbuf->st_mode = posixstatbuf.st_mode;
+    }
     return ret;
 }

@@ -47,7 +47,10 @@ int stat_default(dvd_reader_filesystem_h *fs, const char *path, dvdstat_t* statb
         *it = 0;
 
     int ret = _wstat64(wpath, &win32statbuf);
-    statbuf->size = win32statbuf.st_size;
-    statbuf->st_mode = win32statbuf.st_mode;
+    free(wpath);
+    if (ret == 0) {
+        statbuf->size = win32statbuf.st_size;
+        statbuf->st_mode = win32statbuf.st_mode;
+    }
     return ret;
 }
