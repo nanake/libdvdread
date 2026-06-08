@@ -39,7 +39,7 @@
 #endif
 
 
-int _file_close(dvd_file_h *file)
+static int file_close_posix(dvd_file_h *file)
 {
     if (file) {
         int ret = close((int)(intptr_t)file->internal);
@@ -49,7 +49,7 @@ int _file_close(dvd_file_h *file)
     return 0;
 }
 
-int64_t _file_seek(dvd_file_h *file, int64_t offset, int32_t origin)
+static int64_t file_seek_posix(dvd_file_h *file, int64_t offset, int32_t origin)
 {
     off_t result = lseek((int)(intptr_t)file->internal, offset, origin);
     if (result == (off_t)-1) {
@@ -58,7 +58,7 @@ int64_t _file_seek(dvd_file_h *file, int64_t offset, int32_t origin)
     return (int64_t)result;
 }
 
-ssize_t _file_read(dvd_file_h *file, char *buf, size_t size)
+static ssize_t file_read_posix(dvd_file_h *file, char *buf, size_t size)
 {
     ssize_t result;
 
@@ -104,9 +104,9 @@ dvd_file_h* file_open_default(dvd_reader_filesystem_h *fs, const char* filename)
         return NULL;
     }
 
-    file->close = _file_close;
-    file->read = _file_read;
-    file->seek  = _file_seek;
+    file->close = file_close_posix;
+    file->read = file_read_posix;
+    file->seek  = file_seek_posix;
     file->internal = (void*)(intptr_t)fd;
 
     return file;

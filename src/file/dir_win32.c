@@ -36,7 +36,7 @@ typedef struct {
 } win32_dir_t;
 
 
-void _dir_close_win32(dvd_dir_h *dir)
+static void dir_close_win32(dvd_dir_h *dir)
 {
     if (dir) {
         _findclose(((win32_dir_t*)dir->internal)->handle);
@@ -46,7 +46,7 @@ void _dir_close_win32(dvd_dir_h *dir)
     }
 }
 
-int _dir_read_win32(dvd_dir_h *dir, dvd_dirent_t *entry)
+static int dir_read_win32(dvd_dir_h *dir, dvd_dirent_t *entry)
 {
     win32_dir_t *wdir = (win32_dir_t*)dir->internal;
     if (wdir->went.name[0]) {
@@ -96,8 +96,8 @@ dvd_dir_h *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
     free(wfilespec);
     if (d->handle != -1) {
         dir->internal = (void*)d;
-        dir->close = _dir_close_win32;
-        dir->read = _dir_read_win32;
+        dir->close = dir_close_win32;
+        dir->read = dir_read_win32;
         return dir;
     }
 

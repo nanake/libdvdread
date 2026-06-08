@@ -35,7 +35,7 @@
 #include <dvdread/dvd_filesystem.h>
 #include "filesystem.h"
 
-void _dir_close_posix(dvd_dir_h *dir)
+static void dir_close_posix(dvd_dir_h *dir)
 {
     if (dir) {
         closedir((DIR *)dir->internal);
@@ -44,7 +44,7 @@ void _dir_close_posix(dvd_dir_h *dir)
     }
 }
 
-int _dir_read_posix(dvd_dir_h *dir, dvd_dirent_t *entry)
+static int dir_read_posix(dvd_dir_h *dir, dvd_dirent_t *entry)
 {
     struct dirent *p_e;
 
@@ -84,8 +84,8 @@ dvd_dir_h *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
         return NULL;
     }
 
-    dir->close = _dir_close_posix;
-    dir->read = _dir_read_posix;
+    dir->close = dir_close_posix;
+    dir->read = dir_read_posix;
 
     if ((dir->internal = opendir(dirname))) {
         return dir;
