@@ -23,6 +23,11 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#if defined(_MSC_VER) && !defined(ssize_t)
+#include <basetsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 /*
  * directory access
  */
