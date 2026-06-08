@@ -707,6 +707,13 @@ static dvd_type_t DVDProbeType( const char *ppath, void *stream,
   if(!ctx)
     return ret;
 
+  /* the builtin input reads through ctx->fs so set it before probing */
+  ctx->fs = InitInternalFilesystem();
+  if(!ctx->fs) {
+    free(ctx);
+    return ret;
+  }
+
   have_css = dvdinput_setup( ctx->priv, &ctx->logcb, DVD_V );
 
   if (stream && stream_cb)
@@ -715,8 +722,8 @@ static dvd_type_t DVDProbeType( const char *ppath, void *stream,
     ctx->rd = DVDOpenImageFile( ctx, ppath, NULL, have_css );
 
   if (!ctx->rd) {
-    free(ctx);
-    return DVD_V;
+    DVDFreeContext(ctx);
+    return ret;
   }
 
   /* check for ifos */
