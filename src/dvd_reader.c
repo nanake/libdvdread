@@ -409,6 +409,13 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
   {
     ctx->fs = fs;
     dvdinput_setup_builtin(ctx->priv, &ctx->logcb);
+    /* DVDOpenFiles only opens a directory tree, so reject anything else */
+    if( ctx->fs->stat( ctx->fs, ppath, &fileinfo ) < 0 ||
+        ( fileinfo.st_mode & DVD_S_IFMT ) != DVD_S_IFDIR )
+    {
+      free(ctx);
+      return NULL;
+    }
     ctx->rd = DVDOpenPath(ppath);
     if (!ctx->rd)
     {
