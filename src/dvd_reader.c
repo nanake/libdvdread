@@ -373,6 +373,17 @@ static int cpxm_init_condition( dvd_reader_t* ctx, dvd_type_t type, int have_css
     return 0;
 }
 
+/* not for the DVDOpenFiles filesystem which the caller owns */
+static dvd_reader_t *DVDFreeContext( dvd_reader_t *ctx )
+{
+  if( ctx ) {
+    if( ctx->fs )
+      ctx->fs->close( ctx->fs );
+    free( ctx );
+  }
+  return NULL;
+}
+
 static dvd_reader_t *DVDOpenCommon( void *priv,
                                     const dvd_logger_cb *logcb,
                                     const char *ppath,
@@ -421,10 +432,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
     have_css = dvdinput_setup( ctx->priv, &ctx->logcb, type );
     ctx->rd = DVDOpenImageFile( ctx, NULL, stream_cb, have_css );
     if(!ctx->rd)
-    {
-        free(ctx);
-        return NULL;
-    }
+        return DVDFreeContext(ctx);
     cpxm_init_condition( ctx, type, have_css );
     return ctx;
   }
@@ -459,10 +467,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
       ctx->rd = DVDOpenImageFile( ctx, path, NULL, have_css );
       free(path);
       if(!ctx->rd)
-      {
-          free(ctx);
-          return NULL;
-      }
+          return DVDFreeContext(ctx);
       cpxm_init_condition( ctx, type, have_css );
       return ctx;
     }
@@ -494,10 +499,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
     free( dev_name );
     free(path);
     if(!ctx->rd)
-    {
-        free(ctx);
-        return NULL;
-    }
+        return DVDFreeContext(ctx);
     cpxm_init_condition( ctx, type, have_css );
     return ctx;
   } else if ((fileinfo.st_mode & DVD_S_IFMT) == DVD_S_IFDIR ) {
@@ -673,10 +675,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
     ctx->rd = DVDOpenPath( path );
     free( path );
     if(!ctx->rd)
-    {
-        free(ctx);
-        return NULL;
-    }
+        return DVDFreeContext(ctx);
     cpxm_init_condition( ctx, type, have_css );
     return ctx;
   }
@@ -689,7 +688,7 @@ DVDOpen_error:
   if ( cdir >= 0 )
     close( cdir );
   free( new_path );
-  return NULL;
+  return DVDFreeContext( ctx );
 }
 
 /* opens the disc temporarily to peek at the file structure
