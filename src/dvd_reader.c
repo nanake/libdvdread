@@ -384,6 +384,45 @@ static dvd_reader_t *DVDFreeContext( dvd_reader_t *ctx )
   return NULL;
 }
 
+/* like findDirFile but quiet, used to probe the disc type */
+static int dir_has_file( dvd_reader_t *ctx, const char *subdir, const char *name )
+{
+  char path[ PATH_MAX + 1 ];
+  dvd_dirent_t entry;
+  int found = 0;
+  dvd_dir_h *dir;
+
+  snprintf( path, sizeof(path), "%s/%s", ctx->rd->path_root, subdir );
+  dir = ctx->fs->dir_open( ctx->fs, path );
+  if( !dir )
+    return 0;
+  for( ;; ) {
+    int r = dir->read( dir, &entry );
+    if( r != 0 )
+      break;
+    if( !strcasecmp( entry.d_name, name ) ) {
+      found = 1;
+      break;
+    }
+  }
+  dir->close( dir );
+  return found;
+}
+
+/* like dir_has_file but also tries the lowercase spelling of subdir, as findDVDFile does */
+static int disc_dir_has( dvd_reader_t *ctx, const char *subdir, const char *name )
+{
+  char low[ 16 ];
+  size_t i;
+
+  if( dir_has_file( ctx, subdir, name ) )
+    return 1;
+  for( i = 0; subdir[i] && i + 1 < sizeof(low); i++ )
+    low[i] = tolower( (unsigned char)subdir[i] );
+  low[i] = 0;
+  return dir_has_file( ctx, low, name );
+}
+
 static dvd_reader_t *DVDOpenCommon( void *priv,
                                     const dvd_logger_cb *logcb,
                                     const char *ppath,
@@ -422,6 +461,12 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
       free(ctx);
       return NULL;
     }
+    /* detect the disc type from the directory layout like DVDProbeType does */
+    if( disc_dir_has( ctx, "AUDIO_TS", "AUDIO_TS.IFO" ) &&
+        !disc_dir_has( ctx, "VIDEO_TS", "VIDEO_TS.IFO" ) )
+      ctx->dvd_type = DVD_A;
+    else if( disc_dir_has( ctx, "DVD_RTAV", "VR_MANGR.IFO" ) )
+      ctx->dvd_type = DVD_VR;
     return ctx;
   }
 

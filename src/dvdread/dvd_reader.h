@@ -173,7 +173,7 @@ DVDREAD_API dvd_reader_t *DVDOpenStreamVideoRecording( void *, const dvd_logger_
  * Open unencrypted DVD files providing the respective filesystem implementation
  * Useful to open files located on virtual file systems
  *
- * @param path Specifies the file or directory to use
+ * @param path Specifies the directory to use
  * @param priv is a private handle
  * @param logcb is a custom logger callback struct, or NULL if none needed
  * @param fs is a struct containing the filesystem implementation
