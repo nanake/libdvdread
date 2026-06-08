@@ -42,8 +42,8 @@ typedef struct dvd_filesystem_dir_s dvd_dir_h;
  * internal - opaque handler internal to the specific implementation used to store the data type of directory stream objects.
  * This is tipically a dir handler (e.g. a DIR* in posix)
  * close(dvd_dir_h *dir) - called to close the directory and cleanup any alloc'd dir structures
- * read(dvd_dir_h *dir, dvd_dirent_t *entry) - provided the dvd_dirent_t, reads the respective directory and returns -1 if the
- * directory could not be read, 0 if successfully read.
+ * read(dvd_dir_h *dir, dvd_dirent_t *entry) - reads the next directory entry into entry
+ * returns 0 on success, a positive value at end of directory, a negative value on error
  */
 struct dvd_filesystem_dir_s
 {
@@ -65,12 +65,12 @@ struct dvd_filesystem_dir_s
 
 /**
  * Abstraction for stat buffer structure
- * size - size of the stat'd file
+ * size - fixed width so it does not depend on the caller off_t width
  * st_mode - file mode
  */
 typedef struct
 {
-    off_t size;
+    uint64_t size;
     unsigned int st_mode;
 } dvdstat_t;
 
