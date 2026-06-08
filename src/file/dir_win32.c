@@ -56,7 +56,8 @@ static int dir_read_win32(dvd_dir_h *dir, dvd_dirent_t *entry)
         _wfindnext(wdir->handle, &wdir->went);
         return 0;
     }
-    return -1;
+    /* end of directory, use a positive value so callers can tell it apart from an error */
+    return 1;
 }
 
 dvd_dir_h *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
