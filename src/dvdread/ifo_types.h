@@ -97,6 +97,17 @@ typedef struct {
 #define VIDEO_ATTR_SIZE  2U
 
 /**
+ * Audio code extension, see SPRM 17.
+ */
+typedef enum {
+  DVD_AUDIO_CODE_EXT_UNSPECIFIED       = 0,
+  DVD_AUDIO_CODE_EXT_NORMAL            = 1,
+  DVD_AUDIO_CODE_EXT_VISUALLY_IMPAIRED = 2,
+  DVD_AUDIO_CODE_EXT_DIRECTOR          = 3, /**< director's comments */
+  DVD_AUDIO_CODE_EXT_ALT_DIRECTOR      = 4, /**< alternate director's comments */
+} dvd_audio_code_ext_t;
+
+/**
  * Audio Attributes.
  */
 typedef struct {
@@ -111,7 +122,7 @@ typedef struct {
   unsigned char channels               : 3;
   uint16_t lang_code;
   uint8_t  lang_extension;
-  uint8_t  code_extension;
+  uint8_t  code_extension; /**< dvd_audio_code_ext_t */
   uint8_t unknown3;
   union {
     struct ATTRIBUTE_PACKED {
@@ -164,6 +175,23 @@ typedef struct {
 
 
 /**
+ * Subpicture code extension, see SPRM 19.
+ */
+typedef enum {
+  DVD_SUBP_CODE_EXT_UNSPECIFIED       = 0,
+  DVD_SUBP_CODE_EXT_NORMAL            = 1,
+  DVD_SUBP_CODE_EXT_LARGE             = 2,
+  DVD_SUBP_CODE_EXT_CHILDREN          = 3,
+  DVD_SUBP_CODE_EXT_NORMAL_CAPTIONS   = 5,
+  DVD_SUBP_CODE_EXT_LARGE_CAPTIONS    = 6,
+  DVD_SUBP_CODE_EXT_CHILDREN_CAPTIONS = 7,
+  DVD_SUBP_CODE_EXT_FORCED            = 9,
+  DVD_SUBP_CODE_EXT_DIRECTOR          = 13, /**< director's comments */
+  DVD_SUBP_CODE_EXT_LARGE_DIRECTOR    = 14, /**< large director's comments */
+  DVD_SUBP_CODE_EXT_CHILDREN_DIRECTOR = 15, /**< director's comments for children */
+} dvd_subp_code_ext_t;
+
+/**
  * Subpicture Attributes.
  */
 typedef struct {
@@ -183,7 +211,7 @@ typedef struct {
   uint8_t  zero2;
   uint16_t lang_code;
   uint8_t  lang_extension;
-  uint8_t  code_extension;
+  uint8_t  code_extension; /**< dvd_subp_code_ext_t */
 } ATTRIBUTE_PACKED subp_attr_t;
 #define SUBP_ATTR_SIZE  6U
 
