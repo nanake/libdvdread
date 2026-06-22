@@ -1035,6 +1035,13 @@ static int ifoRead_ASVS(ifo_handle_t *ifofile){
   B2N_16(asvs_mat->specification_version);
   B2N_16(asvs_mat->length_sectors);
 
+  /* a broken disc could ask for more groups than fit */
+  if(asvs_mat->asvs_nr_groups > ASVS_GROUP_MAX_SIZE) {
+    free(ifofile->asvs_mat);
+    ifofile->asvs_mat = NULL;
+    return 0;
+  }
+
   int total_nr_frames = 0;
   for (int i = 0; i < asvs_mat->asvs_nr_groups; i++ ) {
     B2N_16(asvs_mat->asvs_groups[i].start_frame);
