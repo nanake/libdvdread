@@ -1404,8 +1404,11 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
 
 void DVDCloseFile( dvd_file_t *dvd_file )
 {
-  dvd_reader_device_t *dvd = dvd_file->ctx->rd;
-  if( dvd_file && dvd ) {
+  dvd_reader_device_t *dvd;
+  if( !dvd_file )
+    return;
+  dvd = dvd_file->ctx->rd;
+  if( dvd ) {
     if( !dvd->isImageFile ) {
       int i;
 
