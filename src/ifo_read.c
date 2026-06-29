@@ -1715,7 +1715,7 @@ int ifoRead_UD_PGCIT(ifo_handle_t *ifofile) {
         goto fail4;
       }
 
-      for( int j = 0; j > ud_pgcit->m_c_gi[j].c_epi_n; j++){
+      for( int j = 0; j < ud_pgcit->m_c_gi[i].c_epi_n; j++){
         B2N_32(ud_pgcit->m_c_gi[i].m_c_epi[j].ep_ptm.ptm);
         B2N_16(ud_pgcit->m_c_gi[i].m_c_epi[j].ep_ptm.ptm_extra);
       }
