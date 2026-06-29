@@ -1279,8 +1279,10 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
           break;
         }
 
-        dvd_file->title_sizes[ i ] = BYTES_TO_DVD_BLOCKS_CEIL(fileinfo.size);
         dvd_file->title_devs[ i ] = dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL, ctx->fs );
+        if( !dvd_file->title_devs[ i ] )
+          break;
+        dvd_file->title_sizes[ i ] = BYTES_TO_DVD_BLOCKS_CEIL(fileinfo.size);
         /* setting type of stream will determine what decryption to use */
         dvdinput_set_stream( dvd_file->title_devs[ i ], stream_type );
 
