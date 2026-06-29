@@ -435,9 +435,9 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
   char *dev_name = NULL;
   char *path = NULL, *new_path = NULL, *path_copy = NULL;
   dvd_reader_t *ctx = calloc(1, sizeof(*ctx));
-  ctx->dvd_type = type;
   if(!ctx)
       return NULL;
+  ctx->dvd_type = type;
 
   ctx->priv = priv;
   if(logcb)
