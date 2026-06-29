@@ -821,6 +821,10 @@ void ifoClose(ifo_handle_t *ifofile) {
         free(ifofile->info_table_first_sector->tracks_info);
         free(ifofile->info_table_first_sector);
       }
+      if(ifofile->info_table_second_sector){
+        free(ifofile->info_table_second_sector->tracks_info);
+        free(ifofile->info_table_second_sector);
+      }
       if(ifofile->atsi_title_table)
         ifoFree_TT(ifofile);
       break;
