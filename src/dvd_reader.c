@@ -1076,20 +1076,27 @@ static uint8_t *cppm_get_mkb_or_backup( dvd_reader_t *ctx, int backup )
     return NULL;
 
   p_mkb = malloc( mkb_file->filesize * DVD_VIDEO_LB_LEN );
-  if ( !p_mkb )
+  if ( !p_mkb ) {
+    DVDCloseFile( mkb_file );
     return NULL;
+  }
 
-  if ( !DVDReadBytes( mkb_file, p_mkb, mkb_file->filesize * DVD_VIDEO_LB_LEN ) ) 
+  if ( !DVDReadBytes( mkb_file, p_mkb, mkb_file->filesize * DVD_VIDEO_LB_LEN ) )
   {
     free( p_mkb );
+    DVDCloseFile( mkb_file );
     return NULL;
   }
 
   /* checking header */
   if( ( !memcmp( p_mkb, "DVDAUDIO.MKB", 12 ) && !backup )
-        || ( !memcmp( p_mkb, "DVDAUDIO.BUP", 12 ) && backup ) )
+        || ( !memcmp( p_mkb, "DVDAUDIO.BUP", 12 ) && backup ) ) {
+    free( p_mkb );
+    DVDCloseFile( mkb_file );
     return NULL;
+  }
 
+  DVDCloseFile( mkb_file );
   return p_mkb;
 }
 
