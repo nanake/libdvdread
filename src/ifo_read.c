@@ -1255,7 +1255,9 @@ int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset) {
   /* the second table is an audio_ts only table, the first is audio_ts, video_ts, strangly the nr_titles in second table doesnt match up with the true nr_titles for this table. Need to subtract video titles*/
   for(int i=0; i<tracks_info_table->nr_of_titles; i++) {
     if(tracks_info_table->tracks_info[i].type_and_rank==0 && sector_offset == 2) {
-      tracks_info_table->tracks_info = realloc(tracks_info_table->tracks_info, i * sizeof(track_info_t));
+      track_info_t *resized = realloc(tracks_info_table->tracks_info, i * sizeof(track_info_t));
+      if(resized || i == 0)
+        tracks_info_table->tracks_info = resized;
       tracks_info_table->nr_of_titles = i;
       break;
     }
