@@ -857,10 +857,12 @@ dvd_reader_t *DVDOpenFiles( void *priv, const dvd_logger_cb *logcb,
 void DVDClose( dvd_reader_t *dvd )
 {
   if( dvd ) {
-    if( dvd->rd->dev ) dvdinput_close( dvd->rd->dev );
-    if( dvd->rd->path_root ) free( dvd->rd->path_root );
-    if( dvd->rd->udfcache ) FreeUDFCache( dvd->rd->udfcache );
-    free( dvd->rd );
+    if( dvd->rd ) {
+      if( dvd->rd->dev ) dvdinput_close( dvd->rd->dev );
+      if( dvd->rd->path_root ) free( dvd->rd->path_root );
+      if( dvd->rd->udfcache ) FreeUDFCache( dvd->rd->udfcache );
+      free( dvd->rd );
+    }
     if (dvd->fs) {
       dvd->fs->close(dvd->fs);
     }
