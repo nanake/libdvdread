@@ -472,6 +472,7 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
       goto ifoOpen_fail;
 
     /* Should read SAMG as it contains location to AOB pointers */
+    DVDCloseFile(ifop->file);
     ifop->file = DVDOpenFile(ctx, 2, DVD_READ_SAMG_INFO);
     if(!ifop->file)
       goto ifoOpen_fail;
@@ -479,6 +480,7 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
       goto ifoOpen_fail;
 
     /* The Audio Still Video Set (ASVS) is optional, though usually exists */
+    DVDCloseFile(ifop->file);
     ifop->file = DVDOpenFile(ctx, 2, backup ? DVD_READ_ASVS_INFO_BACKUP
                              : DVD_READ_ASVS_INFO);
     if(!ifop->file)
