@@ -674,8 +674,8 @@ ifo_handle_t *ifoOpenASVS(dvd_reader_t *ctx) {
     if(!ifop)
       return NULL;
 
-    const dvd_read_domain_t domain = backup ? DVD_READ_ASVS_INFO
-                                            : DVD_READ_ASVS_INFO_BACKUP;
+    const dvd_read_domain_t domain = backup ? DVD_READ_ASVS_INFO_BACKUP
+                                            : DVD_READ_ASVS_INFO;
     const char *ext = backup ? "BUP" : "IFO";
 
     ifop->ctx = ctx;
