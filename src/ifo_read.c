@@ -1934,9 +1934,13 @@ static int ifoRead_PGC_COMMAND_TBL(ifo_handle_t *ifofile,
   B2N_16(cmd_tbl->nr_of_cell);
   B2N_16(cmd_tbl->last_byte);
 
-  CHECK_VALUE(cmd_tbl->nr_of_pre + cmd_tbl->nr_of_post + cmd_tbl->nr_of_cell<= 255);
-  CHECK_VALUE((cmd_tbl->nr_of_pre + cmd_tbl->nr_of_post + cmd_tbl->nr_of_cell) * COMMAND_DATA_SIZE
-              + PGC_COMMAND_TBL_SIZE <= cmd_tbl->last_byte + 1);
+  uint32_t nr_cmds = (uint32_t)cmd_tbl->nr_of_pre
+                   + (uint32_t)cmd_tbl->nr_of_post
+                   + (uint32_t)cmd_tbl->nr_of_cell;
+
+  CHECK_VALUE(nr_cmds <= 255);
+  CHECK_VALUE(nr_cmds * COMMAND_DATA_SIZE + PGC_COMMAND_TBL_SIZE
+              <= (uint32_t)cmd_tbl->last_byte + 1U);
 
   if(cmd_tbl->nr_of_pre != 0) {
     unsigned int pre_cmds_size  = cmd_tbl->nr_of_pre * COMMAND_DATA_SIZE;
