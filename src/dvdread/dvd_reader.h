@@ -23,6 +23,11 @@
 #ifndef LIBDVDREAD_DVD_READER_H
 #define LIBDVDREAD_DVD_READER_H
 
+/* dvd_filesystem.h exposes off64_t in the public filesystem callbacks. */
+#ifndef _LARGEFILE64_SOURCE
+#define _LARGEFILE64_SOURCE
+#endif
+
 #include <sys/types.h>
 #include <inttypes.h>
 #include <stdarg.h>

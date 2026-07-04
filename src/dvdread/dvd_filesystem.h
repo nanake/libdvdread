@@ -34,8 +34,11 @@
 typedef SSIZE_T ssize_t;
 #endif
 typedef __int64 off64_t;
+#elif defined(__GLIBC__)
+/* sys/types.h may have been included before _LARGEFILE64_SOURCE was defined. */
+typedef __off64_t off64_t;
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
-/* off_t is already 64 bit here so off64_t is not provided */
+/* off_t is already 64 bit here so off64_t is not provided. */
 typedef off_t off64_t;
 #endif
 
