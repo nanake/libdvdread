@@ -126,9 +126,9 @@ static int ifoRead_VOBU_ADMAP_internal(ifo_handle_t *ifofile,
 static int ifoRead_PGCIT_internal(ifo_handle_t *ifofile, pgcit_t *pgcit,
                                   unsigned int offset);
 
-static void ifoFree_PGC(pgc_t **pgc);
+static void ifoFree_PGC(pgc_t *pgc);
 static void ifoFree_PGC_COMMAND_TBL(pgc_command_tbl_t *cmd_tbl);
-static void ifoFree_PGCIT_internal(pgcit_t **pgcit);
+static void ifoFree_PGCIT_internal(pgcit_t *pgcit);
 
 static inline int DVDFileSeekForce_( dvd_file_t *dvd_file, uint32_t offset, int force_size ) {
   return (DVDFileSeekForce(dvd_file, (int)offset, force_size) == (int)offset);
@@ -2194,26 +2194,24 @@ int ifoRead_FP_PGC(ifo_handle_t *ifofile) {
   ifofile->first_play_pgc->ref_count = 1;
   if(!ifoRead_PGC(ifofile, ifofile->first_play_pgc,
                   ifofile->vmgi_mat->first_play_pgc)) {
-    ifoFree_PGC(&ifofile->first_play_pgc);
+    ifoFree_PGC(ifofile->first_play_pgc);
+    ifofile->first_play_pgc = NULL;
     return 0;
   }
 
   return 1;
 }
 
-static void ifoFree_PGC(pgc_t **pgc) {
-  if(pgc && *pgc && (--(*pgc)->ref_count) <= 0) {
-    ifoFree_PGC_COMMAND_TBL((*pgc)->command_tbl);
-    if((*pgc)->program_map)
-      free((*pgc)->program_map);
-    if((*pgc)->cell_playback)
-      free((*pgc)->cell_playback);
-    if((*pgc)->cell_position)
-      free((*pgc)->cell_position);
-    free(*pgc);
-  }
-  if (pgc) {
-    *pgc = NULL;
+static void ifoFree_PGC(pgc_t *pgc) {
+  if(pgc && (--pgc->ref_count) <= 0) {
+    ifoFree_PGC_COMMAND_TBL(pgc->command_tbl);
+    if(pgc->program_map)
+      free(pgc->program_map);
+    if(pgc->cell_playback)
+      free(pgc->cell_playback);
+    if(pgc->cell_position)
+      free(pgc->cell_position);
+    free(pgc);
   }
 }
 
@@ -2222,7 +2220,8 @@ void ifoFree_FP_PGC(ifo_handle_t *ifofile) {
     return;
 
   if(ifofile->first_play_pgc) {
-    ifoFree_PGC(&ifofile->first_play_pgc);
+    ifoFree_PGC(ifofile->first_play_pgc);
+    ifofile->first_play_pgc = NULL;
   }
 }
 
@@ -3136,7 +3135,8 @@ static int ifoRead_PGCIT_internal(ifo_handle_t *ifofile, pgcit_t *pgcit,
     if(!pgcit->pgci_srp[i].pgc) {
       int j;
       for(j = 0; j < i; j++) {
-        ifoFree_PGC(&pgcit->pgci_srp[j].pgc);
+        ifoFree_PGC(pgcit->pgci_srp[j].pgc);
+        pgcit->pgci_srp[j].pgc = NULL;
       }
       goto fail;
     }
@@ -3157,18 +3157,17 @@ fail:
   return 0;
 }
 
-static void ifoFree_PGCIT_internal(pgcit_t **pgcit) {
-  if(pgcit && *pgcit && (--(*pgcit)->ref_count <= 0)) {
+static void ifoFree_PGCIT_internal(pgcit_t *pgcit) {
+  if(pgcit && (--pgcit->ref_count <= 0)) {
     int i;
-    for(i = 0; i < (*pgcit)->nr_of_pgci_srp; i++)
+    for(i = 0; i < pgcit->nr_of_pgci_srp; i++)
     {
-      ifoFree_PGC(&(*pgcit)->pgci_srp[i].pgc);
+      ifoFree_PGC(pgcit->pgci_srp[i].pgc);
+      pgcit->pgci_srp[i].pgc = NULL;
     }
-    free((*pgcit)->pgci_srp);
-    free(*pgcit);
+    free(pgcit->pgci_srp);
+    free(pgcit);
   }
-  if (pgcit)
-    *pgcit = NULL;
 }
 
 void ifoFree_PGCIT(ifo_handle_t *ifofile) {
@@ -3176,7 +3175,8 @@ void ifoFree_PGCIT(ifo_handle_t *ifofile) {
     return;
 
   if(ifofile->vts_pgcit) {
-    ifoFree_PGCIT_internal(&ifofile->vts_pgcit);
+    ifoFree_PGCIT_internal(ifofile->vts_pgcit);
+    ifofile->vts_pgcit = NULL;
   }
 }
 
@@ -3294,7 +3294,8 @@ int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
     if(!pgci_ut->lu[i].pgcit) {
       unsigned int j;
       for(j = 0; j < i; j++) {
-        ifoFree_PGCIT_internal(&pgci_ut->lu[j].pgcit);
+        ifoFree_PGCIT_internal(pgci_ut->lu[j].pgcit);
+        pgci_ut->lu[j].pgcit = NULL;
       }
       free(pgci_ut->lu);
       free(pgci_ut);
@@ -3307,7 +3308,8 @@ int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
                                + pgci_ut->lu[i].lang_start_byte)) {
       unsigned int j;
       for(j = 0; j <= i; j++) {
-        ifoFree_PGCIT_internal(&pgci_ut->lu[j].pgcit);
+        ifoFree_PGCIT_internal(pgci_ut->lu[j].pgcit);
+        pgci_ut->lu[j].pgcit = NULL;
       }
       free(pgci_ut->lu);
       free(pgci_ut);
@@ -3330,7 +3332,8 @@ void ifoFree_PGCI_UT(ifo_handle_t *ifofile) {
     unsigned int i;
 
     for(i = 0; i < ifofile->pgci_ut->nr_of_lus; i++) {
-      ifoFree_PGCIT_internal(&ifofile->pgci_ut->lu[i].pgcit);
+      ifoFree_PGCIT_internal(ifofile->pgci_ut->lu[i].pgcit);
+      ifofile->pgci_ut->lu[i].pgcit = NULL;
     }
     free(ifofile->pgci_ut->lu);
     free(ifofile->pgci_ut);
