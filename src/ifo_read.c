@@ -1057,7 +1057,7 @@ static int ifoRead_ASVS(ifo_handle_t *ifofile){
     B2N_16(asvs_mat->asvs_groups[i].start_frame);
     B2N_16(asvs_mat->asvs_groups[i].start_sector);
     CHECK_ZERO(asvs_mat->asvs_groups[i].zero1);
-    total_nr_frames+=asvs_mat->asvs_groups[i].start_sector;
+    total_nr_frames+=asvs_mat->asvs_groups[i].nr_frames;
   }
 
 
