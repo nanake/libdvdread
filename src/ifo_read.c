@@ -745,6 +745,8 @@ void ifoFree_TT(ifo_handle_t *ifofile){
     for (int j=0;j<ifofile->atsi_title_table->nr_titles;j++){
       free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_pointer_rows);
       free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_timestamp_rows);
+      free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_asvs_range_rows);
+      free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_still_frame_rows);
     }
     free(ifofile->atsi_title_table->atsi_title_row_tables);
     free(ifofile->atsi_title_table->atsi_index_rows);
@@ -1087,6 +1089,65 @@ static int ifoRead_ASVS(ifo_handle_t *ifofile){
 
 }
 
+/* Read the still picture table (ASVS) of an audio title, if present. */
+static void ifoRead_TT_stillpics(struct ifo_handle_private_s *ifop,
+                                 atsi_title_record_t *index,
+                                 uint32_t record_offset) {
+  int nr_tracks = index->nr_tracks;
+  atsi_asvs_range_t *ranges;
+  atsi_asvs_frame_t *frames;
+  int base, max_end = 0, nr_frames;
+
+  if(nr_tracks <= 0)
+    return;
+
+  if(!DVDFileSeek_(ifop->file, record_offset + index->start_still_pic_table
+                   + DVD_BLOCK_LEN))
+    return;
+
+  ranges = calloc(nr_tracks, sizeof(atsi_asvs_range_t));
+  if(!ranges)
+    return;
+
+  if(!DVDReadBytes(ifop->file, ranges, nr_tracks * sizeof(atsi_asvs_range_t))) {
+    free(ranges);
+    return;
+  }
+
+  for(int j = 0; j < nr_tracks; j++) {
+    B2N_16(ranges[j].start_value);
+    B2N_16(ranges[j].end_value);
+    if(ranges[j].end_value > max_end)
+      max_end = ranges[j].end_value;
+  }
+  index->atsi_asvs_range_rows = ranges;
+
+  /* The still frame records follow the range table; end_values are byte
+   * offsets into them, so the last referenced record bounds their count. */
+  base = nr_tracks * ATSI_ASVS_RANGES_TABLE_SIZE;
+  if(max_end < base)
+    return;
+  nr_frames = (max_end - base) / ATSI_ASVS_FRAME_TABLE_SIZE + 1;
+
+  frames = calloc(nr_frames, sizeof(atsi_asvs_frame_t));
+  if(!frames)
+    return;
+
+  if(!DVDReadBytes(ifop->file, frames, nr_frames * sizeof(atsi_asvs_frame_t))) {
+    free(frames);
+    return;
+  }
+
+  for(int j = 0; j < nr_frames; j++) {
+    B2N_16(frames[j].unknown_2);
+    B2N_16(frames[j].unknown_3);
+    B2N_16(frames[j].unknown_4);
+    B2N_16(frames[j].unknown_5);
+  }
+
+  index->atsi_track_still_frame_rows = frames;
+}
+
 int ifoRead_TT(ifo_handle_t *ifofile) {
 
   struct ifo_handle_private_s *ifop = PRIV(ifofile);
@@ -1155,6 +1216,7 @@ int ifoRead_TT(ifo_handle_t *ifofile) {
       goto fail_audio;
 
     B2N_16(index->start_sector_pointers_table);
+    B2N_16(index->start_still_pic_table);
     B2N_32(index->length_pts);
     int nr_tracks=index->nr_tracks;
     int nr_pointer_records = index->nr_pointer_records;
@@ -1203,6 +1265,9 @@ int ifoRead_TT(ifo_handle_t *ifofile) {
                  == ( ATSI_TITLE_ROW_TABLE_SIZE 
                  + index->nr_tracks * ATSI_TRACK_TIMESTAMP_SIZE ) );
 
+    if(index->start_still_pic_table)
+      ifoRead_TT_stillpics(ifop, index, record_offset);
+
   }
   return 1;
 
@@ -1210,6 +1275,8 @@ int ifoRead_TT(ifo_handle_t *ifofile) {
       for (int j = 0; j < i; j++){
         free((atsi_title_table->atsi_title_row_tables + j)->atsi_track_pointer_rows);
         free((atsi_title_table->atsi_title_row_tables + j)->atsi_track_timestamp_rows);
+        free((atsi_title_table->atsi_title_row_tables + j)->atsi_asvs_range_rows);
+        free((atsi_title_table->atsi_title_row_tables + j)->atsi_track_still_frame_rows);
       }
       free(atsi_title_table->atsi_title_row_tables);
       free(ifofile->atsi_title_table->atsi_index_rows);

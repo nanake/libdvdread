@@ -971,13 +971,14 @@ typedef struct {
   uint16_t unknown_3; /* will be 0x0000*/
   uint16_t unknown_4; /* will be 0x0010*/
   uint16_t start_sector_pointers_table; /* pointer to start of sector pointers table, relative to start of title record*/
-  uint16_t unknown_5; /* will be 0x0000*/
+  uint16_t start_still_pic_table; /* pointer to the still picture table, relative to start of title record; 0 if the title has no stills */
   atsi_track_timestamp_t *atsi_track_timestamp_rows; /*length determined by nr_tracks*/
   atsi_track_pointer_t   *atsi_track_pointer_rows;
 
-  /* these entries only exist when theres an ASVS */
+  /* these entries only exist when theres an ASVS. The range rows (one per
+   * track) hold byte offsets into the still frame records that follow them. */
   atsi_asvs_range_t      *atsi_asvs_range_rows; /* length determined by nr_tracks */
-  atsi_asvs_frame_t      *atsi_track_still_frame_rows;  /* length determined by the ASVS struct, total nr of frames */
+  atsi_asvs_frame_t      *atsi_track_still_frame_rows;
 } ATTRIBUTE_PACKED atsi_title_record_t;
 #define ATSI_TITLE_ROW_TABLE_SIZE 16U
 
