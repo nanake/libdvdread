@@ -1140,9 +1140,8 @@ static void ifoRead_TT_stillpics(struct ifo_handle_private_s *ifop,
 
   for(int j = 0; j < nr_frames; j++) {
     B2N_16(frames[j].unknown_2);
+    B2N_32(frames[j].onset_pts);
     B2N_16(frames[j].unknown_3);
-    B2N_16(frames[j].unknown_4);
-    B2N_16(frames[j].unknown_5);
   }
 
   index->atsi_track_still_frame_rows = frames;

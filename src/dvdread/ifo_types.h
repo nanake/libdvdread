@@ -914,8 +914,8 @@ typedef struct {
 
 typedef struct {
   uint16_t unknown_1; /* appears to be index, +0x100 for each iter*/
-  uint16_t unkown_2; /* either 0x0000 or 0x0100*/
-  uint32_t offset_record_table; 
+  uint16_t unknown_2; /* either 0x0000 or 0x0100*/
+  uint32_t offset_record_table;
 } ATTRIBUTE_PACKED atsi_title_index_t;
 #define ATSI_TITLE_INDEX_SIZE 8U
 
@@ -925,9 +925,9 @@ typedef struct {
   uint16_t unknown_2; /* will be 0x0000*/
   uint8_t  track_number_in_title;
   uint8_t  unknown_3; /* will be 0x00*/
-  uint32_t first_pts_of_track; /* this is MPEG time, Not DVD time */
+  uint32_t first_pts_of_track; /* PTS of the track's first cell; resets per track, not a title-relative timeline */
 
-  uint32_t length_pts_of_track; /* this is MPEG time, Not DVD time */
+  uint32_t length_pts_of_track; /* track duration in PTS ticks; sums to the title's length_pts */
 
   uint8_t  zero[6];
 } ATTRIBUTE_PACKED atsi_track_timestamp_t;
@@ -936,29 +936,28 @@ typedef struct {
 /* this will come after all of the track timstamps, a set of 12byte sector pointer records. One for each track*/
 typedef struct {
   uint32_t unknown_1; /* will be 0x01000000*/
-  uint32_t start_sector; /* relative to first AOB file*/
-  uint32_t end_sector; /* relative to first end of AOB file */
+  uint32_t start_sector; /* first sector, relative to the first AOB file */
+  uint32_t end_sector; /* last sector, inclusive, relative to the first AOB file */
 } ATTRIBUTE_PACKED atsi_track_pointer_t;
 #define ATSI_TRACK_POINTER_SIZE 12U
 
-/* the bellow entries are likely related to still frames, they are still largly undocumented
- * likely contain some information on duration of still images */
+/* One entry per track. start_value and end_value are byte offsets delimiting the
+ * track's records in the still frame table (atsi_asvs_frame_t) that follows. */
 typedef struct {
   uint8_t  unknown_1; /* always 0x01 */
-  uint8_t  unknown_2; /* probably a flag. sometimes 00, sometimes 04 */
-  uint16_t start_value; /* seems like a set of ranges, next entry starts where this ends */
-  uint16_t end_value;
+  uint8_t  unknown_2; /* flag, 0x00 or 0x04 */
+  uint16_t start_value; /* first byte offset into the still frame records */
+  uint16_t end_value;   /* last byte offset into the still frame records */
 } ATTRIBUTE_PACKED atsi_asvs_range_t;
 #define ATSI_ASVS_RANGES_TABLE_SIZE 6U
 
-/* there is one set of these per frame group, resets at 01 when at start of group */
+/* there is one set of these per frame group */
 typedef struct {
-  uint8_t  frame_index; /* overall frame index? */
+  uint8_t  pic_seq;   /* picture number within the frame group; restarts at each group */
   uint8_t  unknown_1; /* zero? */
   uint16_t unknown_2;
+  uint32_t onset_pts; /* onset time (90 kHz) relative to the track start */
   uint16_t unknown_3;
-  uint16_t unknown_4;
-  uint16_t unknown_5;
 } ATTRIBUTE_PACKED atsi_asvs_frame_t;
 #define ATSI_ASVS_FRAME_TABLE_SIZE 10U
 
@@ -1028,7 +1027,7 @@ typedef struct {
   uint8_t  unknown;
   uint16_t start_frame; /* seems to be the number of the start frame (index + 1) */
   uint16_t zero1;
-  uint16_t start_sector; /* start sector of frame VOBU packet in AUDIO_TS.VOB */
+  uint16_t start_sector; /* start sector of the group's frames in AUDIO_SV.VOB */
 } ATTRIBUTE_PACKED asvs_group_t;
 #define ASVS_GROUP_SIZE 8U
 
