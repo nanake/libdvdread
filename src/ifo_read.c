@@ -687,8 +687,10 @@ ifo_handle_t *ifoOpenASVS(dvd_reader_t *ctx) {
     }
 
 
-    if (ifoRead_ASVS(&ifop->handle))
+    if (ifoRead_ASVS(&ifop->handle)) {
+      ifop->handle.ifo_format = IFO_AUDIO;
       return &ifop->handle;
+    }
 
     Log1(ctx, "ifoOpenASVS(): Invalid ASVS IFO (AUDIO_SV.%s).", ext);
     ifoClose(&ifop->handle);
