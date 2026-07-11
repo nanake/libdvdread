@@ -346,7 +346,10 @@ static uint8_t *cppm_get_mkb_or_backup( dvd_reader_t *ctx, int backup );
 /* this should only be called if libdvdcss is available and if the disc type is DVD-Audio */
 static int cpxm_init_condition( dvd_reader_t* ctx, dvd_type_t type, int have_css )
 {
-  if ( type == DVD_A && have_css ) 
+  if ( !ctx->rd->dev )
+    return 0;
+
+  if ( type == DVD_A && have_css )
   {
     uint8_t *p_mkb = NULL;
     p_mkb = cppm_get_mkb_or_backup( ctx, 0 );
