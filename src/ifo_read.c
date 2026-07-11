@@ -726,8 +726,10 @@ ifo_handle_t * ifoOpenSAMG(dvd_reader_t *ctx) {
     }
 
 
-    if (ifoRead_SAMG(&ifop->handle))
+    if (ifoRead_SAMG(&ifop->handle)) {
+      ifop->handle.ifo_format = IFO_AUDIO;
       return &ifop->handle;
+    }
 
     Log1(ctx, "ifoOpenSAMG(): Invalid SAMG IFO (AUDIO_PP.IFO).");
     ifoClose(&ifop->handle);
