@@ -1110,8 +1110,7 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   /* stream type must be set to determine decryption method*/
   /* DVD-Audio discs contain both AOBs and VOBs */
   /* DVD_V = VOB with css, DVD_A = AOB with CPPM, DVD_VR = VRO with CPRM */
-  dvd_type_t stream_type = (ctx->dvd_type == DVD_VR) ? DVD_VR :
-        (menu ? DVD_V : ctx->dvd_type);
+  dvd_type_t stream_type;
 
   if ( ctx->dvd_type == DVD_VR && menu )
     return NULL;
@@ -1132,6 +1131,14 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
       /* DVD_Audio title menu */
       sprintf( filename, "/AUDIO_TS/AUDIO_SV.VOB" );
   }
+
+  if ( ctx->dvd_type == DVD_VR )
+    stream_type = DVD_VR;
+  else if ( !strncmp( filename, "/VIDEO_TS/", 10 ) )
+    stream_type = DVD_V;
+  else
+    stream_type = DVD_A;
+
   start = UDFFindFile( ctx, filename, &len );
   if( start == 0 ) return NULL;
 
@@ -1163,11 +1170,6 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
     initAllCSSKeys( ctx );
     ctx->rd->css_state = 2;
   }
-  /*
-  if( dvdinput_title( dvd_file->dvd->dev, (int)start ) < 0 ) {
-      Log0(ctx, "Error cracking CSS key for %s", filename );
-  }
-  */
 
   dvdinput_set_stream( ctx->rd->dev, stream_type );
   return dvd_file;
@@ -1183,8 +1185,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
   /* for now will set as the dvd_type,
    * when hybrid discs are implemented set as title type */
   /* DVD_V = VOB with css, DVD_A = AOB with CPPM, DVD_VR = VRO with CPRM */
-  dvd_type_t stream_type = (ctx->dvd_type == DVD_VR) ? DVD_VR :
-        (menu ? DVD_V : ctx->dvd_type);
+  dvd_type_t stream_type = ctx->dvd_type;
 
   dvd_file = calloc( 1, sizeof( dvd_file_t ) );
   if( !dvd_file ) return NULL;
