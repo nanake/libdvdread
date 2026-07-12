@@ -890,10 +890,10 @@ typedef struct {
   uint32_t      ats_last_sector; /* last sector of ATS_XX_0.BUP*/
   uint8_t       zero_1[12];
   uint32_t      atsi_last_sector; /* last sector of ATS_XX_0.IFO*/
-  uint16_t      specification_version;
+  uint16_t      specification_version; /* always 0x0012 */
   uint32_t      unknown_1;
   uint8_t       zero_2[90];
-  uint32_t      atsi_last_byte;
+  uint32_t      atsi_last_byte; /* last byte of sector 0, not the end of the file */
   uint8_t       zero_3[60];
   uint32_t      vtsm_vobs;       /* may be zeros */
   uint32_t      atst_aobs;       /* atst or vtst */
@@ -913,71 +913,89 @@ typedef struct {
 #define ATSI_MAT_SIZE 640U
 
 typedef struct {
-  uint16_t unknown_1; /* appears to be index, +0x100 for each iter*/
-  uint16_t unknown_2; /* either 0x0000 or 0x0100*/
-  uint32_t offset_record_table;
+  uint8_t  srp_index;         /* 1-based, top bit set marks the primary entry and clear the secondary */
+  uint8_t  srp_flags;         /* varies per entry, purpose not established */
+  uint8_t  audio_encode_mode; /* either 0x00, 0x01 or 0x05, meaning not confirmed */
+  uint8_t  reserved;          /* always 0x00 */
+  uint32_t offset_record_table; /* byte offset of this title's record from the start of the title table */
 } ATTRIBUTE_PACKED atsi_title_index_t;
 #define ATSI_TITLE_INDEX_SIZE 8U
 
-/* this will be repeated for each track in each title*/
+/* one per audio program in the title */
 typedef struct {
-  uint16_t unknown_1; /* will be 0x0000*/
-  uint16_t unknown_2; /* will be 0x0000*/
-  uint8_t  track_number_in_title;
-  uint8_t  unknown_3; /* will be 0x00*/
-  uint32_t first_pts_of_track; /* PTS of the track's first cell; resets per track, not a title-relative timeline */
-
-  uint32_t length_pts_of_track; /* track duration in PTS ticks; sums to the title's length_pts */
-
-  uint8_t  zero[6];
+  uint8_t  prog_alloc_flags;      /* top bit set on the first program of the title */
+  uint8_t  prog_time_attr_flags;  /* either 0x00, 0x10 or 0x30, meaning not confirmed */
+  uint16_t reserved_1;            /* always 0x0000 */
+  uint8_t  track_number_in_title; /* the cell this program starts on, 1-based */
+  uint8_t  unknown_3;             /* always 0x00 */
+  uint32_t first_pts_of_track;    /* start PTS of the program's first cell, not always a title-relative timeline */
+  uint32_t length_pts_of_track;   /* length of the program in PTS, the programs sum to length_pts */
+  uint8_t  zero[6];               /* will be 0x00 */
 } ATTRIBUTE_PACKED atsi_track_timestamp_t;
 #define ATSI_TRACK_TIMESTAMP_SIZE 20U
 
 /* this will come after all of the track timstamps, a set of 12byte sector pointer records. One for each track*/
 typedef struct {
-  uint32_t unknown_1; /* will be 0x01000000*/
+  uint8_t  cell_index;   /* 1-based, the first cell of a program is 0x01 */
+  uint8_t  cell_type;    /* 0x00 for an audio cell, other types not seen */
+  uint16_t reserved;     /* always 0x0000 */
   uint32_t start_sector; /* first sector, relative to the first AOB file */
-  uint32_t end_sector; /* last sector, inclusive, relative to the first AOB file */
+  uint32_t end_sector;   /* last sector of the cell, relative to the first AOB file */
 } ATTRIBUTE_PACKED atsi_track_pointer_t;
 #define ATSI_TRACK_POINTER_SIZE 12U
 
-/* One entry per track. start_value and end_value are byte offsets delimiting the
- * track's records in the still frame table (atsi_asvs_frame_t) that follows. */
+/**
+ * One entry per audio program. start_value and end_value give the first and
+ * last byte of this program's records in the dlist table that follows. The
+ * first entry starts right after this table, so its start_value equals the
+ * table's byte length, 6 per program.
+ */
 typedef struct {
-  uint8_t  unknown_1; /* always 0x01 */
-  uint8_t  unknown_2; /* flag, 0x00 or 0x04 */
-  uint16_t start_value; /* first byte offset into the still frame records */
-  uint16_t end_value;   /* last byte offset into the still frame records */
-} ATTRIBUTE_PACKED atsi_asvs_range_t;
-#define ATSI_ASVS_RANGES_TABLE_SIZE 6U
+  uint8_t  asvu_n;      /* 1-based ASVU number holding this program's stills, several programs may share one */
+  struct ATTRIBUTE_PACKED {
+    uint8_t order   : 2; /* only 0 (sequential) seen */
+    uint8_t timing  : 2; /* 0 timed slideshow, 1 user browsable */
+    uint8_t zero    : 4;
+  } dmod;
+  uint16_t start_value; /* first byte of this entry */
+  uint16_t end_value;   /* last byte of this entry */
+} ATTRIBUTE_PACKED ats_pg_asv_pbi_srp_t;
+#define ATS_PG_ASV_PBI_SRP_SIZE 6U
 
-/* there is one set of these per frame group */
+/**
+ * One still picture. These records follow the entry table and run up to the
+ * largest end_value in that table. asv_number starts again at 1 for each still
+ * video unit. display_timing holds the picture's MPEG time in slideshow mode
+ * and is 0 in browsable mode.
+ */
 typedef struct {
-  uint8_t  pic_seq;   /* picture number within the frame group; restarts at each group */
-  uint8_t  unknown_1; /* zero? */
-  uint16_t unknown_2;
-  uint32_t onset_pts; /* onset time (90 kHz) relative to the track start */
-  uint16_t unknown_3;
-} ATTRIBUTE_PACKED atsi_asvs_frame_t;
-#define ATSI_ASVS_FRAME_TABLE_SIZE 10U
+  uint8_t  asv_number;                  /* the still's number within its unit, restarting at 1 each unit */
+  uint8_t  fosl_btnn;                   /* probably the initial button number, only 0x00 seen */
+  uint8_t  unknown_a;                   /* 0 in slideshow mode, a small often sequential value in browsable mode, maybe a menu page marker */
+  uint8_t  track_nr;                    /* on a shared slideshow, which track the still belongs to, unused when each track has its own stills */
+  uint32_t display_timing;              /* when the still is shown, an MPEG PTS, 0 in browsable mode */
+  uint8_t  start_transition_mode;       /* probably a transition effect, only 0x00 seen */
+  uint8_t  termination_transition_mode; /* probably a transition effect, only 0x00 seen */
+} ATTRIBUTE_PACKED asv_dlist_t;
+#define ASV_DLIST_SIZE 10U
 
 typedef struct {
-  uint16_t unknown_1; /* will be 0x0000*/
-  uint8_t  nr_tracks; /* unsure if this holds up for other files*/
-  uint8_t  nr_pointer_records; /* unsure if this holds up for other files*/
-  uint32_t length_pts; /* this is MPEG time, Not DVD time */
-
-  uint16_t unknown_3; /* will be 0x0000*/
-  uint16_t unknown_4; /* will be 0x0010*/
-  uint16_t start_sector_pointers_table; /* pointer to start of sector pointers table, relative to start of title record*/
-  uint16_t start_still_pic_table; /* pointer to the still picture table, relative to start of title record; 0 if the title has no stills */
+  /* the address field positions below hold for the common layout, some discs
+   * arrange them differently */
+  uint16_t header_flags;                /* only 0x0000 seen */
+  uint8_t  nr_tracks;                   /* number of audio programs in this title */
+  uint8_t  nr_pointer_records;          /* number of cell records */
+  uint32_t length_pts;                  /* total play time of the title, MPEG PTS */
+  uint16_t reserved_1;                  /* always 0x0000 */
+  uint16_t ats_pgit_sa;                 /* always 0x0010, the low 12 bits look like a byte offset but this is untested */
+  uint16_t start_sector_pointers_table; /* byte offset of the cell info table, from title record start */
+  uint16_t ats_asv_pbit_sa;             /* byte offset of the still video table, 0x0000 when the title has no stills */
   atsi_track_timestamp_t *atsi_track_timestamp_rows; /*length determined by nr_tracks*/
   atsi_track_pointer_t   *atsi_track_pointer_rows;
 
-  /* these entries only exist when theres an ASVS. The range rows (one per
-   * track) hold byte offsets into the still frame records that follow them. */
-  atsi_asvs_range_t      *atsi_asvs_range_rows; /* length determined by nr_tracks */
-  atsi_asvs_frame_t      *atsi_track_still_frame_rows;
+  /* these entries only exist when theres an ASVS */
+  ats_pg_asv_pbi_srp_t   *ats_pg_asv_pbi_srp; /* one per audio program */
+  asv_dlist_t                *dlist;               /* runs up to the largest end_value in the entries above */
 } ATTRIBUTE_PACKED atsi_title_record_t;
 #define ATSI_TITLE_ROW_TABLE_SIZE 16U
 
@@ -997,65 +1015,44 @@ typedef struct {
  */
 
 /**
- * ASVS Frame Groupings (unofficial term):
+ * An ASVU groups the still pictures (P_VOBs) that are loaded before the
+ * matching audio program plays. Each P_VOB is one still I-picture.
  *
- * Frame groupings are unrelated to DVD-Audio audio groups. When multiple 
- * groupings exist, they represent sets of frames per audio track (typically
- * lyric pages or per-track menus). Each DVD-Audio trackpoint requires an
- * associated still frame.
- *
- * Multiple groupings present:
- *   - Frame records use relative sector offsets from grouping's start_sector
- *   - High bit (0x8000) set in frame_record_t marks grouping boundaries
- *
- * Single grouping only:
- *   - Frame records contain absolute sector addresses (high bit clear)
- *   - Seems to indicates simple still frames without menus/lyrics
- *
- * The unknown2[72] block likely contains encoder metadata (resolution, color)
- * and is likely not required for frame extraction.
- *
- * there seems to be header offset in the vob file of 35 bytes
+ * ASV_SRPT addressing: with the high bit (0x8000) set the value is an offset
+ * from the parent ASVU ref_start_sector, otherwise it is an absolute offset
+ * from the first P_VOB.
  */
 
- /**
- * ASVS Group Entry
- * Describes a contiguous sequence of frames in the MPEG stream,
- */
+/* general information for one Audio Still Video Unit */
 typedef struct {
-  uint8_t  nr_frames;
-  uint8_t  unknown;
-  uint16_t start_frame; /* seems to be the number of the start frame (index + 1) */
-  uint16_t zero1;
-  uint16_t start_sector; /* start sector of the group's frames in AUDIO_SV.VOB */
-} ATTRIBUTE_PACKED asvs_group_t;
-#define ASVS_GROUP_SIZE 8U
+  uint8_t  p_vob_ns;           /* number of still pictures in this unit */
+  uint8_t  unknown_1;
+  uint16_t start_p_vob_number; /* number of this unit's first still picture, 1-based */
+  uint16_t zero_1;
+  uint16_t ref_start_sector;   /* base sector the unit's relative pointers count from */
+} ATTRIBUTE_PACKED asvu_gi_t;
+#define ASVU_GI_SIZE 8U
+#define ASVU_GI_MAX_SIZE 99U
 
-#define ASVS_GROUP_MAX_SIZE 99U
-
-/**
- * offset in sectors relative to the group start_sector
- * total number of frames is the sum of nr_frames for each element in asvs_groups 
- * If high bit set (0x8000): relative offset within group
- * Otherwise: absolute frame position
- */
-typedef uint16_t frame_record_t;
-#define ASVS_FRAME_RECORD_SIZE 2U
+/* search pointer to one still picture, see the addressing note above */
+typedef uint16_t asv_srpt_t;
+#define ASV_SRPT_SIZE 2U
 
 /**
  * Audio Still Video Set Management Table. Exclusive to DVD-Audio discs
  */
 typedef struct {
-  char          asvs_identifier[12]; /* DVDAUDIOASVS */
-  uint16_t      asvs_nr_groups; /* number of elements in asvs_groups */
+  char          asvs_identifier[12];   /* DVDAUDIOASVS */
+  uint16_t      asvs_nr_of_asvus;      /* number of still video units in asvu_gi */
   uint16_t      specification_version; /* always 0x0012 */
-  uint16_t      zero1;
-  uint16_t      unknown1; /* always 0002 */
-  uint16_t      zero2;
-  uint16_t      length_sectors; /* seems like length of AUDIO_TS.VOB in sectors */
-  uint8_t       unknown2[72]; /* not sure what these are. 0x00108080 repeateds alot */
-  asvs_group_t  asvs_groups[ASVS_GROUP_MAX_SIZE]; /* size determined by asvs_nr_groups */
-  frame_record_t *frame_offsets_sectors;
+  uint16_t      zero_1;
+  uint16_t      asvu_atr;              /* unit attributes, only 0x0002 seen */
+  uint16_t      zero_2;
+  uint16_t      p_vobs_ea;             /* end of the still picture area, in sectors */
+  uint32_t      p_vobs_sp_plt[16];     /* sub-picture palette, 16 colours, default 0x00108080 */
+  uint8_t       unknown_2[8];          /* trailing 8 bytes, usually more palette words */
+  asvu_gi_t     asvu_gi[ASVU_GI_MAX_SIZE]; /* size determined by asvs_nr_of_asvus */
+  asv_srpt_t   *asv_srpt;              /* length is the sum of p_vob_ns over asvu_gi */
 } ATTRIBUTE_PACKED asvs_mat_t;
 #define ASVS_MAT_SIZE 888U
 

@@ -745,8 +745,8 @@ void ifoFree_TT(ifo_handle_t *ifofile){
     for (int j=0;j<ifofile->atsi_title_table->nr_titles;j++){
       free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_pointer_rows);
       free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_timestamp_rows);
-      free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_asvs_range_rows);
-      free((ifofile->atsi_title_table->atsi_title_row_tables+j)->atsi_track_still_frame_rows);
+      free((ifofile->atsi_title_table->atsi_title_row_tables+j)->ats_pg_asv_pbi_srp);
+      free((ifofile->atsi_title_table->atsi_title_row_tables+j)->dlist);
     }
     free(ifofile->atsi_title_table->atsi_title_row_tables);
     free(ifofile->atsi_title_table->atsi_index_rows);
@@ -821,7 +821,7 @@ void ifoClose(ifo_handle_t *ifofile) {
       }
 
       if(ifofile->asvs_mat){
-        free(ifofile->asvs_mat->frame_offsets_sectors);
+        free(ifofile->asvs_mat->asv_srpt);
         free(ifofile->asvs_mat);
       }
 
@@ -1043,48 +1043,48 @@ static int ifoRead_ASVS(ifo_handle_t *ifofile){
     return 0;
   }
 
-  B2N_16(asvs_mat->asvs_nr_groups);
+  B2N_16(asvs_mat->asvs_nr_of_asvus);
   B2N_16(asvs_mat->specification_version);
-  B2N_16(asvs_mat->length_sectors);
+  B2N_16(asvs_mat->p_vobs_ea);
 
   /* a broken disc could ask for more groups than fit */
-  if(asvs_mat->asvs_nr_groups > ASVS_GROUP_MAX_SIZE) {
+  if(asvs_mat->asvs_nr_of_asvus > ASVU_GI_MAX_SIZE) {
     free(ifofile->asvs_mat);
     ifofile->asvs_mat = NULL;
     return 0;
   }
 
   int total_nr_frames = 0;
-  for (int i = 0; i < asvs_mat->asvs_nr_groups; i++ ) {
-    B2N_16(asvs_mat->asvs_groups[i].start_frame);
-    B2N_16(asvs_mat->asvs_groups[i].start_sector);
-    CHECK_ZERO(asvs_mat->asvs_groups[i].zero1);
-    total_nr_frames+=asvs_mat->asvs_groups[i].nr_frames;
+  for (int i = 0; i < asvs_mat->asvs_nr_of_asvus; i++ ) {
+    B2N_16(asvs_mat->asvu_gi[i].start_p_vob_number);
+    B2N_16(asvs_mat->asvu_gi[i].ref_start_sector);
+    CHECK_ZERO(asvs_mat->asvu_gi[i].zero_1);
+    total_nr_frames+=asvs_mat->asvu_gi[i].p_vob_ns;
   }
 
 
-  asvs_mat->frame_offsets_sectors = calloc(total_nr_frames, ASVS_FRAME_RECORD_SIZE);
-  if(!asvs_mat->frame_offsets_sectors) {
+  asvs_mat->asv_srpt = calloc(total_nr_frames, ASV_SRPT_SIZE);
+  if(!asvs_mat->asv_srpt) {
     free(ifofile->asvs_mat);
     ifofile->asvs_mat = NULL;
     return 0;
   }
 
-  if(!DVDReadBytes(ifop->file, asvs_mat->frame_offsets_sectors,
-                   total_nr_frames * ASVS_FRAME_RECORD_SIZE )) {
-    free(asvs_mat->frame_offsets_sectors);
+  if(!DVDReadBytes(ifop->file, asvs_mat->asv_srpt,
+                   total_nr_frames * ASV_SRPT_SIZE )) {
+    free(asvs_mat->asv_srpt);
     free(ifofile->asvs_mat);
     ifofile->asvs_mat = NULL;
     return 0;
   }
 
   for(int i = 0; i < total_nr_frames; i++)
-    B2N_16(asvs_mat->frame_offsets_sectors[i]);
+    B2N_16(asvs_mat->asv_srpt[i]);
 
 
   CHECK_VALUE(asvs_mat->specification_version == 0x0012);
-  CHECK_ZERO(asvs_mat->zero1);
-  CHECK_ZERO(asvs_mat->zero2);
+  CHECK_ZERO(asvs_mat->zero_1);
+  CHECK_ZERO(asvs_mat->zero_2);
   return 1;
 
 }
@@ -1094,22 +1094,22 @@ static void ifoRead_TT_stillpics(struct ifo_handle_private_s *ifop,
                                  atsi_title_record_t *index,
                                  uint32_t record_offset) {
   int nr_tracks = index->nr_tracks;
-  atsi_asvs_range_t *ranges;
-  atsi_asvs_frame_t *frames;
+  ats_pg_asv_pbi_srp_t *ranges;
+  asv_dlist_t *frames;
   int base, max_end = 0, nr_frames;
 
   if(nr_tracks <= 0)
     return;
 
-  if(!DVDFileSeek_(ifop->file, record_offset + index->start_still_pic_table
+  if(!DVDFileSeek_(ifop->file, record_offset + index->ats_asv_pbit_sa
                    + DVD_BLOCK_LEN))
     return;
 
-  ranges = calloc(nr_tracks, sizeof(atsi_asvs_range_t));
+  ranges = calloc(nr_tracks, sizeof(ats_pg_asv_pbi_srp_t));
   if(!ranges)
     return;
 
-  if(!DVDReadBytes(ifop->file, ranges, nr_tracks * sizeof(atsi_asvs_range_t))) {
+  if(!DVDReadBytes(ifop->file, ranges, nr_tracks * sizeof(ats_pg_asv_pbi_srp_t))) {
     free(ranges);
     return;
   }
@@ -1120,31 +1120,29 @@ static void ifoRead_TT_stillpics(struct ifo_handle_private_s *ifop,
     if(ranges[j].end_value > max_end)
       max_end = ranges[j].end_value;
   }
-  index->atsi_asvs_range_rows = ranges;
+  index->ats_pg_asv_pbi_srp = ranges;
 
   /* The still frame records follow the range table; end_values are byte
    * offsets into them, so the last referenced record bounds their count. */
-  base = nr_tracks * ATSI_ASVS_RANGES_TABLE_SIZE;
+  base = nr_tracks * ATS_PG_ASV_PBI_SRP_SIZE;
   if(max_end < base)
     return;
-  nr_frames = (max_end - base) / ATSI_ASVS_FRAME_TABLE_SIZE + 1;
+  nr_frames = (max_end - base) / ASV_DLIST_SIZE + 1;
 
-  frames = calloc(nr_frames, sizeof(atsi_asvs_frame_t));
+  frames = calloc(nr_frames, sizeof(asv_dlist_t));
   if(!frames)
     return;
 
-  if(!DVDReadBytes(ifop->file, frames, nr_frames * sizeof(atsi_asvs_frame_t))) {
+  if(!DVDReadBytes(ifop->file, frames, nr_frames * sizeof(asv_dlist_t))) {
     free(frames);
     return;
   }
 
   for(int j = 0; j < nr_frames; j++) {
-    B2N_16(frames[j].unknown_2);
-    B2N_32(frames[j].onset_pts);
-    B2N_16(frames[j].unknown_3);
+    B2N_32(frames[j].display_timing);
   }
 
-  index->atsi_track_still_frame_rows = frames;
+  index->dlist = frames;
 }
 
 int ifoRead_TT(ifo_handle_t *ifofile) {
@@ -1215,7 +1213,7 @@ int ifoRead_TT(ifo_handle_t *ifofile) {
       goto fail_audio;
 
     B2N_16(index->start_sector_pointers_table);
-    B2N_16(index->start_still_pic_table);
+    B2N_16(index->ats_asv_pbit_sa);
     B2N_32(index->length_pts);
     int nr_tracks=index->nr_tracks;
     int nr_pointer_records = index->nr_pointer_records;
@@ -1264,7 +1262,7 @@ int ifoRead_TT(ifo_handle_t *ifofile) {
                  == ( ATSI_TITLE_ROW_TABLE_SIZE 
                  + index->nr_tracks * ATSI_TRACK_TIMESTAMP_SIZE ) );
 
-    if(index->start_still_pic_table)
+    if(index->ats_asv_pbit_sa)
       ifoRead_TT_stillpics(ifop, index, record_offset);
 
   }
@@ -1274,8 +1272,8 @@ int ifoRead_TT(ifo_handle_t *ifofile) {
       for (int j = 0; j < i; j++){
         free((atsi_title_table->atsi_title_row_tables + j)->atsi_track_pointer_rows);
         free((atsi_title_table->atsi_title_row_tables + j)->atsi_track_timestamp_rows);
-        free((atsi_title_table->atsi_title_row_tables + j)->atsi_asvs_range_rows);
-        free((atsi_title_table->atsi_title_row_tables + j)->atsi_track_still_frame_rows);
+        free((atsi_title_table->atsi_title_row_tables + j)->ats_pg_asv_pbi_srp);
+        free((atsi_title_table->atsi_title_row_tables + j)->dlist);
       }
       free(atsi_title_table->atsi_title_row_tables);
       free(ifofile->atsi_title_table->atsi_index_rows);
