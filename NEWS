@@ -5,6 +5,7 @@ libdvdread (7.1.0)
      * Add ASVS and SAMG support to public IFO open APIs
      * Expose ASVS IFO, backup and menu VOB files
      * Improve AOB/VOB stream type handling
+     * Misc fixes on structures documentation
  * DVD-VR support:
      * Add DVD-VR IFO parsing (PGIT, PG_GI, PS_GI)
      * Add DVDOpenVideoRecording functions
