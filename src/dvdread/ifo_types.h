@@ -1018,9 +1018,11 @@ typedef struct {
  * An ASVU groups the still pictures (P_VOBs) that are loaded before the
  * matching audio program plays. Each P_VOB is one still I-picture.
  *
- * ASV_SRPT addressing: with the high bit (0x8000) set the value is an offset
- * from the parent ASVU ref_start_sector, otherwise it is an absolute offset
- * from the first P_VOB.
+ * ASV_SRPT addressing: each pointer is an offset from the parent ASVU
+ * ref_start_sector, so the still sits at ref_start_sector + (value & 0x7fff).
+ * The high bit (0x8000) does not select an addressing mode. Some discs set it
+ * on every pointer and some leave it clear, and either way the offset is
+ * counted from ref_start_sector.
  */
 
 /* general information for one Audio Still Video Unit */
