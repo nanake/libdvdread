@@ -123,7 +123,7 @@ add_project_arguments(test_args, language: 'c')
 # Generate config.h
 config_h_target = configure_file(output: 'config.h', configuration: cdata)
 
-install_data(['AUTHORS', 'COPYING', 'NEWS', 'README.md', 'TODO'],
+install_data(['AUTHORS', 'COPYING', 'NEWS', 'README.md'],
     install_dir: get_option('datadir') / 'doc/libdvdread',
     install_tag: 'doc')
 
