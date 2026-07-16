@@ -17,15 +17,26 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
 
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
 #include <errno.h>
 
 
 #include <sys/stat.h>
 #include <fcntl.h>
+#if HAVE_DIRENT_H
+#include <dirent.h>
+#endif
+
+#if defined(__GLIBC__) && defined(__GLIBC_MINOR__)
+#  if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 24)
+#    define USE_READDIR
+#  endif
+#endif
 
 #include <dvdread/dvd_filesystem.h>
 
@@ -102,4 +113,61 @@ int file_close_default(void *file)
         return ret;
     }
     return 0;
+}
+
+void *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
+{
+    if (!fs)
+        return NULL;
+
+    return opendir(dirname);
+}
+
+int dir_read_default(void *dir, dvd_dirent_t *entry)
+{
+    struct dirent *p_e;
+
+#ifdef USE_READDIR
+    errno = 0;
+    p_e = readdir((DIR*)dir);
+    if (!p_e && errno) {
+        return -errno;
+    }
+#else /* USE_READDIR */
+    int result;
+    struct dirent e;
+
+    result = readdir_r((DIR*)dir, &e, &p_e);
+    if (result) {
+        return -result;
+    }
+#endif /* USE_READDIR */
+
+    if (p_e == NULL) {
+        return 1;
+    }
+    strncpy(entry->d_name, p_e->d_name, sizeof(entry->d_name));
+    entry->d_name[sizeof(entry->d_name) - 1] = 0;
+
+    return 0;
+}
+
+void dir_close_default(void *dir)
+{
+    if (dir)
+        closedir((DIR *)dir);
+}
+
+int stat_default(dvd_reader_filesystem_h *fs, const char *path, dvdstat_t* statbuf)
+{
+    if (!fs)
+        return -1;
+
+    struct stat posixstatbuf;
+    int ret = stat(path, &posixstatbuf);
+    if (ret == 0) {
+        statbuf->size = posixstatbuf.st_size;
+        statbuf->st_mode = posixstatbuf.st_mode;
+    }
+    return ret;
 }

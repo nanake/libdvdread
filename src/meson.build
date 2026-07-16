@@ -18,17 +18,9 @@ dvdread_src = files(
 
 # Platform-specific filesystem implementation
 if host_machine.system() == 'windows'
-    dvdread_src += files(
-        'file/dir_win32.c',
-        'file/file_win32.c',
-        'file/stat_win32.c',
-    )
+    dvdread_src += files('file/file_win32.c')
 else
-    dvdread_src += files(
-        'file/dir_posix.c',
-        'file/file_posix.c',
-        'file/stat_posix.c',
-    )
+    dvdread_src += files('file/file_posix.c')
 endif
 
 #
