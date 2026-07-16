@@ -21,18 +21,6 @@
 
 #include "dvdread/dvd_filesystem.h"
 
-/* default filesystem operations, each platform provides its own */
-void   *file_open_default(dvd_reader_filesystem_h *fs, const char* filename);
-ssize_t file_read_default(void *file, char *buf, size_t size);
-off64_t file_seek_default(void *file, off64_t offset, int whence);
-int     file_close_default(void *file);
-
-void   *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname);
-int     dir_read_default(void *dir, dvd_dirent_t *entry);
-void    dir_close_default(void *dir);
-
-int     stat_default(dvd_reader_filesystem_h *fs, const char *path, dvdstat_t* statbuf);
-
 /* set up the internal filesystem bundled with libdvdread */
 dvd_reader_filesystem_h* InitInternalFilesystem(void);
 

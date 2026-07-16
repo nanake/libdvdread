@@ -13,7 +13,6 @@ dvdread_src = files(
     'md5.c',
     'nav_print.c',
     'nav_read.c',
-    'file/filesystem.c',
 )
 
 # Platform-specific filesystem implementation

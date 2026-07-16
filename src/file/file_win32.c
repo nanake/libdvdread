@@ -27,6 +27,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+/* mingw sys/stat.h defines stat as a macro, keep the struct member usable */
+#undef stat
+
 #include <windows.h>
 #include "../msvc/contrib/win32_cs.h"
 
@@ -34,7 +37,7 @@
 #include "filesystem.h"
 
 
-void *file_open_default(dvd_reader_filesystem_h *fs, const char* filename)
+static void *file_open_default(dvd_reader_filesystem_h *fs, const char* filename)
 {
     if (!fs)
         return NULL;
@@ -64,7 +67,7 @@ void *file_open_default(dvd_reader_filesystem_h *fs, const char* filename)
     return handle;
 }
 
-ssize_t file_read_default(void *file, char *buf, size_t size)
+static ssize_t file_read_default(void *file, char *buf, size_t size)
 {
     if (size == 0) {
         return 0;
@@ -73,12 +76,12 @@ ssize_t file_read_default(void *file, char *buf, size_t size)
     return read(*(int*)file, buf, size);
 }
 
-off64_t file_seek_default(void *file, off64_t offset, int whence)
+static off64_t file_seek_default(void *file, off64_t offset, int whence)
 {
     return _lseeki64(*(int*)file, offset, whence);
 }
 
-int file_close_default(void *file)
+static int file_close_default(void *file)
 {
     if (file) {
         int ret = close(*(int*)file);
@@ -93,7 +96,7 @@ typedef struct {
   struct _wfinddata_t went;
 } win32_dir_t;
 
-void *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
+static void *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
 {
     if (!fs)
         return NULL;
@@ -129,7 +132,7 @@ void *dir_open_default(dvd_reader_filesystem_h *fs, const char* dirname)
         return NULL;
 }
 
-int dir_read_default(void *dir, dvd_dirent_t *entry)
+static int dir_read_default(void *dir, dvd_dirent_t *entry)
 {
     win32_dir_t *wdir = (win32_dir_t*)dir;
     if (wdir->went.name[0]) {
@@ -143,7 +146,7 @@ int dir_read_default(void *dir, dvd_dirent_t *entry)
     return 1;
 }
 
-void dir_close_default(void *dir)
+static void dir_close_default(void *dir)
 {
     if (dir) {
         win32_dir_t *wdir = (win32_dir_t*)dir;
@@ -152,7 +155,7 @@ void dir_close_default(void *dir)
     }
 }
 
-int stat_default(dvd_reader_filesystem_h *fs, const char *path, dvdstat_t* statbuf)
+static int stat_default(dvd_reader_filesystem_h *fs, const char *path, dvdstat_t* statbuf)
 {
     if (!fs)
         return -1;
@@ -178,4 +181,25 @@ int stat_default(dvd_reader_filesystem_h *fs, const char *path, dvdstat_t* statb
         statbuf->st_mode = win32statbuf.st_mode;
     }
     return ret;
+}
+
+static void default_filesystem_close(dvd_reader_filesystem_h *fs) {
+  free(fs);
+}
+
+dvd_reader_filesystem_h* InitInternalFilesystem(void) {
+  dvd_reader_filesystem_h* fs = calloc( 1, sizeof(dvd_reader_filesystem_h));
+  if (!fs) {
+    return NULL;
+  }
+  fs->close = default_filesystem_close;
+  fs->stat = stat_default;
+  fs->dir_open = dir_open_default;
+  fs->dir_read = dir_read_default;
+  fs->dir_close = dir_close_default;
+  fs->file_open = file_open_default;
+  fs->file_read = file_read_default;
+  fs->file_seek = file_seek_default;
+  fs->file_close = file_close_default;
+  return fs;
 }
