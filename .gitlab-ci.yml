@@ -87,7 +87,7 @@ build-win-uwp:
             - CROSSFILE: [x86_64-w64-mingw32uwp, aarch64-w64-mingw32uwp, armv7-w64-mingw32uwp, i686-w64-mingw32uwp]
 
 build-wasm:
-    image: registry.videolan.org/vlc-debian-wasm-emscripten:20250323132008
+    image: registry.videolan.org/vlc-debian-wasm-emscripten:20260617104340
     stage: build
     tags:
         - docker
