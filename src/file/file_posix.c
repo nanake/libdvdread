@@ -45,12 +45,10 @@
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || \
     defined(__NetBSD__) || defined(__DragonFly__) || \
     (defined(_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS >= 64)
-/* off_t is already 64 bit; lseek handles off64_t offsets */
+/* lseek handles off64_t offsets */
 #else
 # undef  lseek
 # define lseek lseek64
-# undef  off_t
-# define off_t off64_t
 #endif
 
 
