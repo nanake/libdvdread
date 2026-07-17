@@ -11,7 +11,7 @@ build-debian:
         - docker
         - amd64
     script:
-        - meson setup build -Dwarning_level=3
+        - meson setup build -Dwarning_level=3 -Dextra_checks=true
         - meson compile -C build
 
 build-raspberry:
@@ -35,7 +35,7 @@ build-macos:
         - amd64
         - macos
     script:
-        - meson setup build -Dwarning_level=2
+        - meson setup build -Dwarning_level=2 -Dextra_checks=true
         - meson compile -C build
 
 build-macos-arm:
@@ -43,7 +43,7 @@ build-macos-arm:
     tags:
         - macos-xcode26
     script:
-        - meson setup build -Dwarning_level=2
+        - meson setup build -Dwarning_level=2 -Dextra_checks=true
         - meson compile -C build
 
 build-win:
