@@ -113,7 +113,23 @@ endif
 # it is not an error and silently tolerated
 
 if get_option('warning_level') in ['2', '3', 'everything']
-    optional_arguments += '-Wsign-compare'
+    optional_arguments += [
+        '-Wsign-compare',
+        '-Wundef',
+        '-Wpointer-arith',
+        '-Wvolatile-register-var',
+        '-Wformat',
+        '-Wformat-security',
+        '-Wduplicated-branches',
+        '-Wduplicated-cond',
+        '-Wbad-function-cast',
+        '-Wwrite-strings',
+        '-Wmissing-prototypes',
+        '-Winit-self',
+        '-Wlogical-op',
+        '-Wshadow=local',
+        '-Wmultistatement-macros',
+    ]
 endif
 
 add_project_arguments(cc.get_supported_arguments(optional_arguments), language: 'c')
