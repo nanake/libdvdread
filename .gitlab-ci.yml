@@ -38,6 +38,14 @@ build-macos:
         - meson setup build -Dwarning_level=2
         - meson compile -C build
 
+build-macos-arm:
+    stage: build
+    tags:
+        - macos-xcode26
+    script:
+        - meson setup build -Dwarning_level=2
+        - meson compile -C build
+
 build-win:
     image: registry.videolan.org/dav1d-debian-unstable:20250207200301
     stage: build
