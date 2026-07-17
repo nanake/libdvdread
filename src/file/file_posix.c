@@ -19,6 +19,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -41,6 +42,11 @@
 #include <dvdread/dvd_filesystem.h>
 
 #include "filesystem.h"
+
+// verify the off64_t from dvd_filesystem.h has the proper size
+static_assert(sizeof(off64_t) >= (64/8), "Bogus off64_t size");
+// verify the off_t from dvd_filesystem.h has the proper size
+static_assert(sizeof(off_t) >= (64/8), "Bogus off_t size");
 
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || \
     defined(__NetBSD__) || defined(__DragonFly__) || defined (__wasm__) || \
