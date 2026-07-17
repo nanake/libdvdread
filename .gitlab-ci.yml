@@ -95,7 +95,7 @@ build-wasm:
     script:
         - source $EMSCRIPTEN_SDK/emsdk_env.sh
         - export EM_CACHE=`em-config CACHE`
-        - meson setup build -Dwarning_level=2 --cross-file package/crossfiles/wasm-unknown-emscripten.meson
+        - meson setup build -Dwarning_level=2 -Dextra_checks=true --cross-file package/crossfiles/wasm-unknown-emscripten.meson
         - meson compile -C build
 
 build-android:
