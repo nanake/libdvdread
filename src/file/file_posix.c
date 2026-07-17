@@ -43,7 +43,7 @@
 #include "filesystem.h"
 
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || \
-    defined(__NetBSD__) || defined(__DragonFly__) || \
+    defined(__NetBSD__) || defined(__DragonFly__) || defined (__wasm__) || \
     (defined(_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS >= 64)
 /* lseek handles off64_t offsets */
 #else
