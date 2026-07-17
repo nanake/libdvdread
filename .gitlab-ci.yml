@@ -97,3 +97,17 @@ build-wasm:
         - export EM_CACHE=`em-config CACHE`
         - meson setup build -Dwarning_level=2 --cross-file package/crossfiles/wasm-unknown-emscripten.meson
         - meson compile -C build
+
+build-android:
+    image: registry.videolan.org/vlc-debian-android:20260611225331
+    stage: build
+    tags:
+        - docker
+        - amd64
+    script:
+        - meson setup build -Dwarning_level=2 -Dextra_checks=true --cross-file package/crossfiles/${CROSSFILE}.meson
+        - meson compile -C build
+    parallel:
+        matrix:
+            - CROSSFILE: [arm-linux-androideabi, aarch64-linux-android, x86_64-linux-android, i686-linux-android]
+

@@ -1,0 +1,12 @@
+[binaries]
+c = 'armv7a-linux-androideabi21-clang'
+cpp = 'armv7a-linux-androideabi21-clang++'
+ar = 'llvm-ar'
+strip = 'llvm-strip'
+pkg-config = 'pkg-config'
+
+[host_machine]
+system = 'android'
+endian = 'little'
+cpu_family = 'arm'
+cpu = 'arm'
