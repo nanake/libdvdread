@@ -11,7 +11,7 @@ build-debian:
         - docker
         - amd64
     script:
-        - meson setup build -Dwarning_level=2
+        - meson setup build -Dwarning_level=3
         - meson compile -C build
 
 build-raspberry:
