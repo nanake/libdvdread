@@ -20,3 +20,8 @@ option('dlfcn',
     choices: ['external', 'builtin', 'auto'],
     value: 'auto',
     description: 'Use external dlfcn for MinGW')
+
+option('extra_checks',
+    type : 'boolean',
+    value : false,
+    description : 'Turn some warnings into compilation error')

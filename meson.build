@@ -112,7 +112,7 @@ endif
 # But when the compiler does not supports them
 # it is not an error and silently tolerated
 
-if get_option('warning_level') in ['2', '3', 'everything']
+if get_option('warning_level') in ['2', '3', 'everything'] or get_option('extra_checks')
     optional_arguments += [
         '-Wsign-compare',
         '-Wundef',
@@ -129,6 +129,22 @@ if get_option('warning_level') in ['2', '3', 'everything']
         '-Wlogical-op',
         '-Wshadow=local',
         '-Wmultistatement-macros',
+    ]
+endif
+
+if get_option('extra_checks')
+    optional_arguments += [
+        '-Werror-implicit-function-declaration',
+        '-Werror=missing-field-initializers',
+        '-Werror=format',
+        '-Werror=return-mismatch',
+        '-Werror=incompatible-pointer-types',
+        '-Werror=restrict',
+        '-Werror=int-conversion',
+        '-Werror=implicit-int',
+        '-Werror=declaration-missing-parameter-type',
+        '-Werror=excess-initializers',
+        '-Werror=unterminated-string-initialization',
     ]
 endif
 
