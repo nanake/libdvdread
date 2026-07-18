@@ -42,10 +42,11 @@ typedef __off64_t off64_t;
 typedef off_t off64_t;
 #endif
 
+#define DVDREAD_NAME_MAX 255
 /* directory entry, only d_name is used by the lib */
 typedef struct
 {
-    char    d_name[256];
+    char    d_name[DVDREAD_NAME_MAX + 1];
 } dvd_dirent_t;
 
 #define DVD_S_IFMT         0170000     /* These bits determine file type. */
