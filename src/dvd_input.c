@@ -291,7 +291,7 @@ static dvd_input_t file_open(void *priv, dvd_logger_cb *logcb,
         *buf=0;
   #endif
 #else
- #if defined(HAVE_STRERR_S)
+ #if defined(HAVE_STRERROR_S)
    if(strerror_s(buf, 256, errno) != 0)
      *buf=0;
   #else
