@@ -1,3 +1,7 @@
+libdvdread (7.1.1)
+ * reduce the number of symbols exported to avoid conflicts when linking
+ * improve CI coverage
+
 libdvdread (7.1.0)
  * DVD-Audio support:
      * Allow CPRM and CSS decryption support to be available simultaneously
