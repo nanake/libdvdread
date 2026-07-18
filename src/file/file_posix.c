@@ -28,7 +28,7 @@
 
 #include <sys/stat.h>
 #include <fcntl.h>
-#if HAVE_DIRENT_H
+#if defined(HAVE_DIRENT_H)
 #include <dirent.h>
 #endif
 
