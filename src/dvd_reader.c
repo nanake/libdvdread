@@ -98,6 +98,9 @@ struct dvd_file_s {
   /* Hack for selecting the right css title. */
   int css_title;
 
+  /* Zone the file's content lives in, selects the decryption scheme. */
+  dvd_type_t stream_type;
+
   /* Information required for an image file. */
   uint32_t lb_start;
   uint32_t seek_pos;
@@ -853,6 +856,19 @@ void DVDClose( dvd_reader_t *dvd )
   }
 }
 
+/* The decryption scheme follows the zone a file lives in, which on a hybrid
+ * disc is not always the zone implied by the disc type. */
+static dvd_type_t DVDFileZone( dvd_reader_t *ctx, const char *filename )
+{
+  if( !strncmp( filename, "/VIDEO_TS/", 10 ) )
+    return DVD_V;
+  if( !strncmp( filename, "/AUDIO_TS/", 10 ) )
+    return DVD_A;
+  if( !strncmp( filename, "/DVD_RTAV/", 10 ) )
+    return DVD_VR;
+  return ctx->dvd_type;
+}
+
 /**
  * Open an unencrypted file on a DVD image file.
  */
@@ -874,6 +890,7 @@ static dvd_file_t *DVDOpenFileUDF( dvd_reader_t *ctx, const char *filename,
     return NULL;
   }
   dvd_file->ctx = ctx;
+  dvd_file->stream_type = DVDFileZone( ctx, filename );
   dvd_file->lb_start = start;
   dvd_file->filesize = BYTES_TO_DVD_BLOCKS_CEIL(len);
 
@@ -1015,6 +1032,7 @@ static dvd_file_t *DVDOpenFilePath( dvd_reader_t *ctx, const char *filename )
     return NULL;
   }
   dvd_file->ctx = ctx;
+  dvd_file->stream_type = DVDFileZone( ctx, filename );
 
   if (ctx->fs->stat(ctx->fs, full_path, &fileinfo) < 0) {
     Log0(ctx, "Can't stat() %s.", filename );
@@ -1087,42 +1105,38 @@ static uint8_t *cppm_get_mkb_or_backup( dvd_reader_t *ctx, int backup )
   return p_mkb;
 }
 
-static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
+/* ts_type names the title set to open: it matches ctx->dvd_type except for
+ * a hybrid DVD-Audio title set that borrows the title VOBs of a video title
+ * set, which is opened with ts_type DVD_V. */
+static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu,
+                                  dvd_type_t ts_type )
 {
   char filename[ MAX_UDF_FILE_NAME_LEN ];
   uint32_t start, len;
   dvd_file_t *dvd_file;
-  /* stream type must be set to determine decryption method*/
-  /* DVD-Audio discs contain both AOBs and VOBs */
-  /* DVD_V = VOB with css, DVD_A = AOB with CPPM, DVD_VR = VRO with CPRM */
-  dvd_type_t stream_type;
+  /* the zone selects the decryption method:
+   * DVD_V = VOB with CSS, DVD_A = AOB with CPPM, DVD_VR = VRO with CPRM */
+  dvd_type_t stream_type = ts_type;
 
-  if ( ctx->dvd_type == DVD_VR && menu )
+  if ( ts_type == DVD_VR && menu )
     return NULL;
 
-  if ( ctx->dvd_type == DVD_VR ) {
+  if ( ts_type == DVD_VR ) {
     sprintf( filename, "/DVD_RTAV/VR_MOVIE.VRO" );
   } else if( title == 0 ) {
-    sprintf( filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( ctx->dvd_type ), DVD_TYPE_STRING( ctx->dvd_type ) );
+    sprintf( filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( ts_type ), DVD_TYPE_STRING( ts_type ) );
   } else if(!menu) {
     /* DVD Content - Tracks/Chapters  */
-    sprintf( filename, "/%s_TS/%cTS_%02d_1.%cOB", DVD_TYPE_STRING( ctx->dvd_type ),
-            STREAM_TYPE_STRING( ctx->dvd_type ), title, STREAM_TYPE_STRING( ctx->dvd_type ) );
+    sprintf( filename, "/%s_TS/%cTS_%02d_1.%cOB", DVD_TYPE_STRING( ts_type ),
+            STREAM_TYPE_STRING( ts_type ), title, STREAM_TYPE_STRING( ts_type ) );
   } else {
-    if ( ctx->dvd_type == DVD_V )
+    if ( ts_type == DVD_V )
       /* DVD_Video title menu */
       sprintf( filename, "/VIDEO_TS/VTS_%02d_0.VOB", title );
-    else if ( ctx->dvd_type == DVD_A )
+    else if ( ts_type == DVD_A )
       /* DVD_Audio title menu */
       sprintf( filename, "/AUDIO_TS/AUDIO_SV.VOB" );
   }
-
-  if ( ctx->dvd_type == DVD_VR )
-    stream_type = DVD_VR;
-  else if ( !strncmp( filename, "/VIDEO_TS/", 10 ) )
-    stream_type = DVD_V;
-  else
-    stream_type = DVD_A;
 
   start = UDFFindFile( ctx, filename, &len );
   if( start == 0 ) return NULL;
@@ -1135,17 +1149,18 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   if( stream_type == DVD_V )
       /*Hack*/ dvd_file->css_title = title << 1 | menu;
 
+  dvd_file->stream_type = stream_type;
   dvd_file->lb_start = start;
   dvd_file->filesize = BYTES_TO_DVD_BLOCKS_CEIL(len);
 
   /* Calculate the complete file size for every file in the VOBS, AOBS */
   /* DVD-VR uses UDF 2.0 which allows for larger file sizes, 1GB limit does not exist */
-  if( !menu && ctx->dvd_type != DVD_VR ) {
+  if( !menu && ts_type != DVD_VR ) {
     int cur;
 
     for( cur = 2; cur < 10; cur++ ) {
-      sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( ctx->dvd_type ), 
-              STREAM_TYPE_STRING( ctx->dvd_type ), title, cur, STREAM_TYPE_STRING( ctx->dvd_type ) );
+      sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( ts_type ),
+              STREAM_TYPE_STRING( ts_type ), title, cur, STREAM_TYPE_STRING( ts_type ) );
       if( !UDFFindFile( ctx, filename, &len ) ) break;
       dvd_file->filesize += BYTES_TO_DVD_BLOCKS_CEIL(len);
     }
@@ -1160,24 +1175,23 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu )
   return dvd_file;
 }
 
-static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
+/* see DVDOpenVOBUDF for the ts_type semantics */
+static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu,
+                                   dvd_type_t ts_type )
 {
   char filename[ MAX_UDF_FILE_NAME_LEN ];
   char full_path[ PATH_MAX + 1 ];
   dvdstat_t fileinfo;
   dvd_file_t *dvd_file;
-  /* menus are always VOB streams, title type depends on disc disc */
-  /* for now will set as the dvd_type,
-   * when hybrid discs are implemented set as title type */
   /* DVD_V = VOB with css, DVD_A = AOB with CPPM, DVD_VR = VRO with CPRM */
-  dvd_type_t stream_type = ctx->dvd_type;
+  dvd_type_t stream_type = ts_type;
 
   dvd_file = calloc( 1, sizeof( dvd_file_t ) );
   if( !dvd_file ) return NULL;
   dvd_file->ctx = ctx;
 
   /* DVD-VR has no menu vobs */
-  if ( ctx->dvd_type == DVD_VR && menu ) {
+  if ( ts_type == DVD_VR && menu ) {
     free( dvd_file );
     return NULL;
   }
@@ -1187,15 +1201,17 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
   if ( stream_type == DVD_V )
   /*Hack*/ dvd_file->css_title = title << 1 | menu;
 
+  dvd_file->stream_type = stream_type;
+
   if( menu ) {
     dvd_input_t dev;
 
     if( title == 0 ) {
       /* the root menu is AUDIO_TS.VOB or VIDEO_TS.VOB */
-      sprintf(filename, "%s_TS.VOB", DVD_TYPE_STRING( ctx->dvd_type ) );
+      sprintf(filename, "%s_TS.VOB", DVD_TYPE_STRING( ts_type ) );
     } else {
       /* there are no ATS_%02i_0.AOB's */
-      if ( ctx->dvd_type == DVD_V ) 
+      if ( ts_type == DVD_V )
         sprintf( filename, "VTS_%02i_0.VOB", title );
       else
         /* Remaining title menus would be in the still videos VOB */
@@ -1228,7 +1244,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
 
     /* DVD-VR uses UDF 2.0 which allows for larger file sizes, 1GB limit does not exist */
     /* will only return one file, treating it as a single fragment with one title dev */
-    if ( ctx->dvd_type == DVD_VR ) {
+    if ( ts_type == DVD_VR ) {
       sprintf( filename, "VR_MOVIE.VRO");
 
       if( !findDVDFile( ctx, filename, full_path ) ) {
@@ -1264,7 +1280,10 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
 
       for( i = 0; i < TITLES_MAX; ++i ) {
 
-        sprintf( filename, "%cTS_%02i_%i.%cOB", STREAM_TYPE_STRING( ctx->dvd_type ), title, i + 1 , STREAM_TYPE_STRING( ctx->dvd_type ));
+        /* the zone directory matters when opening a title set of the other
+         * zone of a hybrid disc */
+        sprintf( filename, "/%s_TS/%cTS_%02i_%i.%cOB", DVD_TYPE_STRING( ts_type ),
+                STREAM_TYPE_STRING( ts_type ), title, i + 1 , STREAM_TYPE_STRING( ts_type ));
         if( !findDVDFile( ctx, filename, full_path ) ) {
           break;
         }
@@ -1298,6 +1317,48 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu )
   }
 
   return dvd_file;
+}
+
+/* On a hybrid DVD-Audio/DVD-Video disc an audio title set may have no audio
+ * objects of its own and instead borrow the title VOBs of a video title set.
+ *
+ * Returns the linked VTS number, or 0 when the ATS links to no video title set. */
+static int DVDAudioLinkedVTS( dvd_reader_t *ctx, int titlenum )
+{
+  ifo_handle_t *ifo;
+  uint32_t vts_sa;
+  int i, vtsn = 0;
+
+  ifo = ifoOpenVTSI( ctx, titlenum );
+  if( !ifo )
+    return 0;
+  vts_sa = ifo->atsi_mat->vts_sa;
+  ifoClose( ifo );
+  if( vts_sa == 0 )
+    return 0;
+
+  ifo = ifoOpenVMGI( ctx );
+  if( !ifo )
+    return 0;
+  if( ifoRead_TIF( ifo, 1 ) ) {
+    const tracks_info_table_t *att_srpt = ifo->info_table_first_sector;
+
+    for( i = 0; i < att_srpt->nr_of_titles; i++ ) {
+      const track_info_t *track = &att_srpt->tracks_info[ i ];
+
+      if( !( track->type_and_rank & 0x80 ) &&
+          track->ts_pointer_relative_sector == vts_sa ) {
+        vtsn = track->group_property; /* the VTS number of a video track */
+        break;
+      }
+    }
+  }
+  ifoClose( ifo );
+
+  if( vtsn == 0 )
+    Log1( ctx, "ATS %02d links to sector %u but no video title set starts "
+               "there", titlenum, vts_sa );
+  return vtsn;
 }
 
 dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
@@ -1346,19 +1407,36 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
         return NULL; 
       } else if ( ctx->dvd_type == DVD_A && titlenum > 1 )
         Log2( ctx, "Defaulting to the only menu on DVD-Audio discs" );
-      return DVDOpenVOBUDF( ctx, ( ctx->dvd_type == DVD_V ? titlenum : titlenum > 0 ), 1 );
+      return DVDOpenVOBUDF( ctx, ( ctx->dvd_type == DVD_V ? titlenum : titlenum > 0 ), 1,
+                            ctx->dvd_type );
     } else {
-      return DVDOpenVOBPath( ctx, ( ctx->dvd_type == DVD_V ? titlenum : titlenum > 0 ), 1 );
+      return DVDOpenVOBPath( ctx, ( ctx->dvd_type == DVD_V ? titlenum : titlenum > 0 ), 1,
+                             ctx->dvd_type );
     }
     break;
-  case DVD_READ_TITLE_VOBS:
+  case DVD_READ_TITLE_VOBS: {
+    dvd_file_t *vobs;
     if( titlenum == 0 && ctx->dvd_type != DVD_VR ) return NULL;
     if( dvd->isImageFile ) {
-      return DVDOpenVOBUDF( ctx, titlenum, 0 );
+      vobs = DVDOpenVOBUDF( ctx, titlenum, 0, ctx->dvd_type );
     } else {
-      return DVDOpenVOBPath( ctx, titlenum, 0 );
+      vobs = DVDOpenVOBPath( ctx, titlenum, 0, ctx->dvd_type );
     }
-    break;
+    /* a hybrid disc's ATS without AOBs borrows a video title set instead */
+    if( !vobs && ctx->dvd_type == DVD_A ) {
+      int vts = DVDAudioLinkedVTS( ctx, titlenum );
+      if( vts > 0 ) {
+        Log2( ctx, "ATS %02d has no AOBs, opening the title VOBs of VTS %02d",
+              titlenum, vts );
+        if( dvd->isImageFile ) {
+          vobs = DVDOpenVOBUDF( ctx, vts, 0, DVD_V );
+        } else {
+          vobs = DVDOpenVOBPath( ctx, vts, 0, DVD_V );
+        }
+      }
+    }
+    return vobs;
+  }
   case DVD_READ_SAMG_INFO:
     /* no other way to reach SAMG menu*/
     if( ctx->dvd_type == DVD_V ) {
@@ -1420,8 +1498,9 @@ void DVDCloseFile( dvd_file_t *dvd_file )
   }
 }
 
-static int DVDFileStatVOBUDF( dvd_reader_t *dvd, int title,
-                              int menu, dvd_stat_t *statbuf )
+/* see DVDOpenVOBUDF for the ts_type semantics */
+static int DVDFileStatVOBUDF( dvd_reader_t *dvd, int title, int menu,
+                              dvd_type_t ts_type, dvd_stat_t *statbuf )
 {
   char filename[ MAX_UDF_FILE_NAME_LEN ];
   uint32_t size;
@@ -1431,11 +1510,11 @@ static int DVDFileStatVOBUDF( dvd_reader_t *dvd, int title,
   int n;
 
   if( title == 0 )
-    sprintf( filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( dvd->dvd_type ),
-            DVD_TYPE_STRING( dvd->dvd_type ) );
+    sprintf( filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( ts_type ),
+            DVD_TYPE_STRING( ts_type ) );
   else
-    sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( dvd->dvd_type ), 
-            STREAM_TYPE_STRING( dvd->dvd_type ), title, menu ? 0 : 1, STREAM_TYPE_STRING( dvd->dvd_type ) );
+    sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( ts_type ),
+            STREAM_TYPE_STRING( ts_type ), title, menu ? 0 : 1, STREAM_TYPE_STRING( ts_type ) );
 
   if( !UDFFindFile( dvd, filename, &size ) )
     return -1;
@@ -1448,8 +1527,8 @@ static int DVDFileStatVOBUDF( dvd_reader_t *dvd, int title,
     int cur;
 
     for( cur = 2; cur < 10; cur++ ) {
-      sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( dvd->dvd_type ),
-              STREAM_TYPE_STRING( dvd->dvd_type ), title, cur , STREAM_TYPE_STRING( dvd->dvd_type ) );
+      sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( ts_type ),
+              STREAM_TYPE_STRING( ts_type ), title, cur , STREAM_TYPE_STRING( ts_type ) );
       if( !UDFFindFile( dvd, filename, &size ) )
         break;
 
@@ -1468,8 +1547,9 @@ static int DVDFileStatVOBUDF( dvd_reader_t *dvd, int title,
 }
 
 
-static int DVDFileStatVOBPath( dvd_reader_t *dvd, int title,
-                               int menu, dvd_stat_t *statbuf )
+/* see DVDOpenVOBUDF for the ts_type semantics */
+static int DVDFileStatVOBPath( dvd_reader_t *dvd, int title, int menu,
+                               dvd_type_t ts_type, dvd_stat_t *statbuf )
 {
   char filename[ MAX_UDF_FILE_NAME_LEN ];
   char full_path[ PATH_MAX + 1 ];
@@ -1479,11 +1559,15 @@ static int DVDFileStatVOBPath( dvd_reader_t *dvd, int title,
   int nr_parts = 0;
   int n;
 
+  /* the zone directory matters when the title set is not of the zone
+   * implied by the disc type */
   if( title == 0 )
-    sprintf( filename, "%s_TS.VOB", DVD_TYPE_STRING( dvd->dvd_type ) );
+    sprintf( filename, "/%s_TS/%s_TS.VOB", DVD_TYPE_STRING( ts_type ),
+            DVD_TYPE_STRING( ts_type ) );
   else
-    sprintf( filename, "%cTS_%02d_%d.%cOB", STREAM_TYPE_STRING( dvd->dvd_type ), title, menu ? 0 : 1, 
-            STREAM_TYPE_STRING( dvd->dvd_type ) );
+    sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( ts_type ),
+            STREAM_TYPE_STRING( ts_type ), title, menu ? 0 : 1,
+            STREAM_TYPE_STRING( ts_type ) );
 
   if( !findDVDFile( dvd, filename, full_path ) )
     return -1;
@@ -1500,8 +1584,9 @@ static int DVDFileStatVOBPath( dvd_reader_t *dvd, int title,
   if( !menu ) {
     int cur;
     for( cur = 2; cur < 10; cur++ ) {
-      sprintf( filename, "%cTS_%02d_%d.%cOB",  STREAM_TYPE_STRING( dvd->dvd_type ), title, cur,
-              STREAM_TYPE_STRING( dvd->dvd_type ) );
+      sprintf( filename, "/%s_TS/%cTS_%02d_%d.%cOB", DVD_TYPE_STRING( ts_type ),
+              STREAM_TYPE_STRING( ts_type ), title, cur,
+              STREAM_TYPE_STRING( ts_type ) );
       if( !findDVDFile( dvd, filename, full_path ) )
         break;
 
@@ -1557,21 +1642,32 @@ int DVDFileStat( dvd_reader_t *reader, int titlenum,
     break;
   case DVD_READ_MENU_VOBS:
     if( dvd->isImageFile )
-      return DVDFileStatVOBUDF( reader, titlenum, 1, statbuf );
+      return DVDFileStatVOBUDF( reader, titlenum, 1, reader->dvd_type, statbuf );
     else
-      return DVDFileStatVOBPath( reader, titlenum, 1, statbuf );
+      return DVDFileStatVOBPath( reader, titlenum, 1, reader->dvd_type, statbuf );
 
     break;
-  case DVD_READ_TITLE_VOBS:
+  case DVD_READ_TITLE_VOBS: {
+    int ret;
     if( titlenum == 0 )
       return -1;
 
     if( dvd->isImageFile )
-      return DVDFileStatVOBUDF( reader, titlenum, 0, statbuf );
+      ret = DVDFileStatVOBUDF( reader, titlenum, 0, reader->dvd_type, statbuf );
     else
-      return DVDFileStatVOBPath( reader, titlenum, 0, statbuf );
-
-    break;
+      ret = DVDFileStatVOBPath( reader, titlenum, 0, reader->dvd_type, statbuf );
+    /* a hybrid disc's ATS without AOBs borrows a video title set instead */
+    if( ret < 0 && reader->dvd_type == DVD_A ) {
+      int vts = DVDAudioLinkedVTS( reader, titlenum );
+      if( vts > 0 ) {
+        if( dvd->isImageFile )
+          ret = DVDFileStatVOBUDF( reader, vts, 0, DVD_V, statbuf );
+        else
+          ret = DVDFileStatVOBPath( reader, vts, 0, DVD_V, statbuf );
+      }
+    }
+    return ret;
+  }
   case DVD_READ_SAMG_INFO:
     /* no other way to reach SAMG menu*/
     if( reader->dvd_type == DVD_V ) {
@@ -1780,6 +1876,7 @@ ssize_t DVDReadBlocks( dvd_file_t *dvd_file, int offset,
   }
 
   if( dvd->isImageFile ) {
+    dvdinput_set_stream( dvd->dev, dvd_file->stream_type );
     ret = DVDReadBlocksUDF( dvd_file, (uint32_t)offset,
                             block_count, data, DVDINPUT_READ_DECRYPT );
   } else {
