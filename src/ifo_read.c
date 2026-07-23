@@ -683,10 +683,10 @@ ifo_handle_t *ifoOpenASVS(dvd_reader_t *ctx) {
 
     ifop->ctx = ctx;
     ifop->file = DVDOpenFile(ctx, 0, domain);
-    if(!ifop->file) { /* Should really catch any error */
+    if(!ifop->file) {
       Log1(ctx, "Can't open file AUDIO_SV.%s.", ext);
       free(ifop);
-      return NULL;
+      continue;
     }
 
 
@@ -712,31 +712,26 @@ ifo_handle_t * ifoOpenSAMG(dvd_reader_t *ctx) {
     return NULL;
   }
 
-  struct ifo_handle_private_s *ifop;
+  /* the simple audio play pointer has no backup file */
+  struct ifo_handle_private_s *ifop = calloc(1, sizeof(*ifop));
+  if(!ifop)
+    return NULL;
 
-  for(int backup = ifoGetBupFlag(ctx, 0); backup <= 1; backup++)
-  {
-    ifop = calloc(1, sizeof(*ifop));
-    if(!ifop)
-      return NULL;
-
-    ifop->ctx = ctx;
-    ifop->file = DVDOpenFile(ctx, 0, DVD_READ_SAMG_INFO);
-    if(!ifop->file) { /* Should really catch any error */
-      Log1(ctx, "Can't open file AUDIO_PP.IFO.");
-      free(ifop);
-      return NULL;
-    }
-
-
-    if (ifoRead_SAMG(&ifop->handle)) {
-      ifop->handle.ifo_format = IFO_AUDIO;
-      return &ifop->handle;
-    }
-
-    Log1(ctx, "ifoOpenSAMG(): Invalid SAMG IFO (AUDIO_PP.IFO).");
-    ifoClose(&ifop->handle);
+  ifop->ctx = ctx;
+  ifop->file = DVDOpenFile(ctx, 0, DVD_READ_SAMG_INFO);
+  if(!ifop->file) {
+    Log1(ctx, "Can't open file AUDIO_PP.IFO.");
+    free(ifop);
+    return NULL;
   }
+
+  if (ifoRead_SAMG(&ifop->handle)) {
+    ifop->handle.ifo_format = IFO_AUDIO;
+    return &ifop->handle;
+  }
+
+  Log1(ctx, "ifoOpenSAMG(): Invalid SAMG IFO (AUDIO_PP.IFO).");
+  ifoClose(&ifop->handle);
   return NULL;
 }
 
