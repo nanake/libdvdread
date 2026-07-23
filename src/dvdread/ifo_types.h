@@ -585,7 +585,7 @@ typedef struct {
   uint8_t  zero_4[8];
   uint8_t  vmg_nr_of_title_sets;  /* Number of video titlesets in audio zone. */
   uint8_t  amg_nr_of_title_sets;  /* Number of audio titlesets in audio zone. */
-  uint8_t  unknown_2[32]; /* may be set to zeros */
+  char     provider_identifier[32];
   uint8_t  unknown_3[8]; /* may be set to zeros */
   uint8_t  zero_5[24];  
   uint32_t amg_end_byte_address;

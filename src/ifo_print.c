@@ -512,6 +512,7 @@ void ifoPrint_AMGI_MAT(amgi_mat_t *amgi_mat) {
   printf("Audio_SV ifo relative pointer: %08x\n", amgi_mat->audio_sv_ifo_relative_p);
   printf("VMG Number of title sets: %i\n", amgi_mat->vmg_nr_of_title_sets);
   printf("AMG Number of title sets: %i\n", amgi_mat->amg_nr_of_title_sets);
+  printf("Provider ID: %.32s\n", amgi_mat->provider_identifier);
   printf("End byte address: %08x\n", amgi_mat->amg_end_byte_address);
   printf("Start sector of AMGM_VOBS: %08x\n", amgi_mat->amgm_vobs_sa);
   printf("Start sector of ATT_SRPT: %08x\n", amgi_mat->att_srpt_sa);
