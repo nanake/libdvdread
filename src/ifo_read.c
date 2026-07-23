@@ -1996,6 +1996,7 @@ static int ifoRead_ATS(ifo_handle_t *ifofile) {
 
   B2N_32(atsi_mat->ats_last_sector);
   B2N_32(atsi_mat->atsi_last_sector);
+  B2N_32(atsi_mat->vts_sa);
   B2N_32(atsi_mat->atst_aobs);
   B2N_32(atsi_mat->atsi_last_byte);
   B2N_32(atsi_mat->ats_pgci_ut);

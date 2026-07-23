@@ -715,7 +715,7 @@ void ifoPrint_ATSI_MAT(atsi_mat_t *atsi_mat) {
          atsi_mat->specification_version>>4,
          atsi_mat->specification_version&0xf);
   printf("End byte of ATSI_MAT: %08x\n", atsi_mat->atsi_last_byte);
-  printf("Start sector of ATSM_VOBS:  %08x\n", atsi_mat->vtsm_vobs);
+  printf("Start sector of linked VTS (VTS_SA): %08x\n", atsi_mat->vts_sa);
   printf("Start sector of ATST_AOBS: %08x\n", atsi_mat->atst_aobs);
   printf("Start sector of VTS_PTT_SRPT: %08x\n", atsi_mat->vts_ptt_srpt);
   printf("Start sector of ATS_PCGI_UT:    %08x\n", atsi_mat->ats_pgci_ut);

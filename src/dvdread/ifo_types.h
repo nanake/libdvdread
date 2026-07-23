@@ -884,8 +884,16 @@ typedef struct {
   uint8_t       zero_2[90];
   uint32_t      atsi_last_byte; /* last byte of sector 0, not the end of the file */
   uint8_t       zero_3[60];
-  uint32_t      vtsm_vobs;       /* may be zeros */
-  uint32_t      atst_aobs;       /* atst or vtst */
+  uint32_t      vts_sa;          /* start sector of the video title set whose
+                                    title VOBs this ATS plays in place of AOBs
+                                    of its own (VTS_SA), counted from the first
+                                    sector of the AMG.  Only set on hybrid
+                                    discs, for an ATS without AOB files;
+                                    zero otherwise */
+  uint32_t      atst_aobs;       /* start sector of the audio objects: within
+                                    this ATS (AOTT_AOBS_SA), or of the title
+                                    VOBs within the linked video title set
+                                    (VTSTT_VOBS_SA) when vts_sa is set */
   uint32_t      vts_ptt_srpt;    /* may be zeros */
   uint32_t      ats_pgci_ut;    /* sector */
   uint32_t      vtsm_pgci_ut;    /* may be zeros */
