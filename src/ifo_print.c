@@ -647,26 +647,18 @@ static void ifo_print_atsi_records(atsi_record_t *records){
 
 static void ifo_print_downmix_coefficients(downmix_coeff_t *downmix_coefficients) {
   for (int i = 0; i < DOWNMIX_COEFF_MAX_SIZE; i++) {
-    printf("DOWNMIX COEFFICIENTS:\n");
+    const downmix_coeff_t *t = &downmix_coefficients[i];
+    int used = 0;
 
-    printf("Lf_left, Lf_right: %02x, %02x\n ", 
-           downmix_coefficients[i].Lf_left, downmix_coefficients[i].Lf_right);
+    for (int ch = 0; ch < 8; ch++)
+      used |= t->dm_coef[ch].left | t->dm_coef[ch].right;
+    if (!used)
+      continue;
 
-    printf("Rf_left, Rf_right: %02x, %02x\n ", 
-           downmix_coefficients[i].Rf_left, downmix_coefficients[i].Rf_right);
-
-    printf("C_left, C_right: %02x, %02x\n ", 
-           downmix_coefficients[i].C_left, downmix_coefficients[i].C_right);
-
-    printf("LFE_left, LFE_right: %02x, %02x\n ",
-           downmix_coefficients[i].LFE_left, downmix_coefficients[i].LFE_right);
-
-    printf("Ls_left, Ls_right: %02x, %02x\n ", 
-           downmix_coefficients[i].Ls_left, downmix_coefficients[i].Ls_right);
-
-    printf("Rs_left, Rs_right: %02x, %02x\n ", 
-           downmix_coefficients[i].Rs_left, downmix_coefficients[i].Rs_right);
-
+    printf("Downmix coefficient table %d (left/right gain codes):", i);
+    for (int ch = 0; ch < 8; ch++)
+      printf(" %02x/%02x", t->dm_coef[ch].left, t->dm_coef[ch].right);
+    printf("\n");
   }
 }
 

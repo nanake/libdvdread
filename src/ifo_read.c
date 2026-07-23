@@ -1263,9 +1263,10 @@ int ifoRead_TT(ifo_handle_t *ifofile) {
     }
     
     for (int j = 0; j<nr_tracks; j++) {
-      CHECK_ZERO(index->atsi_track_timestamp_rows[j].zero);
+      B2N_16(index->atsi_track_timestamp_rows[j].rti_flags);
       B2N_32(index->atsi_track_timestamp_rows[j].first_pts_of_track);
       B2N_32(index->atsi_track_timestamp_rows[j].length_pts_of_track);
+      B2N_32(index->atsi_track_timestamp_rows[j].pause_pts_of_track);
     }
 
     for (int j = 0; j<nr_pointer_records; j++) {
@@ -1990,7 +1991,6 @@ static int ifoRead_ATS(ifo_handle_t *ifofile) {
 
   for (int i=0; i < DOWNMIX_COEFF_MAX_SIZE; i++) {
     CHECK_ZERO(atsi_mat->downmix_coefficients[i].zero_1);
-    CHECK_ZERO(atsi_mat->downmix_coefficients[i].zero_2);
   }
   
 

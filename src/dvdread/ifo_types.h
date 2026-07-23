@@ -477,48 +477,32 @@ typedef struct {
 } ATTRIBUTE_PACKED vmgi_mat_t;
 #define VMGI_MAT_SIZE 510U
 
-/* Downmix coefficients can be used to reduce 5.1 channels to stereo in DVD-Audio Discs */
-/** Downmix equations
- * Left_out  = Lf_left  * Lf
- *           + Rf_left  * Rf
- *           + C_left   * C
- *           + LFE_left * LFE
- *           + Ls_left  * Ls
- *           + Rs_left  * Rs;
- * 
- * Right_out = Lf_right  * Lf
- *           + Rf_right  * Rf
- *           + C_right   * C
- *           + LFE_right * LFE
- *           + Ls_right  * Ls
- *           + Rs_right  * Rs;
- * 
- * Where:
- *   - Lf, Rf, C, LFE, Ls, Rs are the 5.1 input channels
- *   - Left_out, Right_out are the stereo output channels
- *   - Each coefficient (e.g. Lf_left, C_right) is an 8-bit gain factor
+/**
+ * One down mix coefficient table (ATS_DM_COEFT). Sixteen tables follow the
+ * audio attributes in the ATSI_MAT; each audio program selects the table to
+ * mix its multichannel audio down to two channels through the dm_coeftn of
+ * its ATS_PGI:
+ *
+ *   Left_out  = sum over the channels of coef ch.left  * ch
+ *   Right_out = sum over the channels of coef ch.right * ch
+ *
+ * The pairs follow the channels of the stream, given by the channel group
+ * assignment of the audio attribute, except that the LFE is ordered last:
+ * a 5.1 track uses Lf, Rf, C, Ls, Rs, LFE. Pairs past the channel count
+ * are zero. A coefficient is a gain code: 0.2 dB per step from 0 dB at
+ * 0x00 to -40 dB at 0xc8, then 0.4 dB per step down to -61.8 dB at 0xfe,
+ * and 0xff mutes the channel. The tables are all zero when the ATS has no
+ * AOBs of its own, and on discs whose MLP streams carry their own down
+ * mix instead.
  */
-
 typedef struct {
-  /* it seems each entry is started and ended with padding */
   uint16_t zero_1;
-  /* each coefficient corresponds to stereo side for a channel in 5.1 */
-  uint8_t Lf_left;
-  uint8_t Lf_right;
-  uint8_t Rf_left;
-  uint8_t Rf_right;
-  uint8_t C_left;
-  uint8_t C_right;
-  uint8_t LFE_left;
-  uint8_t LFE_right;
-  uint8_t Ls_left;
-  uint8_t Ls_right;
-  uint8_t Rs_left;
-  uint8_t Rs_right;
-
-  uint16_t zero_2;
+  struct ATTRIBUTE_PACKED {
+    uint8_t left;
+    uint8_t right;
+  } dm_coef[8]; /* one pair per audio channel of the stream */
 } ATTRIBUTE_PACKED downmix_coeff_t;
-#define DOWNMIX_COEFF_SIZE 16U
+#define DOWNMIX_COEFF_SIZE 18U
 
 
 /**
@@ -541,9 +525,10 @@ typedef struct {
   uint8_t  record_code; /* the top bit is set on the first chapter of a group */
   uint8_t  bit_depth;
   uint8_t  sampling_rate;
-  uint8_t  nr_channels; 
-  /* some DVD's made with authoring software keep downmix coefficients here */
-  /* since I do not have samples of commercial discs that do this, I will not include it */
+  uint8_t  nr_channels;
+  /* some DVD's made with authoring software keep downmix coefficients here:
+   * bytes 4 to 15 then hold six left/right gain code pairs as in the
+   * ATSI_MAT tables */
   uint8_t  zero_3[20];
   uint32_t start_sector_1; /* first sector of the chapter, an absolute sector of the volume */
   uint32_t start_sector_2; /* the same sector repeated again */
@@ -912,7 +897,7 @@ typedef struct {
   atsi_record_t atsi_record[ATSI_RECORD_MAX_SIZE];
   downmix_coeff_t downmix_coefficients[DOWNMIX_COEFF_MAX_SIZE];
 } ATTRIBUTE_PACKED atsi_mat_t;
-#define ATSI_MAT_SIZE 640U
+#define ATSI_MAT_SIZE 672U
 
 typedef struct {
   uint8_t  srp_index;         /* 1-based, top bit set marks the primary entry and clear the secondary */
@@ -923,16 +908,24 @@ typedef struct {
 } ATTRIBUTE_PACKED atsi_title_index_t;
 #define ATSI_TITLE_INDEX_SIZE 8U
 
-/* one per audio program in the title */
+/* one per audio program in the title (the ATS_PGI) */
 typedef struct {
-  uint8_t  prog_alloc_flags;      /* top bit set on the first program of the title */
-  uint8_t  prog_time_attr_flags;  /* either 0x00, 0x10 or 0x30, meaning not confirmed */
-  uint16_t reserved_1;            /* always 0x0000 */
+  uint8_t  prog_alloc_flags;      /* b7 the relation to the previous program, set
+                                     on the first; b6 an STC discontinuity;
+                                     b5-b3 which audio attribute of the ATSI_MAT
+                                     applies (ATRN); b2-b0 the bit shift of
+                                     channel group 2 */
+  uint8_t  prog_downmix_flags;    /* b5 down mix prohibited; b4 down mix
+                                     coefficients not valid; b3-b0 which down
+                                     mix coefficient table applies (DM_COEFTN) */
+  uint16_t rti_flags;             /* real time information flags, zero without RTI */
   uint8_t  track_number_in_title; /* the cell this program starts on, 1-based */
   uint8_t  unknown_3;             /* always 0x00 */
   uint32_t first_pts_of_track;    /* start PTS of the program's first cell, not always a title-relative timeline */
   uint32_t length_pts_of_track;   /* length of the program in PTS, the programs sum to length_pts */
-  uint8_t  zero[6];               /* will be 0x00 */
+  uint32_t pause_pts_of_track;    /* pause after the program, MPEG PTS; only 0 seen */
+  uint8_t  cmi;                   /* copyright management information; only 0 seen */
+  uint8_t  reserved_2;
 } ATTRIBUTE_PACKED atsi_track_timestamp_t;
 #define ATSI_TRACK_TIMESTAMP_SIZE 20U
 
