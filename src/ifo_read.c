@@ -200,6 +200,9 @@ CHECK_STRUCT_SIZE(atsi_track_pointer_t,   0, ATSI_TRACK_POINTER_SIZE);
 CHECK_STRUCT_SIZE(atsi_title_record_t,    4, ATSI_TITLE_ROW_TABLE_SIZE);
 CHECK_STRUCT_SIZE(atsi_title_table_t,     2, ATSI_TITLE_TABLE_SIZE);
 CHECK_STRUCT_SIZE(downmix_coeff_t,        0, DOWNMIX_COEFF_SIZE);
+CHECK_STRUCT_SIZE(asvu_gi_t,              0, ASVU_GI_SIZE);
+CHECK_STRUCT_SIZE(asv_srpt_t,             0, ASV_SRPT_SIZE);
+CHECK_STRUCT_SIZE(asvs_mat_t,             1, ASVS_MAT_SIZE);
 CHECK_STRUCT_SIZE(rtav_vmgi_t,            0, RTAV_VMGI_SIZE);
 CHECK_STRUCT_SIZE(pgci_t,                 1, PGCI_SIZE);
 CHECK_STRUCT_SIZE(pgc_gi_t,               2, PGC_GI_SIZE);
@@ -1045,7 +1048,12 @@ static int ifoRead_ASVS(ifo_handle_t *ifofile){
 
   B2N_16(asvs_mat->asvs_nr_of_asvus);
   B2N_16(asvs_mat->specification_version);
-  B2N_16(asvs_mat->p_vobs_ea);
+  B2N_32(asvs_mat->asvobs_sa);
+  B2N_32(asvs_mat->asv_ea);
+  for (int i = 0; i < 4; i++)
+    B2N_16(asvs_mat->asvu_atr[i]);
+  for (int i = 0; i < 16; i++)
+    B2N_32(asvs_mat->sp_plt[i]);
 
   /* a broken disc could ask for more groups than fit */
   if(asvs_mat->asvs_nr_of_asvus > ASVU_GI_MAX_SIZE) {
@@ -1056,12 +1064,16 @@ static int ifoRead_ASVS(ifo_handle_t *ifofile){
 
   int total_nr_frames = 0;
   for (int i = 0; i < asvs_mat->asvs_nr_of_asvus; i++ ) {
-    B2N_16(asvs_mat->asvu_gi[i].start_p_vob_number);
-    B2N_16(asvs_mat->asvu_gi[i].ref_start_sector);
-    CHECK_ZERO(asvs_mat->asvu_gi[i].zero_1);
-    total_nr_frames+=asvs_mat->asvu_gi[i].p_vob_ns;
+    B2N_16(asvs_mat->asvu_gi[i].first_abs_asvn);
+    B2N_32(asvs_mat->asvu_gi[i].asvu_sa);
+    total_nr_frames+=asvs_mat->asvu_gi[i].asv_ns;
   }
 
+  if(total_nr_frames > (int)ASV_MAX_NR) {
+    free(ifofile->asvs_mat);
+    ifofile->asvs_mat = NULL;
+    return 0;
+  }
 
   asvs_mat->asv_srpt = calloc(total_nr_frames, ASV_SRPT_SIZE);
   if(!asvs_mat->asv_srpt) {
@@ -1078,13 +1090,14 @@ static int ifoRead_ASVS(ifo_handle_t *ifofile){
     return 0;
   }
 
+  uint16_t *asv_srpt_raw = (uint16_t *)asvs_mat->asv_srpt;
   for(int i = 0; i < total_nr_frames; i++)
-    B2N_16(asvs_mat->asv_srpt[i]);
+    B2N_16(asv_srpt_raw[i]);
 
-
-  CHECK_VALUE(asvs_mat->specification_version == 0x0012);
-  CHECK_ZERO(asvs_mat->zero_1);
-  CHECK_ZERO(asvs_mat->zero_2);
+  /* a few discs write zero here */
+  CHECK_VALUE(asvs_mat->specification_version == 0x0012
+              || asvs_mat->specification_version == 0);
+  CHECK_VALUE(asvs_mat->asvobs_sa == 2);
   return 1;
 
 }

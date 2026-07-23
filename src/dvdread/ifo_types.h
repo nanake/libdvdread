@@ -952,7 +952,7 @@ typedef struct {
 typedef struct {
   uint8_t  asvu_n;      /* 1-based ASVU number holding this program's stills, several programs may share one */
   struct ATTRIBUTE_PACKED {
-    uint8_t order   : 2; /* only 0 (sequential) seen */
+    uint8_t order   : 2; /* 0 sequential, 1 random, 3 shuffle; only 0 seen */
     uint8_t timing  : 2; /* 0 timed slideshow, 1 user browsable */
     uint8_t zero    : 4;
   } dmod;
@@ -1011,33 +1011,36 @@ typedef struct {
  * ASVS
  *
  * Structures relating to the Audio Still Video Set (ASVS).
- */
-
-/**
- * An ASVU groups the still pictures (P_VOBs) that are loaded before the
- * matching audio program plays. Each P_VOB is one still I-picture.
  *
- * ASV_SRPT addressing: each pointer is an offset from the parent ASVU
- * ref_start_sector, so the still sits at ref_start_sector + (value & 0x7fff).
- * The high bit (0x8000) does not select an addressing mode. Some discs set it
- * on every pointer and some leave it clear, and either way the offset is
- * counted from ref_start_sector.
+ * An ASVU groups the still pictures (ASVs) that are loaded before the
+ * matching audio program plays. Each ASV is one still I-picture with
+ * optional sub-picture streams.
  */
 
 /* general information for one Audio Still Video Unit */
 typedef struct {
-  uint8_t  p_vob_ns;           /* number of still pictures in this unit */
-  uint8_t  unknown_1;
-  uint16_t start_p_vob_number; /* number of this unit's first still picture, 1-based */
-  uint16_t zero_1;
-  uint16_t ref_start_sector;   /* base sector the unit's relative pointers count from */
+  uint8_t  asv_ns;         /* number of still pictures in this unit */
+  uint8_t  asvu_atrn;      /* which asvu_atr slot describes this unit's stills */
+  uint16_t first_abs_asvn; /* number of this unit's first still picture, 1-based */
+  uint32_t asvu_sa;        /* start sector of the unit, counted from the first
+                              sector of the ASVOBS (AUDIO_SV.VOB) */
 } ATTRIBUTE_PACKED asvu_gi_t;
 #define ASVU_GI_SIZE 8U
 #define ASVU_GI_MAX_SIZE 99U
 
-/* search pointer to one still picture, see the addressing note above */
-typedef uint16_t asv_srpt_t;
+/**
+ * Search pointer to one still picture. The still starts at sector
+ * asvu_sa + offset of its unit. The top two bits are not part of the
+ * address.
+ */
+typedef struct {
+  uint16_t offset : 14;
+  uint16_t cci    : 2;
+} ATTRIBUTE_PACKED asv_srpt_t;
 #define ASV_SRPT_SIZE 2U
+
+/* the ASV_SRPT must fit in the two sector ASVS information */
+#define ASV_MAX_NR ((2 * 2048 - ASVS_MAT_SIZE) / ASV_SRPT_SIZE)
 
 /**
  * Audio Still Video Set Management Table. Exclusive to DVD-Audio discs
@@ -1045,15 +1048,21 @@ typedef uint16_t asv_srpt_t;
 typedef struct {
   char          asvs_identifier[12];   /* DVDAUDIOASVS */
   uint16_t      asvs_nr_of_asvus;      /* number of still video units in asvu_gi */
-  uint16_t      specification_version; /* always 0x0012 */
-  uint16_t      zero_1;
-  uint16_t      asvu_atr;              /* unit attributes, only 0x0002 seen */
-  uint16_t      zero_2;
-  uint16_t      p_vobs_ea;             /* end of the still picture area, in sectors */
-  uint32_t      p_vobs_sp_plt[16];     /* sub-picture palette, 16 colours, default 0x00108080 */
-  uint8_t       unknown_2[8];          /* trailing 8 bytes, usually more palette words */
+  uint16_t      specification_version; /* 0x0012, a few discs write zero */
+  uint32_t      asvobs_sa;             /* start sector of the still picture area,
+                                          counted from the ASVS start; always 2,
+                                          right after this two sector table */
+  uint32_t      asv_ea;                /* last sector of the last still picture,
+                                          counted from the first ASVOBS sector */
+  uint16_t      asvu_atr[4];           /* still picture attributes, selected per
+                                          unit by asvu_atrn; the low byte holds
+                                          the sub-picture setup: 0x00 no streams,
+                                          0x03 one stream, 0x05 two streams */
+  uint32_t      sp_plt[16];            /* sub-picture palette, 16 colours,
+                                          0x00YYCrCb, default 0x00108080 */
   asvu_gi_t     asvu_gi[ASVU_GI_MAX_SIZE]; /* size determined by asvs_nr_of_asvus */
-  asv_srpt_t   *asv_srpt;              /* length is the sum of p_vob_ns over asvu_gi */
+  asv_srpt_t   *asv_srpt;              /* one per still picture, the sum of
+                                          asv_ns over asvu_gi */
 } ATTRIBUTE_PACKED asvs_mat_t;
 #define ASVS_MAT_SIZE 888U
 
