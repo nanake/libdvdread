@@ -939,44 +939,46 @@ static int findDirFile(dvd_reader_t *ctx, const char *path, const char *file, ch
 static int findDVDFile( dvd_reader_t *dvd, const char *file, char *filename )
 {
   const char *nodirfile;
+  const char *subdir;
   int ret;
 
-  /* Strip off the directory for our search */
-  if( !strncasecmp( (dvd->dvd_type == DVD_V) ? "/VIDEO_TS/" : "/AUDIO_TS/", file, 10 ) ) {
+  /* Strip off the directory for our search. An explicit directory selects
+   * the zone to search in (a hybrid disc has several), otherwise the zone
+   * is implied by the disc type. */
+  if( !strncasecmp( "/VIDEO_TS/", file, 10 ) ) {
     nodirfile = &(file[ 10 ]);
+    subdir = "VIDEO_TS";
+  } else if( !strncasecmp( "/AUDIO_TS/", file, 10 ) ) {
+    nodirfile = &(file[ 10 ]);
+    subdir = "AUDIO_TS";
   /* DVD-VR check */
   } else if ( !strncasecmp( "/DVD_RTAV/", file, 10 ) ) {
     nodirfile = &(file[ 10 ]);
+    subdir = "DVD_RTAV";
   } else {
     nodirfile = file;
+    subdir = dvd->dvd_type == DVD_VR ? "DVD_RTAV" :
+             dvd->dvd_type == DVD_A ? "AUDIO_TS" : "VIDEO_TS";
   }
 
   ret = findDirFile(dvd, dvd->rd->path_root, nodirfile, filename );
   if( ret < 0 ) {
     char video_path[ PATH_MAX + 1 ];
+    char lower[ 16 ];
+    int i;
 
     /* Try also with adding the path, just in case. */
-    if ( dvd->dvd_type == DVD_VR ) {
-      sprintf( video_path, "%s/DVD_RTAV/", dvd->rd->path_root );
+    sprintf( video_path, "%s/%s/", dvd->rd->path_root, subdir );
+    ret = findDirFile( dvd, video_path, nodirfile, filename );
+    if( ret < 0 ) {
+      /* Try with the path, but in lower case. */
+      for( i = 0; subdir[ i ]; i++ )
+        lower[ i ] = tolower( (unsigned char)subdir[ i ] );
+      lower[ i ] = '\0';
+      sprintf( video_path, "%s/%s/", dvd->rd->path_root, lower );
       ret = findDirFile( dvd, video_path, nodirfile, filename );
       if( ret < 0 ) {
-        /* Try with the path, but in lower case. */
-        sprintf( video_path, "%s/dvd_rtav/", dvd->rd->path_root );
-        ret = findDirFile( dvd, video_path, nodirfile, filename );
-        if( ret < 0 ) {
-          return 0;
-        }
-      }
-    } else {
-      sprintf( video_path, "%s/%s_TS/", dvd->rd->path_root, DVD_TYPE_STRING( dvd->dvd_type ) );
-      ret = findDirFile( dvd, video_path, nodirfile, filename );
-      if( ret < 0 ) {
-        /* Try with the path, but in lower case. */
-        sprintf( video_path, "%s/%s_ts/", dvd->rd->path_root, (dvd->dvd_type == DVD_V) ? "video" : "audio" );
-        ret = findDirFile( dvd, video_path, nodirfile, filename );
-        if( ret < 0 ) {
-          return 0;
-        }
+        return 0;
       }
     }
   }
