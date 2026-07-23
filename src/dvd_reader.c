@@ -1439,7 +1439,7 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
   }
   case DVD_READ_SAMG_INFO:
     /* no other way to reach SAMG menu*/
-    if( ctx->dvd_type == DVD_V ) {
+    if( ctx->dvd_type != DVD_A ) {
       Log1( ctx, "SAMG IFO is exclusive to DVD-Audio" );
       return NULL;
     }
@@ -1447,7 +1447,7 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
     break;
   case DVD_READ_ASVS_INFO:
     /* no other way to reach ASVS menu*/
-    if( ctx->dvd_type == DVD_V ) {
+    if( ctx->dvd_type != DVD_A ) {
       Log1( ctx, "ASVS IFO is exclusive to DVD-Audio" );
       return NULL;
     }
@@ -1456,7 +1456,7 @@ dvd_file_t *DVDOpenFile( dvd_reader_t *ctx, int titlenum,
     break;
   case DVD_READ_ASVS_INFO_BACKUP:
     /* no other way to reach ASVS menu*/
-    if( ctx->dvd_type == DVD_V ) {
+    if( ctx->dvd_type != DVD_A ) {
       Log1( ctx, "ASVS IFO Backup is exclusive to DVD-Audio" );
       return NULL;
     }
@@ -1670,7 +1670,7 @@ int DVDFileStat( dvd_reader_t *reader, int titlenum,
   }
   case DVD_READ_SAMG_INFO:
     /* no other way to reach SAMG menu*/
-    if( reader->dvd_type == DVD_V ) {
+    if( reader->dvd_type != DVD_A ) {
       Log1( reader, "SAMG IFO is exclusive to DVD-Audio" );
       return -1;
     }
@@ -1679,7 +1679,7 @@ int DVDFileStat( dvd_reader_t *reader, int titlenum,
     break;
   case DVD_READ_ASVS_INFO:
     /* no other way to reach ASVS menu*/
-    if( reader->dvd_type == DVD_V ) {
+    if( reader->dvd_type != DVD_A ) {
       Log1( reader, "ASVS IFO is exclusive to DVD-Audio" );
       return -1;
     }
@@ -1688,7 +1688,7 @@ int DVDFileStat( dvd_reader_t *reader, int titlenum,
     break;
   case DVD_READ_ASVS_INFO_BACKUP:
     /* no other way to reach ASVS menu*/
-    if( reader->dvd_type == DVD_V ) {
+    if( reader->dvd_type != DVD_A ) {
       Log1( reader, "ASVS IFO Backup is exclusive to DVD-Audio" );
       return -1;
     }
