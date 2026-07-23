@@ -965,16 +965,19 @@ typedef struct {
  * One still picture. These records follow the entry table and run up to the
  * largest end_value in that table. asv_number starts again at 1 for each still
  * video unit. display_timing holds the picture's MPEG time in slideshow mode
- * and is 0 in browsable mode.
+ * and is 0 in browsable mode. In random and shuffle order asv_number is
+ * reserved, and in browsable mode track_nr is.
  */
 typedef struct {
-  uint8_t  asv_number;                  /* the still's number within its unit, restarting at 1 each unit */
-  uint8_t  fosl_btnn;                   /* probably the initial button number, only 0x00 seen */
-  uint8_t  unknown_a;                   /* 0 in slideshow mode, a small often sequential value in browsable mode, maybe a menu page marker */
-  uint8_t  track_nr;                    /* on a shared slideshow, which track the still belongs to, unused when each track has its own stills */
-  uint32_t display_timing;              /* when the still is shown, an MPEG PTS, 0 in browsable mode */
-  uint8_t  start_transition_mode;       /* probably a transition effect, only 0x00 seen */
-  uint8_t  termination_transition_mode; /* probably a transition effect, only 0x00 seen */
+  uint8_t  asv_number;     /* the still's number within its unit, restarting at 1 each unit */
+  uint8_t  reserved;       /* always 0x00 */
+  uint8_t  fosl_btnn;      /* number of the button selected first on a menu still */
+  uint8_t  track_nr;       /* on a shared slideshow, which track the still belongs to, unused when each track has its own stills */
+  uint32_t display_timing; /* when the still is shown, an MPEG PTS, 0 in browsable mode */
+  struct ATTRIBUTE_PACKED {
+    uint8_t period : 4;    /* transition length */
+    uint8_t mode   : 4;    /* transition effect */
+  } start_effect, end_effect;
 } ATTRIBUTE_PACKED asv_dlist_t;
 #define ASV_DLIST_SIZE 10U
 
