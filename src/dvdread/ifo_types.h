@@ -590,23 +590,22 @@ typedef struct {
   uint8_t  zero_5[24];  
   uint32_t amg_end_byte_address;
   uint8_t  unknown_4[4]; /* may be set to zeros */
-  uint8_t  zero_6[56];  
-  uint16_t menu_prescence_1; /* may be set to zero, or some other value, optional field*/
-  uint8_t  unknown_5[4];  
-  uint16_t unknown_6; /* should be 0x01 */
-  uint8_t  zero_7[2];  
-  uint16_t amg_nr_of_zones; /* may be set to 0x02*/
-  uint8_t  zero_8[2];  
-  uint16_t menu_prescence_2; /* may be set to 0x03*/
-  uint8_t  zero_9[48];  
-  uint8_t  last_sector_audio_sys_space;  
-  uint8_t  zero_10[79];  
+  uint8_t  zero_6[56];
+  uint32_t amgm_vobs_sa;    /* start sector of the menu AMGM_VOBS; zero without a menu */
+  uint32_t att_srpt_sa;     /* start sector of the audio title SRPT */
+  uint32_t aott_srpt_sa;    /* start sector of the audio only title SRPT */
+  uint32_t amgm_pgci_ut_sa; /* start sector of the menu PGCI unit table */
+  uint8_t  zero_9[48];
+  uint8_t  last_sector_audio_sys_space;
+  uint8_t  zero_10[79];
   uint8_t  menu_prescence_3; /* will be set to 0x01*/
     /* XXX lots of padding after this to complete the sector*/
 } ATTRIBUTE_PACKED amgi_mat_t;
 #define AMGI_MAT_SIZE 337U
 
-/* Sector 2 may have video tracks, sector 3 will not. If there are no video tracks the tables will be the same*/
+/* The ATT_SRPT (at att_srpt_sa) may have video tracks, the AOTT_SRPT (at
+ * aott_srpt_sa) will not. If there are no video tracks the tables will be
+ * the same */
 
 /*this struct repeats for every audio or video track*/
 typedef struct {

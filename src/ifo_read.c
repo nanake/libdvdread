@@ -1282,9 +1282,17 @@ int ifoRead_TT(ifo_handle_t *ifofile) {
       return 0;
 }
 
-int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset) {
+int ifoRead_TIF(ifo_handle_t *ifofile, int table_nr) {
   /* check early if sector_offset corresponds to one of the tables */
-  if (sector_offset != 2 && sector_offset != 1)
+  if (table_nr != 2 && table_nr != 1)
+    return 0;
+
+  if (!ifofile->amgi_mat)
+    return 0;
+
+  uint32_t sector = table_nr == 1 ? ifofile->amgi_mat->att_srpt_sa
+                                  : ifofile->amgi_mat->aott_srpt_sa;
+  if (sector == 0 || sector > ifofile->amgi_mat->amgi_last_sector)
     return 0;
 
   struct ifo_handle_private_s *ifop = PRIV(ifofile);
@@ -1294,7 +1302,7 @@ int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset) {
   if(!tracks_info_table)
     return 0;
 
-  if(!DVDFileSeek_(ifop->file,DVD_BLOCK_LEN * sector_offset)) {
+  if(!DVDFileSeek_(ifop->file, DVD_BLOCK_LEN * sector)) {
     free(tracks_info_table);
     return 0;
   }
@@ -1322,7 +1330,7 @@ int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset) {
 
   /* the second table is an audio_ts only table, the first is audio_ts, video_ts, strangly the nr_titles in second table doesnt match up with the true nr_titles for this table. Need to subtract video titles*/
   for(int i=0; i<tracks_info_table->nr_of_titles; i++) {
-    if(tracks_info_table->tracks_info[i].type_and_rank==0 && sector_offset == 2) {
+    if(tracks_info_table->tracks_info[i].type_and_rank==0 && table_nr == 2) {
       track_info_t *resized = realloc(tracks_info_table->tracks_info, i * sizeof(track_info_t));
       if(resized || i == 0)
         tracks_info_table->tracks_info = resized;
@@ -1338,12 +1346,12 @@ int ifoRead_TIF(ifo_handle_t *ifofile, int sector_offset) {
   /* sector table two's size and end byte are always the same as sector one's table
    * even though it will be equal to or smaller, since it only lists audio titles 
    * sector two's table has been resized in the ifo to match it's true size */
-  if(sector_offset == 1)
-    CHECK_VALUE( (TRACKS_INFO_TABLE_SIZE + 
+  if(table_nr == 1)
+    CHECK_VALUE( (TRACKS_INFO_TABLE_SIZE +
                   tracks_info_table->nr_of_titles * TRACK_INFO_SIZE -
                   1) == tracks_info_table->last_byte_in_table );
 
-  switch(sector_offset) {
+  switch(table_nr) {
     case 1:
       ifofile->info_table_first_sector = tracks_info_table;
       break;
@@ -1392,15 +1400,16 @@ static int ifoRead_AMG(ifo_handle_t *ifofile) {
   B2N_16(amgi_mat->amg_nr_of_volumes);
   B2N_16(amgi_mat->specification_version);
   B2N_16(amgi_mat->amg_this_volume_nr);
-  B2N_16(amgi_mat->amg_nr_of_zones);
+  B2N_32(amgi_mat->amgm_vobs_sa);
+  B2N_32(amgi_mat->att_srpt_sa);
+  B2N_32(amgi_mat->aott_srpt_sa);
+  B2N_32(amgi_mat->amgm_pgci_ut_sa);
   CHECK_ZERO(amgi_mat->zero_1);
   CHECK_ZERO(amgi_mat->zero_2);
   CHECK_ZERO(amgi_mat->zero_3);
   CHECK_ZERO(amgi_mat->zero_4);
   CHECK_ZERO(amgi_mat->zero_5);
   CHECK_ZERO(amgi_mat->zero_6);
-  CHECK_ZERO(amgi_mat->zero_7);
-  CHECK_ZERO(amgi_mat->zero_8);
   CHECK_ZERO(amgi_mat->zero_9);
   CHECK_ZERO(amgi_mat->zero_10);
   CHECK_VALUE(amgi_mat->specification_version == 0x0012);

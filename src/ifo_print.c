@@ -513,7 +513,10 @@ void ifoPrint_AMGI_MAT(amgi_mat_t *amgi_mat) {
   printf("VMG Number of title sets: %i\n", amgi_mat->vmg_nr_of_title_sets);
   printf("AMG Number of title sets: %i\n", amgi_mat->amg_nr_of_title_sets);
   printf("End byte address: %08x\n", amgi_mat->amg_end_byte_address);
-  printf("AMG Number of zones: %i\n", amgi_mat->amg_nr_of_zones);
+  printf("Start sector of AMGM_VOBS: %08x\n", amgi_mat->amgm_vobs_sa);
+  printf("Start sector of ATT_SRPT: %08x\n", amgi_mat->att_srpt_sa);
+  printf("Start sector of AOTT_SRPT: %08x\n", amgi_mat->aott_srpt_sa);
+  printf("Start sector of AMGM_PGCI_UT: %08x\n", amgi_mat->amgm_pgci_ut_sa);
   printf("Last sector of audio system space: %02x\n", amgi_mat->last_sector_audio_sys_space);
 
 }

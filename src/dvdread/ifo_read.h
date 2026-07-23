@@ -215,12 +215,13 @@ DVDREAD_API int ifoRead_TXTDT_MGI(ifo_handle_t *);
 DVDREAD_API int ifoRead_TT(ifo_handle_t *);
 
 /**
- * okay = ifoRead_TIF(ifofile);
+ * okay = ifoRead_TIF(ifofile, table_nr);
  *
- * Reads either table in AUDIO_TS.IFO based on the sector offset given,
- * either 1,2. The first table being one with video titles, the second one
- * without. This structure. This structure is mandatory, and must be included
- * in the AMGI file.
+ * Reads one of the two title search pointer tables of AUDIO_TS.IFO.
+ * Table 1 is the ATT_SRPT, which on a hybrid disc also lists the titles in
+ * the video zone. Table 2 is the AOTT_SRPT, which lists audio zone titles only.
+ * Without video titles both tables list the same titles. Both tables are
+ * mandatory in the AMGI file.
  */
 DVDREAD_API int ifoRead_TIF(ifo_handle_t *, int);
 
