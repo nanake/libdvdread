@@ -979,7 +979,8 @@ static int ifoRead_SAMG(ifo_handle_t *ifofile) {
   }
  
   B2N_16(samg_mat->nr_chapters);
-  B2N_16(samg_mat->specification_version);
+  CHECK_VALUE(samg_mat->specification_version == 0x12
+              || samg_mat->specification_version == 0);
 
   samg_mat->samg_chapters = calloc(samg_mat->nr_chapters, sizeof(samg_chapter_t));
   if(!samg_mat->samg_chapters) {

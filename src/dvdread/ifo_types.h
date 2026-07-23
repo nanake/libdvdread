@@ -538,23 +538,24 @@ typedef struct {
   uint32_t timestamp_pts; /* this is MPEG time, Not DVD time */
   uint32_t chapter_len;
   uint32_t zero_2;
-  uint8_t  record_code;
+  uint8_t  record_code; /* the top bit is set on the first chapter of a group */
   uint8_t  bit_depth;
   uint8_t  sampling_rate;
   uint8_t  nr_channels; 
   /* some DVD's made with authoring software keep downmix coefficients here */
   /* since I do not have samples of commercial discs that do this, I will not include it */
   uint8_t  zero_3[20];
-  uint32_t start_sector_1; /*aob start sector*/
-  uint32_t start_sector_2; /*aob start sector is repeated again */
-  uint32_t end_sector;
+  uint32_t start_sector_1; /* first sector of the chapter, an absolute sector of the volume */
+  uint32_t start_sector_2; /* the same sector repeated again */
+  uint32_t end_sector;     /* last sector of the chapter, absolute */
 } ATTRIBUTE_PACKED samg_chapter_t;
 #define SAMG_CHAPTER_SIZE 52U
 
 typedef struct {
   char           samg_identifier[12];
   uint16_t       nr_chapters;
-  uint16_t       specification_version;
+  uint8_t        unknown_1;             /* 0, 1 or 2 seen, not the volume number */
+  uint8_t        specification_version; /* 0x12, a few discs write zero */
   samg_chapter_t *samg_chapters;
 } ATTRIBUTE_PACKED samg_mat_t;
 #define SAMG_MAT_SIZE 16U
