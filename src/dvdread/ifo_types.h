@@ -523,9 +523,11 @@ typedef struct {
   uint32_t chapter_len;
   uint32_t zero_2;
   uint8_t  record_code; /* the top bit is set on the first chapter of a group */
-  uint8_t  bit_depth;
-  uint8_t  sampling_rate;
-  uint8_t  nr_channels;
+  /* the next three bytes use the audio pack private header encoding: a
+   * nibble per channel group, 0xf when there is no second group */
+  uint8_t  bit_depth;          /* quantization: 0 16-bit, 1 20-bit, 2 24-bit */
+  uint8_t  sampling_rate;      /* 0 48 kHz, 8 44.1 kHz, +1 and +2 double it */
+  uint8_t  channel_assignment; /* channel layout code, 0 to 20 */
   /* some DVD's made with authoring software keep downmix coefficients here:
    * bytes 4 to 15 then hold six left/right gain code pairs as in the
    * ATSI_MAT tables */
