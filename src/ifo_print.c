@@ -686,14 +686,14 @@ void ifoPrint_TT(atsi_title_table_t *atsi_title_table){
     printf("Length PTS of title %d: %08x\n", i, index->length_pts);
     printf("Start sector of pointers table %d: %04x\n", i, index->start_sector_pointers_table);
 
-    for (int i=0; i<index->nr_tracks ;i++){
-      printf("Track number in title of track %d: %02x\n", i, index->atsi_track_timestamp_rows[i].track_number_in_title );
-      printf("Length PTS of track %d: %08x\n", i, index->atsi_track_timestamp_rows[i].length_pts_of_track);
-      printf("Start PTS of track %d: %08x\n", i, index->atsi_track_timestamp_rows[i].first_pts_of_track);
+    for (int j=0; j<index->nr_tracks ;j++){
+      printf("Track number in title of track %d: %02x\n", j, index->atsi_track_timestamp_rows[j].track_number_in_title );
+      printf("Length PTS of track %d: %08x\n", j, index->atsi_track_timestamp_rows[j].length_pts_of_track);
+      printf("Start PTS of track %d: %08x\n", j, index->atsi_track_timestamp_rows[j].first_pts_of_track);
     }
-    for (int i=0; i< index->nr_pointer_records;i++){
-      printf("Track start sector %d: %08x\n", i, index->atsi_track_pointer_rows[i].start_sector);
-      printf("Length PTS of track %d: %08x\n", i, index->atsi_track_pointer_rows[i].end_sector);
+    for (int j=0; j< index->nr_pointer_records;j++){
+      printf("Track start sector %d: %08x\n", j, index->atsi_track_pointer_rows[j].start_sector);
+      printf("Length PTS of track %d: %08x\n", j, index->atsi_track_pointer_rows[j].end_sector);
     }
   }
 }

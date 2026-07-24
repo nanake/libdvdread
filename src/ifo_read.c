@@ -1587,7 +1587,7 @@ int ifoRead_PGC_GI(ifo_handle_t *ifofile) {
     return 0;
   }
 
-  int i, j;
+  int i;
   for(i = 0; i < pgc_gi->nr_of_programs; i++) {
     B2N_32(pgc_gi->program_offsets[i]);
 
@@ -1663,7 +1663,7 @@ int ifoRead_PGC_GI(ifo_handle_t *ifofile) {
         free(pgc_gi->pgi[i].map.vobu_infos);
         goto fail3;
       }
-      for(j = 0; j<pgc_gi->pgi[i].map.nr_of_vobu_info; j++)
+      for(int j = 0; j<pgc_gi->pgi[i].map.nr_of_vobu_info; j++)
         B2N_16(pgc_gi->pgi[i].map.vobu_infos[j].vobu_size);
 
     } else {
