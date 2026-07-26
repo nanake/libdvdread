@@ -43,6 +43,10 @@
 /* Remove this */
 #define DSI_START_BYTE 1031
 
+#if PRAGMA_PACK
+#pragma pack(1)
+#endif
+
 /**
  * PCI General Information
  */
@@ -108,6 +112,12 @@ typedef struct {
   uint32_t btn_coli[3][2];  /**< [button color number-1][select:0/action:1] */
 } ATTRIBUTE_PACKED btn_colit_t;
 
+/* btni_t, hli_t and pci_t are not read as packed structures but bit by bit
+ * in navRead_PCI(), they must not be packed */
+#if PRAGMA_PACK
+#pragma pack()
+#endif
+
 /**
  * Button Information
  *
@@ -155,6 +165,10 @@ typedef struct {
   hli_t       hli;
   uint8_t     zero1[189];
 } pci_t;
+
+#if PRAGMA_PACK
+#pragma pack(1)
+#endif
 
 
 
