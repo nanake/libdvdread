@@ -1187,16 +1187,19 @@ typedef struct {
 typedef struct {
   uint8_t audio_attr[3];
 } ATTRIBUTE_PACKED audio_attr_vr_t;
+#define AUDIO_ATTR_VR_SIZE 3U
 
 typedef struct {
   uint8_t pgtm[5];
 } ATTRIBUTE_PACKED pgtm_t;
+#define PGTM_SIZE 5U
 
 /* used throughout the program for timestamps */
 typedef struct {
   uint32_t ptm;
   uint16_t ptm_extra; /* extra to DSI pkts */
 } ATTRIBUTE_PACKED ptm_t;
+#define PTM_SIZE 6U
 
 typedef struct {
   uint8_t  data[12];
