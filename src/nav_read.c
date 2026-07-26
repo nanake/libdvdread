@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <string.h>
 #include <inttypes.h>
 
@@ -33,6 +34,29 @@
 
 #define getbits_init dvdread_getbits_init
 #define getbits dvdread_getbits
+
+#define STRINGIFY_NAME( z )   STRINGIFY_NAME_( z )
+#define STRINGIFY_NAME_( z ) #z
+
+/* nav structures are filled bit by bit but exposed in the public API, their
+ * layout must not depend on the compiler or its bitfield packing scheme */
+#define CHECK_NAV_STRUCT_SIZE(strt, size) \
+  static_assert(sizeof(strt) == size, STRINGIFY_NAME(strt) " not " STRINGIFY_NAME(size) " bytes")
+
+CHECK_NAV_STRUCT_SIZE(pci_gi_t,       60);
+CHECK_NAV_STRUCT_SIZE(nsml_agli_t,    36);
+CHECK_NAV_STRUCT_SIZE(hl_gi_t,        22);
+CHECK_NAV_STRUCT_SIZE(btn_colit_t,    24);
+CHECK_NAV_STRUCT_SIZE(btni_t,         20);
+CHECK_NAV_STRUCT_SIZE(hli_t,         768);
+CHECK_NAV_STRUCT_SIZE(pci_t,        1056);
+CHECK_NAV_STRUCT_SIZE(dsi_gi_t,       32);
+CHECK_NAV_STRUCT_SIZE(sml_pbi_t,     148);
+CHECK_NAV_STRUCT_SIZE(sml_agl_data_t,  6);
+CHECK_NAV_STRUCT_SIZE(sml_agli_t,     54);
+CHECK_NAV_STRUCT_SIZE(vobu_sri_t,    168);
+CHECK_NAV_STRUCT_SIZE(synci_t,       144);
+CHECK_NAV_STRUCT_SIZE(dsi_t,        1017);
 
 #define CHECK_VALUE(arg)\
   if(!(arg)) {\
