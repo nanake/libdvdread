@@ -39,6 +39,7 @@ extern "C" {
  * @param buffer Pointer to the buffer of the on disc PCI data.
  */
 DVDREAD_API void navRead_PCI(pci_t *, unsigned char *);
+DVDREAD_API void navRead_ASV_PCI(pci_t *, unsigned char *);
 
 /**
  * Reads the DSI packet data pointed to into dsi struct.

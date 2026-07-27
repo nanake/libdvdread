@@ -102,6 +102,12 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
 #endif /* !NDEBUG */
 }
 
+/* the still picture NAV packet, substream 0x02, has no PCI general information */
+void navRead_ASV_PCI(pci_t *pci, unsigned char *buffer) {
+  memset(pci, 0, sizeof(*pci));
+  read_hli(pci, buffer);
+}
+
 static void read_hli(pci_t *pci, unsigned char *buffer) {
   int32_t i, j;
   getbits_state_t state;
