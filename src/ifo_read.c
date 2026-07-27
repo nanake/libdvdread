@@ -3281,46 +3281,27 @@ static int find_dup_lut(pgci_lu_t *lu, uint32_t start_byte, int count) {
   return -1;
 }
 
-int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
+static int ifoRead_PGCI_UT_at(ifo_handle_t *ifofile, pgci_ut_t **dest,
+                              unsigned int sector) {
   struct ifo_handle_private_s *ifop = PRIV(ifofile);
   pgci_ut_t *pgci_ut;
-  unsigned int sector;
   unsigned int i;
   int info_length;
   uint8_t *data, *ptr;
 
-  if(!ifofile)
-    return 0;
-
-  if(ifofile->vmgi_mat) {
-    if(ifofile->vmgi_mat->vmgm_pgci_ut == 0)
-      return 1;
-    sector = ifofile->vmgi_mat->vmgm_pgci_ut;
-  } else if(ifofile->vtsi_mat) {
-    if(ifofile->vtsi_mat->vtsm_pgci_ut == 0)
-      return 1;
-    sector = ifofile->vtsi_mat->vtsm_pgci_ut;
-  } else {
-    return 0;
-  }
-
-  ifofile->pgci_ut = calloc(1, sizeof(pgci_ut_t));
-  if(!ifofile->pgci_ut)
+  pgci_ut = calloc(1, sizeof(pgci_ut_t));
+  if(!pgci_ut)
     return 0;
 
   if(!DVDFileSeek_(ifop->file, sector * DVD_BLOCK_LEN)) {
-    free(ifofile->pgci_ut);
-    ifofile->pgci_ut = NULL;
+    free(pgci_ut);
     return 0;
   }
 
-  if(!(DVDReadBytes(ifop->file, ifofile->pgci_ut, PGCI_UT_SIZE))) {
-    free(ifofile->pgci_ut);
-    ifofile->pgci_ut = NULL;
+  if(!(DVDReadBytes(ifop->file, pgci_ut, PGCI_UT_SIZE))) {
+    free(pgci_ut);
     return 0;
   }
-
-  pgci_ut = ifofile->pgci_ut;
 
   B2N_16(pgci_ut->nr_of_lus);
   B2N_32(pgci_ut->last_byte);
@@ -3334,13 +3315,11 @@ int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
   data = calloc(1, info_length);
   if(!data) {
     free(pgci_ut);
-    ifofile->pgci_ut = NULL;
     return 0;
   }
   if(!(DVDReadBytes(ifop->file, data, info_length))) {
     free(data);
     free(pgci_ut);
-    ifofile->pgci_ut = NULL;
     return 0;
   }
 
@@ -3348,7 +3327,6 @@ int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
   if(!pgci_ut->lu) {
     free(data);
     free(pgci_ut);
-    ifofile->pgci_ut = NULL;
     return 0;
   }
   ptr = data;
@@ -3389,7 +3367,6 @@ int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
       }
       free(pgci_ut->lu);
       free(pgci_ut);
-      ifofile->pgci_ut = NULL;
       return 0;
     }
     pgci_ut->lu[i].pgcit->ref_count = 1;
@@ -3403,14 +3380,35 @@ int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
       }
       free(pgci_ut->lu);
       free(pgci_ut);
-      ifofile->pgci_ut = NULL;
       return 0;
     }
     /* FIXME: Iterate and verify that all menus that should exists accordingly
      * to pgci_ut->lu[i].exists really do? */
   }
 
+  *dest = pgci_ut;
   return 1;
+}
+
+int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
+  unsigned int sector;
+
+  if(!ifofile)
+    return 0;
+
+  if(ifofile->vmgi_mat) {
+    if(ifofile->vmgi_mat->vmgm_pgci_ut == 0)
+      return 1;
+    sector = ifofile->vmgi_mat->vmgm_pgci_ut;
+  } else if(ifofile->vtsi_mat) {
+    if(ifofile->vtsi_mat->vtsm_pgci_ut == 0)
+      return 1;
+    sector = ifofile->vtsi_mat->vtsm_pgci_ut;
+  } else {
+    return 0;
+  }
+
+  return ifoRead_PGCI_UT_at(ifofile, &ifofile->pgci_ut, sector);
 }
 
 
