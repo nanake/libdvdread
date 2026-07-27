@@ -92,6 +92,7 @@ static const uint8_t my_friendly_zeros[2048];
 /* Prototypes for internal functions */
 static int ifoRead_VMG(ifo_handle_t *ifofile);
 static int ifoRead_AMG(ifo_handle_t *ifofile);
+static int ifoRead_AMGM_PGCI_UT(ifo_handle_t *ifofile);
 /* Can be used to make simple dvd-a playback, no menus*/
 static int ifoRead_SAMG(ifo_handle_t *ifofile);
 /* for the still video set */
@@ -129,6 +130,7 @@ static int ifoRead_PGCIT_internal(ifo_handle_t *ifofile, pgcit_t *pgcit,
 static void ifoFree_PGC(pgc_t *pgc);
 static void ifoFree_PGC_COMMAND_TBL(pgc_command_tbl_t *cmd_tbl);
 static void ifoFree_PGCIT_internal(pgcit_t *pgcit);
+static void ifoFree_PGCI_UT_internal(pgci_ut_t *pgci_ut);
 
 static inline int DVDFileSeekForce_( dvd_file_t *dvd_file, uint32_t offset, int force_size ) {
   return (DVDFileSeekForce(dvd_file, (int)offset, force_size) == (int)offset);
@@ -474,6 +476,10 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
     if(!ifoRead_TIF(ifofile,2))
       goto ifoOpen_fail;
 
+    /* must be read before the file is closed below */
+    if(!ifoRead_AMGM_PGCI_UT(ifofile))
+      Log1(ctx, "Failed to read the audio manager menu (AMGM_PGCI_UT)");
+
     /* Should read SAMG as it contains location to AOB pointers */
     DVDCloseFile(ifop->file);
     ifop->file = DVDOpenFile(ctx, 2, DVD_READ_SAMG_INFO);
@@ -807,6 +813,8 @@ void ifoClose(ifo_handle_t *ifofile) {
         free(ifofile->vtsi_mat);
       break;
     case IFO_AUDIO:
+      ifoFree_PGCI_UT_internal(ifofile->amgm_pgci_ut);
+
       if(ifofile->amgi_mat)
         free(ifofile->amgi_mat);
 
@@ -3411,22 +3419,37 @@ int ifoRead_PGCI_UT(ifo_handle_t *ifofile) {
   return ifoRead_PGCI_UT_at(ifofile, &ifofile->pgci_ut, sector);
 }
 
+static int ifoRead_AMGM_PGCI_UT(ifo_handle_t *ifofile) {
+  if(!ifofile || !ifofile->amgi_mat)
+    return 0;
+
+  if(ifofile->amgi_mat->amgm_pgci_ut_sa == 0)
+    return 1;
+
+  return ifoRead_PGCI_UT_at(ifofile, &ifofile->amgm_pgci_ut,
+                            ifofile->amgi_mat->amgm_pgci_ut_sa);
+}
+
+
+static void ifoFree_PGCI_UT_internal(pgci_ut_t *pgci_ut) {
+  if(pgci_ut) {
+    unsigned int i;
+
+    for(i = 0; i < pgci_ut->nr_of_lus; i++) {
+      ifoFree_PGCIT_internal(pgci_ut->lu[i].pgcit);
+      pgci_ut->lu[i].pgcit = NULL;
+    }
+    free(pgci_ut->lu);
+    free(pgci_ut);
+  }
+}
 
 void ifoFree_PGCI_UT(ifo_handle_t *ifofile) {
   if(!ifofile)
     return;
 
-  if(ifofile->pgci_ut) {
-    unsigned int i;
-
-    for(i = 0; i < ifofile->pgci_ut->nr_of_lus; i++) {
-      ifoFree_PGCIT_internal(ifofile->pgci_ut->lu[i].pgcit);
-      ifofile->pgci_ut->lu[i].pgcit = NULL;
-    }
-    free(ifofile->pgci_ut->lu);
-    free(ifofile->pgci_ut);
-    ifofile->pgci_ut = NULL;
-  }
+  ifoFree_PGCI_UT_internal(ifofile->pgci_ut);
+  ifofile->pgci_ut = NULL;
 }
 
 static int ifoRead_VTS_ATTRIBUTES(ifo_handle_t *ifofile,
