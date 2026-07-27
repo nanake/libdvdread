@@ -41,8 +41,10 @@
                 __FILE__, __LINE__, # arg );\
   }
 
+static void read_hli(pci_t *pci, unsigned char *buffer);
+
 void navRead_PCI(pci_t *pci, unsigned char *buffer) {
-  int32_t i, j;
+  int32_t i;
   getbits_state_t state;
   if (!getbits_init(&state, buffer)) abort(); /* Passed NULL pointers */
 
@@ -92,6 +94,18 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
   /* pci nsml_agli */
   for(i = 0; i < 9; i++)
     pci->nsml_agli.nsml_agl_dsta[i] = getbits(&state, 32 );
+
+  read_hli(pci, buffer + 96);
+
+#ifndef NDEBUG
+  CHECK_VALUE(pci->pci_gi.zero1 == 0);
+#endif /* !NDEBUG */
+}
+
+static void read_hli(pci_t *pci, unsigned char *buffer) {
+  int32_t i, j;
+  getbits_state_t state;
+  if (!getbits_init(&state, buffer)) abort();
 
   /* pci hli hli_gi */
   pci->hli.hl_gi.hli_ss = getbits(&state, 16 );
@@ -149,9 +163,6 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
 
 #ifndef NDEBUG
   /* Asserts */
-
-  /* pci pci gi */
-  CHECK_VALUE(pci->pci_gi.zero1 == 0);
 
   /* pci hli hli_gi */
   CHECK_VALUE(pci->hli.hl_gi.zero1 == 0);
