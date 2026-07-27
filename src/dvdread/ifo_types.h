@@ -1056,9 +1056,13 @@ typedef struct {
   uint32_t      asv_ea;                /* last sector of the last still picture,
                                           counted from the first ASVOBS sector */
   uint16_t      asvu_atr[4];           /* still picture attributes, selected per
-                                          unit by asvu_atrn; the low byte holds
-                                          the sub-picture setup: 0x00 no streams,
-                                          0x03 one stream, 0x05 two streams */
+                                          unit by asvu_atrn: b15-b14 compression
+                                          (1 MPEG-2), b13-b12 TV system (0
+                                          525/60, 1 625/50), b11-b10 aspect (0
+                                          4:3, 3 16:9), b9-b8 display mode,
+                                          b5-b3 source resolution; the low bits
+                                          hold the sub-picture setup: 0x00 no
+                                          streams, 0x03 one, 0x05 two */
   uint32_t      sp_plt[16];            /* sub-picture palette, 16 colours,
                                           0x00YYCrCb, default 0x00108080 */
   asvu_gi_t     asvu_gi[ASVU_GI_MAX_SIZE]; /* size determined by asvs_nr_of_asvus */
