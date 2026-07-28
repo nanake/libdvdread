@@ -3610,47 +3610,91 @@ void ifoFree_VTS_ATRT(ifo_handle_t *ifofile) {
 }
 
 
-int ifoRead_TXTDT_MGI(ifo_handle_t *ifofile) {
+static int ifoRead_TXTDT_MGI_at(ifo_handle_t *ifofile, txtdt_mgi_t **dest,
+                                unsigned int sector) {
   struct ifo_handle_private_s *ifop = PRIV(ifofile);
   txtdt_mgi_t *txtdt_mgi;
+  unsigned int i;
+  int info_length;
+  uint8_t *data, *ptr;
 
-  if(!ifofile)
+  txtdt_mgi = calloc(1, sizeof(txtdt_mgi_t));
+  if(!txtdt_mgi)
     return 0;
 
-  if(!ifofile->vmgi_mat)
+  if(!DVDFileSeek_(ifop->file, sector * DVD_BLOCK_LEN)) {
+    free(txtdt_mgi);
+    return 0;
+  }
+
+  if(!(DVDReadBytes(ifop->file, txtdt_mgi, TXTDT_MGI_SIZE))) {
+    Log0(ifop->ctx, "Unable to read TXTDT_MGI.");
+    free(txtdt_mgi);
+    return 0;
+  }
+
+  B2N_16(txtdt_mgi->nr_of_language_units);
+  B2N_32(txtdt_mgi->last_byte);
+
+  CHECK_VALUE(TXTDT_MGI_SIZE
+              + (uint32_t)txtdt_mgi->nr_of_language_units * TXTDT_LU_SIZE
+              <= txtdt_mgi->last_byte + 1);
+
+  info_length = txtdt_mgi->nr_of_language_units * TXTDT_LU_SIZE;
+  data = calloc(1, info_length);
+  if(!data) {
+    free(txtdt_mgi);
+    return 0;
+  }
+  if(!(DVDReadBytes(ifop->file, data, info_length))) {
+    free(data);
+    free(txtdt_mgi);
+    return 0;
+  }
+
+  txtdt_mgi->lu = calloc(txtdt_mgi->nr_of_language_units, sizeof(txtdt_lu_t));
+  if(!txtdt_mgi->lu) {
+    free(data);
+    free(txtdt_mgi);
+    return 0;
+  }
+  ptr = data;
+  for(i = 0; i < txtdt_mgi->nr_of_language_units; i++) {
+    memcpy(&txtdt_mgi->lu[i], ptr, TXTDT_LU_SIZE);
+    ptr += TXTDT_LU_SIZE;
+    B2N_16(txtdt_mgi->lu[i].lang_code);
+    B2N_32(txtdt_mgi->lu[i].txtdt_start_byte);
+    CHECK_VALUE(txtdt_mgi->lu[i].txtdt_start_byte <= txtdt_mgi->last_byte);
+  }
+  free(data);
+
+  *dest = txtdt_mgi;
+  return 1;
+}
+
+int ifoRead_TXTDT_MGI(ifo_handle_t *ifofile) {
+  if(!ifofile || !ifofile->vmgi_mat)
     return 0;
 
   /* Return successfully if there is nothing to read. */
   if(ifofile->vmgi_mat->txtdt_mgi == 0)
     return 1;
 
-  if(!DVDFileSeek_(ifop->file,
-                   ifofile->vmgi_mat->txtdt_mgi * DVD_BLOCK_LEN))
-    return 0;
+  return ifoRead_TXTDT_MGI_at(ifofile, &ifofile->txtdt_mgi,
+                              ifofile->vmgi_mat->txtdt_mgi);
+}
 
-  txtdt_mgi = calloc(1, sizeof(txtdt_mgi_t));
-  if(!txtdt_mgi) {
-    return 0;
-  }
-  ifofile->txtdt_mgi = txtdt_mgi;
-
-  if(!(DVDReadBytes(ifop->file, txtdt_mgi, TXTDT_MGI_SIZE))) {
-    Log0(ifop->ctx, "Unable to read TXTDT_MGI.");
+static void ifoFree_TXTDT_MGI_internal(txtdt_mgi_t *txtdt_mgi) {
+  if(txtdt_mgi) {
+    free(txtdt_mgi->lu);
     free(txtdt_mgi);
-    ifofile->txtdt_mgi = NULL;
-    return 0;
   }
-
-  /* Log1(ifop->ctx, "-- Not done yet --\n"); */
-  return 1;
 }
 
 void ifoFree_TXTDT_MGI(ifo_handle_t *ifofile) {
   if(!ifofile)
     return;
 
-  if(ifofile->txtdt_mgi) {
-    free(ifofile->txtdt_mgi);
-    ifofile->txtdt_mgi = NULL;
-  }
+  ifoFree_TXTDT_MGI_internal(ifofile->txtdt_mgi);
+  ifofile->txtdt_mgi = NULL;
 }
