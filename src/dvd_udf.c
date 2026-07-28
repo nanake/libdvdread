@@ -70,11 +70,6 @@ static int DVDReadLBUDF( dvd_reader_t *ctx, uint32_t lb_number,
   return block_count;
 }
 
-
-#ifndef NULL
-#define NULL ((void *)0)
-#endif
-
 struct Partition {
   int valid;
   uint16_t Flags;
