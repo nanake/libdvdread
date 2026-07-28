@@ -299,6 +299,7 @@ DVDREAD_API void ifoFree_TITLE_VOBU_ADMAP(ifo_handle_t *);
 DVDREAD_API void ifoFree_TXTDT_MGI(ifo_handle_t *);
 DVDREAD_API void ifoFree_TT(ifo_handle_t *);
 DVDREAD_API void ifoFree_PGC_GI(ifo_handle_t *);
+DVDREAD_API void ifoFree_UD_PGCIT(ifo_handle_t *);
 
 #ifdef __cplusplus
 };
