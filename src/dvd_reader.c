@@ -434,7 +434,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
                                     dvd_reader_filesystem_h *fs )
 {
   dvdstat_t fileinfo;
-  int ret, have_css, cdir = -1;
+  int ret, have_css;
   char *dev_name = NULL;
   char *path = NULL, *new_path = NULL, *path_copy = NULL;
   dvd_reader_t *ctx = calloc(1, sizeof(*ctx));
@@ -740,8 +740,6 @@ DVDOpen_error:
   Log0( ctx, "Could not open %s", path );
   free( path );
   free( path_copy );
-  if ( cdir >= 0 )
-    close( cdir );
   free( new_path );
   return DVDFreeContext( ctx );
 }
