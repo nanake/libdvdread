@@ -18,6 +18,7 @@
  */
 
 #include <io.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -73,7 +74,11 @@ static ssize_t file_read_default(void *file, char *buf, size_t size)
         return 0;
     }
 
-    return read(*(int*)file, buf, size);
+    /* Clamp oversized reads, callers must handle partial reads anyway. */
+    if (size > INT_MAX)
+        size = INT_MAX;
+
+    return read(*(int*)file, buf, (unsigned int)size);
 }
 
 static off64_t file_seek_default(void *file, off64_t offset, int whence)
