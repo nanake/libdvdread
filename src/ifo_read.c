@@ -2395,7 +2395,7 @@ int ifoRead_TT_SRPT(ifo_handle_t *ifofile) {
   if(tt_srpt->nr_of_srpts>info_length/sizeof(title_info_t)){
     Log1(ifop->ctx, "data mismatch: info_length (%zd)!= nr_of_srpts (%d). Truncating.",
             info_length/sizeof(title_info_t),tt_srpt->nr_of_srpts);
-    tt_srpt->nr_of_srpts=info_length/sizeof(title_info_t);
+    tt_srpt->nr_of_srpts=(uint16_t)(info_length/sizeof(title_info_t));
   }
 
   for(i =  0; i < tt_srpt->nr_of_srpts; i++) {
@@ -2979,7 +2979,7 @@ static int ifoRead_C_ADT_internal(ifo_handle_t *ifofile,
      is to high, they high ones are never referenced though. */
   if(info_length / sizeof(cell_adr_t) < c_adt->nr_of_vobs) {
     Log1(ifop->ctx, "C_ADT nr_of_vobs > available info entries");
-    c_adt->nr_of_vobs = info_length / sizeof(cell_adr_t);
+    c_adt->nr_of_vobs = (uint16_t)(info_length / sizeof(cell_adr_t));
   }
 
   c_adt->cell_adr_table = calloc(1, info_length);
