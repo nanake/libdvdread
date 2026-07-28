@@ -21,12 +21,12 @@
  */
 
 #include "config.h"
-#include <sys/time.h>       /* For the timing of dvdcss_title crack. */
+#include <time.h>           /* For the timing of dvdcss_title crack. */
 #include <stdlib.h>         /* free */
 #include <stdio.h>          /* fprintf */
 #include <errno.h>          /* errno, EIN* */
 #include <string.h>         /* memcpy, strlen */
-#include <unistd.h>         /* pclose */
+#include <unistd.h>         /* close */
 #include <limits.h>         /* PATH_MAX */
 #include <ctype.h>          /* isalpha */
 
@@ -66,24 +66,6 @@
 
 #define PATH_MAX _MAX_PATH
 #endif
-
-/* misc win32 helpers */
-
-#ifdef _WIN32
-# ifndef HAVE_GETTIMEOFDAY
-   /* replacement gettimeofday implementation */
-#  include <sys/timeb.h>
-static inline int _private_gettimeofday( struct timeval *tv, void *tz )
-{
-  struct timeb t;
-  ftime( &t );
-  tv->tv_sec = t.time;
-  tv->tv_usec = t.millitm * 1000;
-  return 0;
-}
-#  define gettimeofday(TV, TZ) _private_gettimeofday((TV), (TZ))
-# endif
-#endif /* _WIN32 */
 
 #define DEFAULT_UDF_CACHE_LEVEL 1
 
@@ -172,8 +154,8 @@ void SetUDFCacheHandle(dvd_reader_t *reader, void *cache)
 static int initAllCSSKeys( dvd_reader_t *ctx )
 {
   dvd_reader_device_t *dvd = ctx->rd;
-  struct timeval all_s, all_e;
-  struct timeval t_s, t_e;
+  time_t all_s, all_e;
+  time_t t_s, t_e;
   char filename[ MAX_UDF_FILE_NAME_LEN ];
   uint32_t start, len;
   int title;
@@ -184,10 +166,10 @@ static int initAllCSSKeys( dvd_reader_t *ctx )
 
   Log2(ctx,"Attempting to retrieve all CSS keys" );
   Log2(ctx,"This can take a _long_ time, please be patient" );
-  gettimeofday(&all_s, NULL);
+  all_s = time(NULL);
 
   for( title = 0; title < 100; title++ ) {
-    gettimeofday( &t_s, NULL );
+    t_s = time(NULL);
     if( title == 0 ) {
       strcpy( filename, "/VIDEO_TS/VIDEO_TS.VOB" );
     } else {
@@ -200,13 +182,13 @@ static int initAllCSSKeys( dvd_reader_t *ctx )
       if( dvdinput_title( dvd->dev, (int)start ) < 0 ) {
         Log1(ctx,"Error cracking CSS key for %s (0x%08x)", filename, start);
       }
-      gettimeofday( &t_e, NULL );
-      Log3(ctx,"Elapsed time %ld", (long int) t_e.tv_sec - t_s.tv_sec );
+      t_e = time(NULL);
+      Log3(ctx,"Elapsed time %.0f", difftime(t_e, t_s) );
     }
 
     if( title == 0 ) continue;
 
-    gettimeofday( &t_s, NULL );
+    t_s = time(NULL);
     sprintf( filename, "/VIDEO_TS/VTS_%02d_%d.VOB", title, 1 );
     start = UDFFindFile( ctx, filename, &len );
     if( start == 0 || len == 0 ) break;
@@ -216,14 +198,14 @@ static int initAllCSSKeys( dvd_reader_t *ctx )
     if( dvdinput_title( dvd->dev, (int)start ) < 0 ) {
       Log1(ctx,"Error cracking CSS key for %s (0x%08x)", filename, start);
     }
-    gettimeofday( &t_e, NULL );
-    Log3(ctx,"Elapsed time %ld", (long int) t_e.tv_sec - t_s.tv_sec );
+    t_e = time(NULL);
+    Log3(ctx,"Elapsed time %.0f", difftime(t_e, t_s) );
   }
   title--;
 
   Log3(ctx,"Found %d VTS's", title );
-  gettimeofday(&all_e, NULL);
-  Log3(ctx,"Elapsed time %ld", (long int) all_e.tv_sec - all_s.tv_sec );
+  all_e = time(NULL);
+  Log3(ctx,"Elapsed time %.0f", difftime(all_e, all_s) );
 
   return 0;
 }

@@ -70,12 +70,7 @@ if host_machine.endian() == 'big'
   cdata.set('WORDS_BIGENDIAN', 1)
 endif
 
-if host_machine.system() == 'windows'
-# dvdread_headers += files('msvc/contrib/win32_cs.h')
-    if cc.has_function('gettimeofday', prefix: '#include <sys/time.h>', args: test_args)
-        cdata.set('HAVE_GETTIMEOFDAY', 1)
-    endif
-elif host_machine.system() == 'linux'
+if host_machine.system() == 'linux'
     if cc.has_function('getmntent_r', prefix: '#include <mntent.h>', args: test_args)
         cdata.set('HAVE_GETMNTENT_R', 1)
     endif
