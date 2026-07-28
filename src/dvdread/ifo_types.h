@@ -1395,6 +1395,7 @@ typedef struct {
       asvs_mat_t             *asvs_mat;
 
       pgci_ut_t              *amgm_pgci_ut;
+      txtdt_mgi_t            *amg_txtdt_mgi;
     };
 
     struct{

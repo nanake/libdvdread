@@ -93,6 +93,7 @@ static const uint8_t my_friendly_zeros[2048];
 static int ifoRead_VMG(ifo_handle_t *ifofile);
 static int ifoRead_AMG(ifo_handle_t *ifofile);
 static int ifoRead_AMGM_PGCI_UT(ifo_handle_t *ifofile);
+static int ifoRead_AMG_TXTDT_MGI(ifo_handle_t *ifofile);
 /* Can be used to make simple dvd-a playback, no menus*/
 static int ifoRead_SAMG(ifo_handle_t *ifofile);
 /* for the still video set */
@@ -126,11 +127,14 @@ static int ifoRead_VOBU_ADMAP_internal(ifo_handle_t *ifofile,
                                        unsigned int sector);
 static int ifoRead_PGCIT_internal(ifo_handle_t *ifofile, pgcit_t *pgcit,
                                   unsigned int offset);
+static int ifoRead_TXTDT_MGI_at(ifo_handle_t *ifofile, txtdt_mgi_t **dest,
+                                unsigned int sector);
 
 static void ifoFree_PGC(pgc_t *pgc);
 static void ifoFree_PGC_COMMAND_TBL(pgc_command_tbl_t *cmd_tbl);
 static void ifoFree_PGCIT_internal(pgcit_t *pgcit);
 static void ifoFree_PGCI_UT_internal(pgci_ut_t *pgci_ut);
+static void ifoFree_TXTDT_MGI_internal(txtdt_mgi_t *txtdt_mgi);
 
 static inline int DVDFileSeekForce_( dvd_file_t *dvd_file, uint32_t offset, int force_size ) {
   return (DVDFileSeekForce(dvd_file, (int)offset, force_size) == (int)offset);
@@ -479,6 +483,8 @@ static ifo_handle_t *ifoOpenFileOrBackup(dvd_reader_t *ctx, int title,
     /* must be read before the file is closed below */
     if(!ifoRead_AMGM_PGCI_UT(ifofile))
       Log1(ctx, "Failed to read the audio manager menu (AMGM_PGCI_UT)");
+    if(!ifoRead_AMG_TXTDT_MGI(ifofile))
+      Log1(ctx, "Failed to read the audio manager text data (TXTDT_MGI)");
 
     /* Should read SAMG as it contains location to AOB pointers */
     DVDCloseFile(ifop->file);
@@ -814,6 +820,7 @@ void ifoClose(ifo_handle_t *ifofile) {
       break;
     case IFO_AUDIO:
       ifoFree_PGCI_UT_internal(ifofile->amgm_pgci_ut);
+      ifoFree_TXTDT_MGI_internal(ifofile->amg_txtdt_mgi);
 
       if(ifofile->amgi_mat)
         free(ifofile->amgi_mat);
@@ -3430,6 +3437,17 @@ static int ifoRead_AMGM_PGCI_UT(ifo_handle_t *ifofile) {
 
   return ifoRead_PGCI_UT_at(ifofile, &ifofile->amgm_pgci_ut,
                             ifofile->amgi_mat->amgm_pgci_ut_sa);
+}
+
+static int ifoRead_AMG_TXTDT_MGI(ifo_handle_t *ifofile) {
+  if(!ifofile || !ifofile->amgi_mat)
+    return 0;
+
+  if(ifofile->amgi_mat->txtdt_mgi_sa == 0)
+    return 1;
+
+  return ifoRead_TXTDT_MGI_at(ifofile, &ifofile->amg_txtdt_mgi,
+                              ifofile->amgi_mat->txtdt_mgi_sa);
 }
 
 
