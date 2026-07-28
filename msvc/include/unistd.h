@@ -20,35 +20,15 @@
  * WIN32 PORT,
  * by Matthew Grooms <elon@altavista.com>
  *
- * unistd.h - This is mostly a catch all header that maps standard unix
- *            libc calls to the equivalent win32 functions.
- *
+ * unistd.h - Maps the unix libc calls used by libdvdread to the
+ *            equivalent win32 CRT functions.
  */
-
-#include <windows.h>
-#include <malloc.h>
-#include <errno.h>
-#include <direct.h>
-
-#include <config.h>
 
 #ifndef _SYS_UNISTD_H_
 #define _SYS_UNISTD_H_
 
-#define mkdir( A, B )   _mkdir( A )
-#define lstat                   stat
-
-#ifndef S_ISDIR
-#define S_ISDIR(A)              ( S_IFDIR & A )
-#endif
-
-#define S_IXUSR                 S_IEXEC
-#define S_IXGRP                 S_IEXEC
-#define S_IXOTH                 S_IEXEC
-
-#define  M_PI                   3.14159265358979323846  /* pi */
-
-#define bzero( A, B ) memset( A, 0, B )
+#include <io.h>
+#include <string.h>
 
 #ifndef strcasecmp
 #define strcasecmp _stricmp
@@ -57,8 +37,5 @@
 #ifndef strncasecmp
 #define strncasecmp _strnicmp
 #endif
-
-// FIXME : I don't remember why this is here
-#define readlink
 
 #endif
