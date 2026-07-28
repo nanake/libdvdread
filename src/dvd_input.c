@@ -314,7 +314,7 @@ static int file_seek(dvd_input_t dev, int blocks)
 
   if (dev->stream_cb) {
     /* Returns 0 on successful completion and -1 on error */
-    pos = dev->stream_cb->pf_seek(dev->priv, (off_t)blocks * (off_t)DVD_VIDEO_LB_LEN);
+    pos = dev->stream_cb->pf_seek(dev->priv, blocks * (uint64_t)DVD_VIDEO_LB_LEN);
 
     if (!pos) {
       dev->ipos = blocks;
