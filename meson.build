@@ -78,7 +78,6 @@ endif
 
 if cc.has_function('strerror_r', prefix: '#include <string.h>', args: test_args)
     cdata.set('HAVE_STRERROR_R', 1)
-    cdata.set('HAVE_DECL_STRERROR_R', 1)
 elif cc.has_function('strerror_s', prefix: '#include <string.h>', args: test_args)
     cdata.set('HAVE_STRERROR_S', 1)
 endif
