@@ -35,8 +35,6 @@
 #ifndef _SYS_UNISTD_H_
 #define _SYS_UNISTD_H_
 
-#define inline __inline
-
 #define mkdir( A, B )   _mkdir( A )
 #define lstat                   stat
 
@@ -59,9 +57,6 @@
 #ifndef strncasecmp
 #define strncasecmp _strnicmp
 #endif
-
-#define snprintf _snprintf
-#define vsnprintf _vsnprintf
 
 // FIXME : I don't remember why this is here
 #define readlink
