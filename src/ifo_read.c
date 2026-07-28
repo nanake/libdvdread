@@ -1421,6 +1421,7 @@ static int ifoRead_AMG(ifo_handle_t *ifofile) {
   B2N_32(amgi_mat->att_srpt_sa);
   B2N_32(amgi_mat->aott_srpt_sa);
   B2N_32(amgi_mat->amgm_pgci_ut_sa);
+  B2N_32(amgi_mat->txtdt_mgi_sa);
   CHECK_ZERO(amgi_mat->zero_1);
   CHECK_ZERO(amgi_mat->zero_2);
   CHECK_ZERO(amgi_mat->zero_3);
@@ -1429,6 +1430,7 @@ static int ifoRead_AMG(ifo_handle_t *ifofile) {
   CHECK_ZERO(amgi_mat->zero_6);
   CHECK_ZERO(amgi_mat->zero_9);
   CHECK_ZERO(amgi_mat->zero_10);
+  CHECK_ZERO(amgi_mat->zero_11);
   CHECK_VALUE(amgi_mat->specification_version == 0x0012);
 
   return 1;

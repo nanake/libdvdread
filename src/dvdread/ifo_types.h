@@ -596,9 +596,11 @@ typedef struct {
   uint32_t att_srpt_sa;     /* start sector of the audio title SRPT */
   uint32_t aott_srpt_sa;    /* start sector of the audio only title SRPT */
   uint32_t amgm_pgci_ut_sa; /* start sector of the menu PGCI unit table */
-  uint8_t  zero_9[48];
+  uint8_t  zero_9[4];
+  uint32_t txtdt_mgi_sa;    /* start sector of the text data manager */
+  uint8_t  zero_10[40];
   uint8_t  last_sector_audio_sys_space;
-  uint8_t  zero_10[79];
+  uint8_t  zero_11[79];
   uint8_t  menu_prescence_3; /* will be set to 0x01*/
     /* XXX lots of padding after this to complete the sector*/
 } ATTRIBUTE_PACKED amgi_mat_t;
