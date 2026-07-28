@@ -109,7 +109,8 @@ struct dvd_input_s {
   /* */
   void *priv;
   dvd_logger_cb *logcb;
-  off_t ipos;
+  /* Current position as a block index, -1 after a failed read */
+  int ipos;
 
   /* This variable keeps track of the current files stream_type,
    * and in turn determined the decryption method to use */
@@ -324,7 +325,7 @@ static int file_seek(dvd_input_t dev, int blocks)
     pos = dev->fs->file_seek(dev->file, (off64_t)blocks * (off64_t)DVD_VIDEO_LB_LEN, SEEK_SET);
 
     if (pos >= 0) {
-      dev->ipos = pos / DVD_VIDEO_LB_LEN;
+      dev->ipos = (int)(pos / DVD_VIDEO_LB_LEN);
     }
   }
 
@@ -332,7 +333,7 @@ static int file_seek(dvd_input_t dev, int blocks)
     return pos;
   }
 
-  return (int) dev->ipos;
+  return dev->ipos;
 }
 
 /**
@@ -349,7 +350,8 @@ static int file_title(dvd_input_t dev UNUSED, int block UNUSED)
 static int file_read(dvd_input_t dev, void *buffer, int blocks,
                      int flags UNUSED)
 {
-  size_t len, bytes, blocks_read;
+  size_t len, bytes;
+  int blocks_read;
 
   len = (size_t)blocks * DVD_VIDEO_LB_LEN;
   bytes = 0;
@@ -382,12 +384,12 @@ static int file_read(dvd_input_t dev, void *buffer, int blocks,
       if(ret < 0)
         return ret;
 
-      return (int) blocks_read;
+      return blocks_read;
     }
 
     len -= ret;
     bytes += ret;
-    blocks_read = bytes / DVD_VIDEO_LB_LEN;
+    blocks_read = (int)(bytes / DVD_VIDEO_LB_LEN);
   }
 
   dev->ipos += blocks_read;
