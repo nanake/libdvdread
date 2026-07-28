@@ -45,6 +45,12 @@ if host_machine.system() == 'sunos'
     test_args += '-D__EXTENSIONS__'
 endif
 
+if host_machine.system() == 'windows'
+    test_args += ['-DWIN32_LEAN_AND_MEAN', '-DNOMINMAX',
+                  '-D_CRT_DECLARE_NONSTDC_NAMES', '-D_CRT_NONSTDC_NO_WARNINGS',
+                  '-D_CRT_SECURE_NO_WARNINGS']
+endif
+
 # Header checks
 
 check_headers = [

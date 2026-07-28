@@ -32,10 +32,6 @@ else
     api_export_flags = ['-DDVDREAD_API_EXPORT']
 endif
 
-if host_machine.system() == 'windows'
-    api_export_flags = [api_export_flags, '-D_CRT_SECURE_NO_WARNINGS']
-endif
-
 # The final libdvdread library
 libdvdread = library('dvdread', dvdread_src,
     include_directories: dvdread_inc_dirs,
