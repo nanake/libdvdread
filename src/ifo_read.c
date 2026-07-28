@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -33,15 +34,6 @@
 #include "dvdread/dvd_reader.h"
 #include "dvdread_internal.h"
 #include "dvdread/bitreader.h"
-
-#ifndef HAVE_STATIC_ASSERT
-#if defined(_MSC_VER)
-#include <crtdbg.h>
-#define _Static_assert(x, y)  _STATIC_ASSERT(x)
-#else
-#define _Static_assert(x, y) // packed size checks not supported by this compiler
-#endif
-#endif
 
 #define POINTER_SIZE  sizeof(void*)
 
@@ -148,12 +140,12 @@ static inline int DVDFileSeek_( dvd_file_t *dvd_file, uint32_t offset ) {
 #define STRINGIFY_NAME_( z ) #z
 
 #define CHECK_STRUCT_SIZE(strt, ptrs, size) \
-  _Static_assert(sizeof(strt)  <= size + ptrs * POINTER_SIZE,  STRINGIFY_NAME(strt) " bigger than " STRINGIFY_NAME(size)); \
-  _Static_assert(sizeof(strt)  >= size + ptrs * POINTER_SIZE,  STRINGIFY_NAME(strt) " smaller than " STRINGIFY_NAME(size))
+  static_assert(sizeof(strt)  <= size + ptrs * POINTER_SIZE,  STRINGIFY_NAME(strt) " bigger than " STRINGIFY_NAME(size)); \
+  static_assert(sizeof(strt)  >= size + ptrs * POINTER_SIZE,  STRINGIFY_NAME(strt) " smaller than " STRINGIFY_NAME(size))
 
 #define CHECK_STRUCT_SIZE_REF(strt, ptrs, size) \
-  _Static_assert(sizeof(strt)  <= size + ptrs * POINTER_SIZE + sizeof(int),  STRINGIFY_NAME(strt) " bigger than " STRINGIFY_NAME(size)); \
-  _Static_assert(sizeof(strt)  >= size + ptrs * POINTER_SIZE + sizeof(int),  STRINGIFY_NAME(strt) " smaller than " STRINGIFY_NAME(size))
+  static_assert(sizeof(strt)  <= size + ptrs * POINTER_SIZE + sizeof(int),  STRINGIFY_NAME(strt) " bigger than " STRINGIFY_NAME(size)); \
+  static_assert(sizeof(strt)  >= size + ptrs * POINTER_SIZE + sizeof(int),  STRINGIFY_NAME(strt) " smaller than " STRINGIFY_NAME(size))
 
 /* size checks on packed structures */
 CHECK_STRUCT_SIZE(dvd_time_t,             0, DVD_TIME_SIZE);
