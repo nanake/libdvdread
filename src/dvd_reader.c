@@ -59,11 +59,6 @@
   (((uint64_t)(bytes) + DVD_VIDEO_LB_LEN - 1) / DVD_VIDEO_LB_LEN)
 
 #if defined(_MSC_VER)
-// sys/stat.h values
-#define S_ISREG(m)  (((m) & _S_IFMT) == _S_IFREG)
-#define S_ISBLK(m) 0
-#define S_ISCHR(m) 0
-
 #define PATH_MAX _MAX_PATH
 #endif
 
