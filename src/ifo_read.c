@@ -36,11 +36,7 @@
 #include "dvdread/bitreader.h"
 
 #define POINTER_SIZE  sizeof(void*)
-
-
-#ifndef DVD_BLOCK_LEN
 #define DVD_BLOCK_LEN 2048
-#endif
 
 #define PRIV(a) container_of(a, struct ifo_handle_private_s, handle)
 
