@@ -32,22 +32,20 @@
 
 #else /* WORDS_BIGENDIAN */
 
-#if defined(__clang__)
-# if __has_builtin (__builtin_bswap16)
-#  define BSWAP_BUILTIN 1
-# endif
-
-#elif defined (__GNUC__) && ((__GNUC__ > (4)) || (__GNUC__ == (4) && __GNUC_MINOR__ >= (8)))
-# define BSWAP_BUILTIN 1
-#endif
-
-#if defined(BSWAP_BUILTIN)
+#if defined(__GNUC__) || defined(__clang__)
 
 #define B2N_16(x) x = __builtin_bswap16(x)
 #define B2N_32(x) x = __builtin_bswap32(x)
 #define B2N_64(x) x = __builtin_bswap64(x)
 
-#else /* BSWAP_BUILTIN */
+#elif defined(_MSC_VER)
+
+#include <stdlib.h>
+#define B2N_16(x) x = _byteswap_ushort(x)
+#define B2N_32(x) x = _byteswap_ulong(x)
+#define B2N_64(x) x = _byteswap_uint64(x)
+
+#else
 
 /* For __FreeBSD_version */
 #if defined(HAVE_SYS_PARAM_H)
@@ -130,7 +128,7 @@
 
 #endif
 
-#endif /* BSWAP_BUILTIN */
+#endif
 
 #endif /* WORDS_BIGENDIAN */
 
