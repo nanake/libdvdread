@@ -65,14 +65,8 @@ static void *file_open_default(dvd_reader_filesystem_h *fs, const char* filename
 
     int *handle;
     int fd;
-    int flags = 0;
+    int flags = O_RDONLY;
     int mode  = 0;
-
-    #if defined(__OS2__) // not posix but kept here for legacy compatibility reasons
-    flags = O_RDONLY | O_BINARY;
-    #else
-    flags = O_RDONLY;
-    #endif
 
 #ifdef O_CLOEXEC
     flags |= O_CLOEXEC;
