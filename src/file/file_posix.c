@@ -29,9 +29,7 @@
 
 #include <sys/stat.h>
 #include <fcntl.h>
-#if defined(HAVE_DIRENT_H)
 #include <dirent.h>
-#endif
 
 #if defined(__GLIBC__) && defined(__GLIBC_MINOR__)
 #  if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 24)

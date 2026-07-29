@@ -55,7 +55,6 @@ endif
 
 check_headers = [
     'sys/param.h',
-    'dirent.h',
 ]
 
 foreach h : check_headers
