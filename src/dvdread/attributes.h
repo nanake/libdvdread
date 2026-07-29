@@ -23,7 +23,7 @@
 #ifdef DVDREAD_API_EXPORT
 #  if defined(_WIN32) || defined(__OS2__)
 #    define DVDREAD_API  __declspec(dllexport)
-#  elif defined(__GNUC__) && __GNUC__ >= 4
+#  elif defined(__GNUC__) || defined(__clang__)
 #    define DVDREAD_API  __attribute__((visibility("default")))
 #  endif
 #else
