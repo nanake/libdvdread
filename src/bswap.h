@@ -94,30 +94,25 @@
 #define B2N_32(x) x = bswap32(x)
 #define B2N_64(x) x = bswap64(x)
 
-/* This is a slow but portable implementation, it has multiple evaluation
- * problems so beware.
- * Old FreeBSD's and Solaris don't have <byteswap.h> or any other such
- * functionality!
- */
-
 #elif defined(__FreeBSD__) || defined(__sun) || defined(__bsdi__) || defined(_WIN32) || defined(__CYGWIN__) || defined(__BEOS__) || defined(__OS2__)
-#define B2N_16(x)                             \
- x = ((((x) & 0xff00) >> 8) |                 \
-      (((x) & 0x00ff) << 8))
-#define B2N_32(x)                             \
- x = ((((x) & 0xff000000) >> 24) |            \
-      (((x) & 0x00ff0000) >>  8) |            \
-      (((x) & 0x0000ff00) <<  8) |            \
-      (((x) & 0x000000ff) << 24))
-#define B2N_64(x)                             \
- x = ((((x) & 0xff00000000000000ULL) >> 56) | \
-      (((x) & 0x00ff000000000000ULL) >> 40) | \
-      (((x) & 0x0000ff0000000000ULL) >> 24) | \
-      (((x) & 0x000000ff00000000ULL) >>  8) | \
-      (((x) & 0x00000000ff000000ULL) <<  8) | \
-      (((x) & 0x0000000000ff0000ULL) << 24) | \
-      (((x) & 0x000000000000ff00ULL) << 40) | \
-      (((x) & 0x00000000000000ffULL) << 56))
+
+#include <stdint.h>
+
+#define BSWAP16(x) (((x) << 8 & 0xff00) | ((x) >> 8 & 0x00ff))
+#define BSWAP32(x) (BSWAP16(x) << 16 | BSWAP16((x) >> 16))
+#define BSWAP64(x) (BSWAP32(x) << 32 | BSWAP32((x) >> 32))
+
+static inline uint16_t dvdread_bswap16(uint16_t x) { return BSWAP16(x); }
+static inline uint32_t dvdread_bswap32(uint32_t x) { return BSWAP32(x); }
+static inline uint64_t dvdread_bswap64(uint64_t x) { return BSWAP64(x); }
+
+#define B2N_16(x) ((x) = dvdread_bswap16(x))
+#define B2N_32(x) ((x) = dvdread_bswap32(x))
+#define B2N_64(x) ((x) = dvdread_bswap64(x))
+
+#undef BSWAP16
+#undef BSWAP32
+#undef BSWAP64
 
 #else
 
