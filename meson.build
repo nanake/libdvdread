@@ -47,18 +47,6 @@ if host_machine.system() == 'windows'
                   '-D_CRT_SECURE_NO_WARNINGS']
 endif
 
-# Header checks
-
-check_headers = [
-    'sys/param.h',
-]
-
-foreach h : check_headers
-    if cc.has_header(h, args: test_args)
-        cdata.set('HAVE_' + h.underscorify().to_upper(), 1)
-    endif
-endforeach
-
 cdata.set('UNUSED', cc.has_function_attribute('unused') ? '__attribute__((unused))' : '')
 
 if host_machine.endian() == 'big'
