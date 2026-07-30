@@ -47,16 +47,6 @@
 #include "logger.h"
 
 
-/* The function pointers that is the exported interface of this file. */
-dvd_input_t (*dvdinput_open)  (void *, dvd_logger_cb *,
-                               const char *, dvd_reader_stream_cb *,
-                               dvd_reader_filesystem_h *);
-int         (*dvdinput_close) (dvd_input_t);
-int         (*dvdinput_seek)  (dvd_input_t, int);
-int         (*dvdinput_title) (dvd_input_t, int);
-int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
-int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb) = NULL;
-
 #ifdef HAVE_DVDCSS_DVDCSS_H
 /* linking to libdvdcss */
 # include <dvdcss/dvdcss.h>
@@ -417,7 +407,7 @@ static int file_close(dvd_input_t dev)
 /**
  * Setup read functions with either libdvdcss or minimal DVD access.
  */
-int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
+int dvdinput_setup(dvd_reader_t *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
 {
   void *dvdcss_library = NULL;
 
@@ -496,7 +486,7 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
       DVDcpxm_init = (int (*)(dvdcss_t, uint8_t *p_mkb))
         dlsym(dvdcss_library, U_S "dvdcpxm_init");
 #else
-      DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+      DVDReadLog(priv->priv, logcb, DVD_LOGGER_LEVEL_ERROR,
               "DVD-Audio headers not present, update the DVDCSS library");
       dlclose(dvdcss_library);
       dvdcss_library = NULL;
@@ -505,19 +495,19 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
   }
   if(dvdcss_library != NULL) {
     if(dlsym(dvdcss_library, U_S "dvdcss_crack")) {
-      DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+      DVDReadLog(priv->priv, logcb, DVD_LOGGER_LEVEL_ERROR,
                 "Old (pre-0.0.2) version of libdvdcss found. "
                 "libdvdread: You should get the latest version from "
                 "https://www.videolan.org/" );
     } else if(!DVDcss_open || !DVDcss_close || !DVDcss_seek || !DVDcss_read) {
-      DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+      DVDReadLog(priv->priv, logcb, DVD_LOGGER_LEVEL_ERROR,
                  "Missing symbols in %s, "
                 "this shouldn't happen !", CSS_LIB);
       dlclose(dvdcss_library);
       dvdcss_library = NULL;
 #ifdef HAVE_DVDCSS_DVDCPXM_H
     } else if( (dvda_flag != DVD_V) && (!DVDcpxm_read || !DVDcpxm_init) ) {
-      DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+      DVDReadLog(priv->priv, logcb, DVD_LOGGER_LEVEL_ERROR,
               "Missing symbols for DVD-Audio in %s, "
               "this shouldn't happen !", CSS_LIB);
       dlclose(dvdcss_library);
@@ -536,24 +526,25 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
     */
 
     /* libdvdcss wrapper functions */
-    dvdinput_open  = css_open;
-    dvdinput_close = css_close;
-    dvdinput_seek  = css_seek;
-    dvdinput_title = css_title;
-    dvdinput_read  = css_read;
+    priv->dvdinput_open  = css_open;
+    priv->dvdinput_close = css_close;
+    priv->dvdinput_seek  = css_seek;
+    priv->dvdinput_title = css_title;
+    priv->dvdinput_read  = css_read;
 
     /* additional setup function that must be run for DVD_A decryption */
     if (dvda_flag == DVD_A || dvda_flag == DVD_VR) {
 #ifdef HAVE_DVDCSS_DVDCPXM_H
-    dvdinput_init  = cpxm_init;
+    priv->dvdinput_init  = cpxm_init;
 #else
+    priv->dvdinput_init  = NULL;
     assert(!"libdvdcss compiled without DVD-Audio (CPXM) support");
 #endif
     }
     return 1;
 
   } else {
-    DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_WARN,
+    DVDReadLog(priv->priv, logcb, DVD_LOGGER_LEVEL_WARN,
                "Encrypted DVD support unavailable.");
 
     dvdinput_setup_builtin(priv, logcb);
@@ -564,17 +555,18 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
 /**
  * Setup read functions with the builtin libdvdread implementation (minimal DVD access without css).
  */
-void dvdinput_setup_builtin(void *priv, dvd_logger_cb *logcb)
+void dvdinput_setup_builtin(dvd_reader_t *priv, dvd_logger_cb *logcb)
 {
-    DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_INFO,
+    DVDReadLog(priv->priv, logcb, DVD_LOGGER_LEVEL_INFO,
                "Setting up builtin libdvdread implementation");
 
     /* libdvdcss replacement functions */
-    dvdinput_open  = file_open;
-    dvdinput_close = file_close;
-    dvdinput_seek  = file_seek;
-    dvdinput_title = file_title;
-    dvdinput_read  = file_read;
+    priv->dvdinput_open  = file_open;
+    priv->dvdinput_close = file_close;
+    priv->dvdinput_seek  = file_seek;
+    priv->dvdinput_title = file_title;
+    priv->dvdinput_read  = file_read;
+    priv->dvdinput_init  = NULL;
 }
 
 /* change the stream type, this will set the decryption method */

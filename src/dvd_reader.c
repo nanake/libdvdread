@@ -184,7 +184,7 @@ static int initAllCSSKeys( dvd_reader_t *ctx )
     if( start != 0 && len != 0 ) {
       /* Perform CSS key cracking for this title. */
       Log3(ctx,"Get key for %s at 0x%08x",filename, start );
-      if( dvdinput_title( dvd->dev, (int)start ) < 0 ) {
+      if( ctx->dvdinput_title( dvd->dev, (int)start ) < 0 ) {
         Log1(ctx,"Error cracking CSS key for %s (0x%08x)", filename, start);
       }
       t_e = time(NULL);
@@ -200,7 +200,7 @@ static int initAllCSSKeys( dvd_reader_t *ctx )
 
     /* Perform CSS key cracking for this title. */
     Log3(ctx,"Get key for %s at 0x%08x",filename, start );
-    if( dvdinput_title( dvd->dev, (int)start ) < 0 ) {
+    if( ctx->dvdinput_title( dvd->dev, (int)start ) < 0 ) {
       Log1(ctx,"Error cracking CSS key for %s (0x%08x)", filename, start);
     }
     t_e = time(NULL);
@@ -228,7 +228,7 @@ static dvd_reader_device_t *DVDOpenImageFile( dvd_reader_t *ctx,
   dvd_reader_device_t *dvd;
   dvd_input_t dev;
 
-  dev = dvdinput_open( ctx->priv, &ctx->logcb, location, stream_cb, ctx->fs );
+  dev = ctx->dvdinput_open( ctx->priv, &ctx->logcb, location, stream_cb, ctx->fs );
   if( !dev ) {
     Log0(ctx,"Can't open %s for reading", location );
     return NULL;
@@ -236,7 +236,7 @@ static dvd_reader_device_t *DVDOpenImageFile( dvd_reader_t *ctx,
 
   dvd = calloc( 1, sizeof( dvd_reader_device_t ) );
   if( !dvd ) {
-    dvdinput_close(dev);
+    ctx->dvdinput_close(dev);
     return NULL;
   }
   dvd->isImageFile = 1;
@@ -344,7 +344,7 @@ static int cpxm_init_condition( dvd_reader_t* ctx, dvd_type_t type, int have_css
       p_mkb = cppm_get_mkb_or_backup( ctx, 1 );
     if ( !p_mkb )
       Log2(ctx, "There is no MKB on this DVD-Audio disc, so there likely no encryption");
-    return dvdinput_init( ctx->rd->dev, p_mkb );
+    return ctx->dvdinput_init( ctx->rd->dev, p_mkb );
   } else if ( type == DVD_VR && have_css ) {
     /* open ifo to supply decryption context */
     ifo_handle_t* ifo = ifoOpen( ctx, 0 );
@@ -356,7 +356,7 @@ static int cpxm_init_condition( dvd_reader_t* ctx, dvd_type_t type, int have_css
     }
     rtav_vmgi_t* rtav_vmgi = ifo->rtav_vmgi;
     /* pass the cprm title key to libdvdcss for decryption */
-    int ret = dvdinput_init( ctx->rd->dev, rtav_vmgi->cprm_info.title_key );
+    int ret = ctx->dvdinput_init( ctx->rd->dev, rtav_vmgi->cprm_info.title_key );
     ifoClose(ifo);
     return ret;
   } else
@@ -437,7 +437,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
   if (fs != NULL && ppath != NULL)
   {
     ctx->fs = fs;
-    dvdinput_setup_builtin(ctx->priv, &ctx->logcb);
+    dvdinput_setup_builtin(ctx, &ctx->logcb);
     /* DVDOpenFiles only opens a directory tree, so reject anything else */
     if( ctx->fs->stat( ctx->fs, ppath, &fileinfo ) < 0 ||
         ( fileinfo.st_mode & DVD_S_IFMT ) != DVD_S_IFDIR )
@@ -471,7 +471,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
   /* Try to open DVD using stream_cb functions */
   if( priv != NULL && stream_cb != NULL )
   {
-    have_css = dvdinput_setup( ctx->priv, &ctx->logcb, type );
+    have_css = dvdinput_setup( ctx, &ctx->logcb, type );
     ctx->rd = DVDOpenImageFile( ctx, NULL, stream_cb, have_css );
     if(!ctx->rd)
         return DVDFreeContext(ctx);
@@ -487,7 +487,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
     goto DVDOpen_error;
 
   /* Try to open libdvdcss or fall back to standard functions */
-  have_css = dvdinput_setup( ctx->priv, &ctx->logcb, type );
+  have_css = dvdinput_setup( ctx, &ctx->logcb, type );
 
 #if defined(_WIN32) || defined(__OS2__)
   /* Strip off the trailing \ if it is not a drive */
@@ -754,7 +754,7 @@ static dvd_type_t DVDProbeType( const char *ppath, void *stream,
     return ret;
   }
 
-  have_css = dvdinput_setup( ctx->priv, &ctx->logcb, DVD_V );
+  have_css = dvdinput_setup( ctx, &ctx->logcb, DVD_V );
 
   if (stream && stream_cb)
     ctx->rd = DVDOpenImageFile( ctx, NULL, stream_cb, have_css );
@@ -846,7 +846,7 @@ void DVDClose( dvd_reader_t *dvd )
 {
   if( dvd ) {
     if( dvd->rd ) {
-      if( dvd->rd->dev ) dvdinput_close( dvd->rd->dev );
+      if( dvd->rd->dev ) dvd->dvdinput_close( dvd->rd->dev );
       if( dvd->rd->path_root ) free( dvd->rd->path_root );
       if( dvd->rd->udfcache ) FreeUDFCache( dvd->rd->udfcache );
       free( dvd->rd );
@@ -1021,7 +1021,7 @@ static dvd_file_t *DVDOpenFilePath( dvd_reader_t *ctx, const char *filename )
     return NULL;
   }
 
-  dev = dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL, ctx->fs );
+  dev = ctx->dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL, ctx->fs );
   if( !dev ) {
     Log0(ctx, "DVDOpenFilePath:dvdinput_open %s failed", full_path );
     return NULL;
@@ -1030,7 +1030,7 @@ static dvd_file_t *DVDOpenFilePath( dvd_reader_t *ctx, const char *filename )
   dvd_file = calloc( 1, sizeof( dvd_file_t ) );
   if( !dvd_file ) {
     Log0(ctx, "DVDOpenFilePath:dvd_file malloc failed" );
-    dvdinput_close(dev);
+    ctx->dvdinput_close(dev);
     return NULL;
   }
   dvd_file->ctx = ctx;
@@ -1039,7 +1039,7 @@ static dvd_file_t *DVDOpenFilePath( dvd_reader_t *ctx, const char *filename )
   if (ctx->fs->stat(ctx->fs, full_path, &fileinfo) < 0) {
     Log0(ctx, "Can't stat() %s.", filename );
     free( dvd_file );
-    dvdinput_close( dev );
+    ctx->dvdinput_close( dev );
     return NULL;
   }
   dvd_file->title_sizes[ 0 ] = BYTES_TO_DVD_BLOCKS_CEIL(fileinfo.size);
@@ -1227,7 +1227,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu,
       return NULL;
     }
 
-    dev = dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL, ctx->fs );
+    dev = ctx->dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL, ctx->fs );
     if( dev == NULL ) {
       free( dvd_file );
       return NULL;
@@ -1235,14 +1235,14 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu,
 
     if (ctx->fs->stat(ctx->fs, full_path, &fileinfo) < 0) {
       Log0(ctx, "Can't stat() %s.", filename );
-      dvdinput_close(dev);
+      ctx->dvdinput_close(dev);
       free( dvd_file );
       return NULL;
     }
     dvd_file->title_sizes[ 0 ] = BYTES_TO_DVD_BLOCKS_CEIL(fileinfo.size);
     dvd_file->title_devs[ 0 ] = dev;
     dvdinput_set_stream( dev, stream_type );
-    dvdinput_title( dvd_file->title_devs[0], 0);
+    ctx->dvdinput_title( dvd_file->title_devs[0], 0);
     dvd_file->filesize = dvd_file->title_sizes[ 0 ];
 
   } else {
@@ -1263,7 +1263,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu,
       }
 
       dvd_file->title_sizes[ 0 ] = BYTES_TO_DVD_BLOCKS_CEIL(fileinfo.size);
-      dvd_file->title_devs[ 0 ] = dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL, ctx->fs );
+      dvd_file->title_devs[ 0 ] = ctx->dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL, ctx->fs );
 
       if( !dvd_file->title_devs[ 0 ] ) {
         free( dvd_file );
@@ -1273,10 +1273,10 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu,
       dvdinput_set_stream( dvd_file->title_devs[ 0 ], stream_type );
 
       /* Initialize CPRM */
-      if( dvdinput_init )
-        dvdinput_init( dvd_file->title_devs[ 0 ], NULL );
+      if( ctx->dvdinput_init )
+        ctx->dvdinput_init( dvd_file->title_devs[ 0 ], NULL );
 
-      dvdinput_title( dvd_file->title_devs[ 0 ], 0 );
+      ctx->dvdinput_title( dvd_file->title_devs[ 0 ], 0 );
       dvd_file->filesize = dvd_file->title_sizes[ 0 ];
 
     } else {
@@ -1298,7 +1298,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu,
           break;
         }
 
-        dvd_file->title_devs[ i ] = dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL, ctx->fs );
+        dvd_file->title_devs[ i ] = ctx->dvdinput_open( ctx->priv, &ctx->logcb, full_path, NULL, ctx->fs );
         if( !dvd_file->title_devs[ i ] )
           break;
         dvd_file->title_sizes[ i ] = BYTES_TO_DVD_BLOCKS_CEIL(fileinfo.size);
@@ -1308,10 +1308,10 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu,
         /* if function is defined, cpxm was imported so call init */
         /* should have already been initialized in  dvdinput_setup, will copy over
          * decryption context to each dev dvdcss instance */
-        if( dvdinput_init && stream_type == DVD_A )
-          dvdinput_init( dvd_file->title_devs[ i ], NULL );
+        if( ctx->dvdinput_init && stream_type == DVD_A )
+          ctx->dvdinput_init( dvd_file->title_devs[ i ], NULL );
 
-        dvdinput_title( dvd_file->title_devs[ i ], 0 );
+        ctx->dvdinput_title( dvd_file->title_devs[ i ], 0 );
         dvd_file->filesize += dvd_file->title_sizes[ i ];
       }
       if( !dvd_file->title_devs[ 0 ] ) {
@@ -1514,7 +1514,7 @@ void DVDCloseFile( dvd_file_t *dvd_file )
 
       for( i = 0; i < TITLES_MAX; ++i ) {
         if( dvd_file->title_devs[ i ] ) {
-          dvdinput_close( dvd_file->title_devs[i] );
+          dvd_file->ctx->dvdinput_close( dvd_file->title_devs[i] );
         }
       }
     }
@@ -1764,13 +1764,13 @@ int InternalUDFReadBlocksRaw( const dvd_reader_t *ctx, uint32_t lb_number,
     return -1;
   }
 
-  ret = dvdinput_seek( ctx->rd->dev, (int) lb_number );
+  ret = ctx->dvdinput_seek( ctx->rd->dev, (int) lb_number );
   if( ret != (int) lb_number ) {
     Log1( ctx, "Can't seek to block %u", lb_number );
     return ret;
   }
 
-  ret = dvdinput_read( ctx->rd->dev, (char *) data,
+  ret = ctx->dvdinput_read( ctx->rd->dev, (char *) data,
                        (int) block_count, encrypted );
   return ret;
 }
@@ -1827,12 +1827,12 @@ static int DVDReadBlocksPath( const dvd_file_t *dvd_file, unsigned int offset,
 
     if( offset < dvd_file->title_sizes[ i ] ) {
       if( ( offset + block_count ) <= dvd_file->title_sizes[ i ] ) {
-        off = dvdinput_seek( dvd_file->title_devs[ i ], (int)offset );
+        off = ctx->dvdinput_seek( dvd_file->title_devs[ i ], (int)offset );
         if( off < 0 || off != (int)offset ) {
           Log1( ctx, "Can't seek to block %u", offset );
           return off < 0 ? off : 0;
         }
-        ret = dvdinput_read( dvd_file->title_devs[ i ], data,
+        ret = ctx->dvdinput_read( dvd_file->title_devs[ i ], data,
                              (int)block_count, encrypted );
         break;
       } else {
@@ -1841,12 +1841,12 @@ static int DVDReadBlocksPath( const dvd_file_t *dvd_file, unsigned int offset,
          * (This is only true if you try and read >1GB at a time) */
 
         /* Read part 1 */
-        off = dvdinput_seek( dvd_file->title_devs[ i ], (int)offset );
+        off = ctx->dvdinput_seek( dvd_file->title_devs[ i ], (int)offset );
         if( off < 0 || off != (int)offset ) {
           Log1( ctx, "Can't seek to block %u", offset );
           return off < 0 ? off : 0;
         }
-        ret = dvdinput_read( dvd_file->title_devs[ i ], data,
+        ret = ctx->dvdinput_read( dvd_file->title_devs[ i ], data,
                              (int)part1_size, encrypted );
         if( ret < 0 ) return ret;
         /* FIXME: This is wrong if i is the last file in the set.
@@ -1857,12 +1857,12 @@ static int DVDReadBlocksPath( const dvd_file_t *dvd_file, unsigned int offset,
           return ret;
 
         /* Read part 2 */
-        off = dvdinput_seek( dvd_file->title_devs[ i + 1 ], 0 );
+        off = ctx->dvdinput_seek( dvd_file->title_devs[ i + 1 ], 0 );
         if( off < 0 || off != 0 ) {
           Log1( ctx, "Can't seek to block %d", 0 );
           return off < 0 ? off : 0;
         }
-        ret2 = dvdinput_read( dvd_file->title_devs[ i + 1 ],
+        ret2 = ctx->dvdinput_read( dvd_file->title_devs[ i + 1 ],
                               data + ( part1_size
                                        * (int64_t)DVD_VIDEO_LB_LEN ),
                               (int)(block_count - part1_size),
@@ -1904,11 +1904,11 @@ ssize_t DVDReadBlocks( dvd_file_t *dvd_file, int offset,
   if( dvd->css_title != dvd_file->css_title ) {
       dvd->css_title = dvd_file->css_title;
     if( dvd->isImageFile ) {
-      dvdinput_title( dvd->dev, (int)dvd_file->lb_start );
+      ctx->dvdinput_title( dvd->dev, (int)dvd_file->lb_start );
     }
     /* Here each vobu has it's own dvdcss handle, so no need to update
     else {
-      dvdinput_title( dvd_file->title_devs[ 0 ], (int)dvd_file->lb_start );
+      ctx->dvdinput_title( dvd_file->title_devs[ 0 ], (int)dvd_file->lb_start );
     }*/
   }
 

@@ -50,6 +50,8 @@ typedef enum{
     DVD_VR = 2,
 } dvd_type_t;
 
+typedef struct dvd_input_s *dvd_input_t;
+
 struct dvd_reader_s
 {
     dvd_reader_device_t *rd;
@@ -60,6 +62,17 @@ struct dvd_reader_s
     /* Set 100 flags for BUP fallback, most signifiant left
        [0] for upper remaining VTS, [1] for the first Main + 63 VTS */
     uint64_t ifoBUPflags[2];
+
+    /* The function pointers that is the exported interface of this file. */
+    dvd_input_t (*dvdinput_open)  (void *, dvd_logger_cb *,
+                                   const char *, dvd_reader_stream_cb *,
+                                   dvd_reader_filesystem_h *);
+    int         (*dvdinput_close) (dvd_input_t);
+    int         (*dvdinput_seek)  (dvd_input_t, int);
+    int         (*dvdinput_title) (dvd_input_t, int);
+    int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
+    /* run to initialize DVD-Audio encryption */
+    int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb);
 };
 
 struct ifo_handle_private_s

@@ -30,23 +30,6 @@
 
 #define DVDINPUT_READ_DECRYPT    (1 << 0)
 
-typedef struct dvd_input_s *dvd_input_t;
-
-/**
- * Function pointers that will be filled in by the input implementation.
- * These functions provide the main API.
- */
-extern dvd_input_t (*dvdinput_open)  (void *, dvd_logger_cb *,
-                                      const char *,
-                                      dvd_reader_stream_cb *,
-                                      dvd_reader_filesystem_h *);
-extern int         (*dvdinput_close) (dvd_input_t);
-extern int         (*dvdinput_seek)  (dvd_input_t, int);
-extern int         (*dvdinput_title) (dvd_input_t, int);
-extern int         (*dvdinput_read)  (dvd_input_t, void *, int, int);
-/* run to initialize DVD-Audio encryption */
-extern int         (*dvdinput_init)  (dvd_input_t, uint8_t* mkb);
-
 extern void        dvdinput_set_stream(dvd_input_t, dvd_type_t);
 /**
  * Setup function accessed by dvd_reader.c.  Returns 1 if there is CSS support.
@@ -54,12 +37,12 @@ extern void        dvdinput_set_stream(dvd_input_t, dvd_type_t);
  * which is basically the same as calling dvdinput_setup_builtin.
  */
 /* dvda flag enabled cpxm */
-int dvdinput_setup(void *, dvd_logger_cb *, dvd_type_t dvda_flag);
+int dvdinput_setup(dvd_reader_t *, dvd_logger_cb *, dvd_type_t dvda_flag);
 
 /**
  * Setup function accessed by dvd_reader.c using the builtin libdvdread implementation
  * (without css support)
  */
-void dvdinput_setup_builtin(void *, dvd_logger_cb *);
+void dvdinput_setup_builtin(dvd_reader_t *, dvd_logger_cb *);
 
 #endif /* LIBDVDREAD_DVD_INPUT_H */
