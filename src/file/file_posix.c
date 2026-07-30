@@ -42,9 +42,11 @@
 #include "filesystem.h"
 
 // verify the off64_t from dvd_filesystem.h has the proper size
-static_assert(sizeof(off64_t) >= (64/8), "Bogus off64_t size");
+static_assert(sizeof(off64_t) <= (64/8), "off64_t bigger than 64 bits");
+static_assert(sizeof(off64_t) >= (64/8), "off64_t smaller than 64 bits");
 // verify the off_t from dvd_filesystem.h has the proper size
-static_assert(sizeof(off_t) >= (64/8), "Bogus off_t size");
+static_assert(sizeof(off_t)   <= (64/8), "off_t bigger than 64 bits");
+static_assert(sizeof(off_t)   >= (64/8), "off_t smaller than 64 bits");
 
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || \
     defined(__NetBSD__) || defined(__DragonFly__) || defined (__wasm__) || \
