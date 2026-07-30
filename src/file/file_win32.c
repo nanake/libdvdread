@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -36,6 +37,12 @@
 #include <dvdread/dvd_filesystem.h>
 #include "filesystem.h"
 
+// verify the off64_t from dvd_filesystem.h has the proper size
+static_assert(sizeof(off64_t) <= (64/8), "off64_t bigger than 64 bits");
+static_assert(sizeof(off64_t) >= (64/8), "off64_t smaller than 64 bits");
+// verify the off_t from dvd_filesystem.h has the proper size
+static_assert(sizeof(off_t)   <= (64/8), "off_t bigger than 64 bits");
+static_assert(sizeof(off_t)   >= (64/8), "off_t smaller than 64 bits");
 
 static void *file_open_default(dvd_reader_filesystem_h *fs, const char* filename)
 {
