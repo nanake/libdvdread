@@ -496,12 +496,14 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
       DVDcpxm_init = (int (*)(dvdcss_t, uint8_t *p_mkb))
         dlsym(dvdcss_library, U_S "dvdcpxm_init");
 #else
-    DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
-            "DVD-Audio headers not present, update the DVDCSS library");
-    dlclose(dvdcss_library);
-    dvdcss_library = NULL;
+      DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
+              "DVD-Audio headers not present, update the DVDCSS library");
+      dlclose(dvdcss_library);
+      dvdcss_library = NULL;
 #endif
     }
+  }
+  if(dvdcss_library != NULL) {
     if(dlsym(dvdcss_library, U_S "dvdcss_crack")) {
       DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
                 "Old (pre-0.0.2) version of libdvdcss found. "
@@ -514,7 +516,7 @@ int dvdinput_setup(void *priv, dvd_logger_cb *logcb, dvd_type_t dvda_flag)
       dlclose(dvdcss_library);
       dvdcss_library = NULL;
 #ifdef HAVE_DVDCSS_DVDCPXM_H
-      } else if( (dvda_flag != DVD_V) && (!DVDcpxm_read || !DVDcpxm_init) ) {
+    } else if( (dvda_flag != DVD_V) && (!DVDcpxm_read || !DVDcpxm_init) ) {
       DVDReadLog(priv, logcb, DVD_LOGGER_LEVEL_ERROR,
               "Missing symbols for DVD-Audio in %s, "
               "this shouldn't happen !", CSS_LIB);
