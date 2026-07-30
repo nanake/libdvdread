@@ -18,10 +18,6 @@ cdata = configuration_data()
 
 # Include directories
 dvdread_inc_dirs = include_directories('.', 'src', 'src/dvdread')
-if cc.get_id() == 'msvc' or cc.get_id() == 'clang-cl'
-    # extra POSIX headers not found in the Windows SDK
-    dvdread_inc_dirs = [dvdread_inc_dirs, include_directories('msvc/include')]
-endif
 
 # The version number for the shared library
 dvdread_soname_version = '8.2.0'
