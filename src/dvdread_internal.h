@@ -24,7 +24,13 @@
 #include <sys/types.h>
 
 #ifdef _WIN32
-# include <unistd.h>
+#ifndef strcasecmp
+#define strcasecmp _stricmp
+#endif
+
+#ifndef strncasecmp
+#define strncasecmp _strnicmp
+#endif
 #endif /* _WIN32 */
 
 #include "dvdread/dvd_reader.h"

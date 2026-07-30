@@ -28,14 +28,5 @@
 #define _SYS_UNISTD_H_
 
 #include <io.h>
-#include <string.h>
-
-#ifndef strcasecmp
-#define strcasecmp _stricmp
-#endif
-
-#ifndef strncasecmp
-#define strncasecmp _strnicmp
-#endif
 
 #endif
