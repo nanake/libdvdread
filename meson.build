@@ -126,17 +126,17 @@ endif
 
 if get_option('extra_checks')
     optional_arguments += [
-        '-Werror-implicit-function-declaration',
+        '-Werror-implicit-function-declaration', '-we4013',
         '-Werror=missing-field-initializers',
-        '-Werror=format',
-        '-Werror=return-mismatch',
-        '-Werror=incompatible-pointer-types',
+        '-Werror=format', '-we4477', '-we4313',
+        '-Werror=return-mismatch', '-we4098', '-we4033',
+        '-Werror=incompatible-pointer-types', '-we4047',
         '-Werror=restrict',
         '-Werror=int-conversion',
         '-Werror=implicit-int',
         '-Werror=declaration-missing-parameter-type',
         '-Werror=excess-initializers',
-        '-Werror=unterminated-string-initialization',
+        '-Werror=unterminated-string-initialization', '-we4295',
     ]
 endif
 
