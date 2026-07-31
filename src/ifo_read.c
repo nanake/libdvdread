@@ -2007,8 +2007,10 @@ static int ifoRead_ATS(ifo_handle_t *ifofile) {
   B2N_32(atsi_mat->atsi_last_sector);
   B2N_32(atsi_mat->vts_sa);
   B2N_32(atsi_mat->atst_aobs);
+  B2N_32(atsi_mat->vts_ptt_srpt);
   B2N_32(atsi_mat->atsi_last_byte);
   B2N_32(atsi_mat->ats_pgci_ut);
+  B2N_32(atsi_mat->vtsm_pgci_ut);
   B2N_32(atsi_mat->vts_tmapt);
   B2N_32(atsi_mat->vtsm_c_adt);
   B2N_32(atsi_mat->vtsm_vobu_admap);
