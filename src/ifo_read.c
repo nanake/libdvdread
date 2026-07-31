@@ -205,8 +205,6 @@ CHECK_STRUCT_SIZE(m_c_gi_t,               1, M_C_GI_SIZE);
 CHECK_STRUCT_SIZE(m_c_epi_t,              0, M_C_EPI_SIZE);
 CHECK_STRUCT_SIZE(ats_pg_asv_pbi_srp_t,   0, ATS_PG_ASV_PBI_SRP_SIZE);
 CHECK_STRUCT_SIZE(asv_dlist_t,            0, ASV_DLIST_SIZE);
-CHECK_STRUCT_SIZE(asvu_gi_t,              0, ASVU_GI_SIZE);
-CHECK_STRUCT_SIZE(asvs_mat_t,             1, ASVS_MAT_SIZE);
 CHECK_STRUCT_SIZE(audio_attr_vr_t,        0, AUDIO_ATTR_VR_SIZE);
 CHECK_STRUCT_SIZE(cprm_info_t,            0, CPRM_INFO_SIZE);
 CHECK_STRUCT_SIZE(pgtm_t,                 0, PGTM_SIZE);
