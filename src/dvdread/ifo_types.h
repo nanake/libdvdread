@@ -39,7 +39,7 @@
 #endif
 
 #if PRAGMA_PACK
-#pragma pack(1)
+#pragma pack(push, 1)
 #endif
 
 
@@ -1334,7 +1334,7 @@ typedef struct  {
 #define CI_OFFSET_SIZE 4U
 
 #if PRAGMA_PACK
-#pragma pack()
+#pragma pack(pop)
 #endif
 
 

@@ -44,7 +44,7 @@
 #define DSI_START_BYTE 1031
 
 #if PRAGMA_PACK
-#pragma pack(1)
+#pragma pack(push, 1)
 #endif
 
 /**
@@ -115,7 +115,7 @@ typedef struct {
 /* btni_t, hli_t and pci_t are not read as packed structures but bit by bit
  * in navRead_PCI(), they must not be packed */
 #if PRAGMA_PACK
-#pragma pack()
+#pragma pack(pop)
 #endif
 
 /**
@@ -167,7 +167,7 @@ typedef struct {
 } pci_t;
 
 #if PRAGMA_PACK
-#pragma pack(1)
+#pragma pack(push, 1)
 #endif
 
 
@@ -258,7 +258,7 @@ typedef struct {
 
 
 #if PRAGMA_PACK
-#pragma pack()
+#pragma pack(pop)
 #endif
 
 #endif /* LIBDVDREAD_NAV_TYPES_H */
