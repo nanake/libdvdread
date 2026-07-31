@@ -1160,12 +1160,15 @@ static dvd_file_t *DVDOpenVOBUDF( dvd_reader_t *ctx, int title, int menu,
     }
   }
 
+  /* Set the stream type before cracking keys: initAllCSSKeys() requests the
+   * title keys on this same device and css_title() keys off its stream type. */
+  dvdinput_set_stream( ctx->rd->dev, stream_type );
+
   if( stream_type == DVD_V && ctx->rd->css_state == 1 /* Need key init */ ) {
     initAllCSSKeys( ctx );
     ctx->rd->css_state = 2;
   }
 
-  dvdinput_set_stream( ctx->rd->dev, stream_type );
   return dvd_file;
 }
 
@@ -1230,9 +1233,9 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu,
     }
     dvd_file->title_sizes[ 0 ] = BYTES_TO_DVD_BLOCKS_CEIL(fileinfo.size);
     dvd_file->title_devs[ 0 ] = dev;
+    dvdinput_set_stream( dev, stream_type );
     dvdinput_title( dvd_file->title_devs[0], 0);
     dvd_file->filesize = dvd_file->title_sizes[ 0 ];
-    dvdinput_set_stream( dev, stream_type );
 
   } else {
 
@@ -1860,6 +1863,13 @@ ssize_t DVDReadBlocks( dvd_file_t *dvd_file, int offset,
   ctx = dvd_file->ctx;
   dvd = ctx->rd;
 
+  /* The decryption scheme follows the file, so it must be set before the
+   * title key is requested below: css_title() decides whether to crack a
+   * CSS key from the device's current stream type, and on a hybrid disc the
+   * previous read may have left a different scheme selected. */
+  if( dvd->isImageFile )
+    dvdinput_set_stream( dvd->dev, dvd_file->stream_type );
+
   /* Hack, and it will still fail for multiple opens in a threaded app ! */
   if( dvd->css_title != dvd_file->css_title ) {
       dvd->css_title = dvd_file->css_title;
@@ -1873,7 +1883,6 @@ ssize_t DVDReadBlocks( dvd_file_t *dvd_file, int offset,
   }
 
   if( dvd->isImageFile ) {
-    dvdinput_set_stream( dvd->dev, dvd_file->stream_type );
     ret = DVDReadBlocksUDF( dvd_file, (uint32_t)offset,
                             block_count, data, DVDINPUT_READ_DECRYPT );
   } else {
