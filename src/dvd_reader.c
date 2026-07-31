@@ -63,6 +63,9 @@
 
 #define DEFAULT_UDF_CACHE_LEVEL 1
 
+/* DVD-Audio allows up to 99 audio title sets. */
+#define AUDIO_LINKED_VTS_MAX 100
+
 struct dvd_reader_device_s {
   /* Basic information. */
   int isImageFile;
@@ -81,6 +84,11 @@ struct dvd_reader_device_s {
   /* Filesystem cache */
   int udfcache_level; /* 0 - turned off, 1 - on */
   void *udfcache;
+
+  /* Cache of the video title set each audio title set borrows on a hybrid
+   * disc, indexed by ATS number: 0 = not resolved yet, -1 = no link,
+   * > 0 = the linked VTS number. See DVDAudioLinkedVTS(). */
+  int audio_linked_vts[ AUDIO_LINKED_VTS_MAX ];
 };
 
 #define TITLES_MAX 9
@@ -1320,7 +1328,7 @@ static dvd_file_t *DVDOpenVOBPath( dvd_reader_t *ctx, int title, int menu,
  * objects of its own and instead borrow the title VOBs of a video title set.
  *
  * Returns the linked VTS number, or 0 when the ATS links to no video title set. */
-static int DVDAudioLinkedVTS( dvd_reader_t *ctx, int titlenum )
+static int DVDAudioResolveLinkedVTS( dvd_reader_t *ctx, int titlenum )
 {
   ifo_handle_t *ifo;
   uint32_t vts_sa;
@@ -1355,6 +1363,28 @@ static int DVDAudioLinkedVTS( dvd_reader_t *ctx, int titlenum )
   if( vtsn == 0 )
     Log1( ctx, "ATS %02d links to sector %u but no video title set starts "
                "there", titlenum, vts_sa );
+  return vtsn;
+}
+
+/* The link is a fixed property of the disc, but both DVDOpenFile and
+ * DVDFileStat resolve it per title, so an uncached lookup reopens and
+ * reparses the ATS and AMG IFOs on every stat/open call and on every failed
+ * probe of a nonexistent title. Memoize it per audio title set. */
+static int DVDAudioLinkedVTS( dvd_reader_t *ctx, int titlenum )
+{
+  int *cached = NULL;
+  int vtsn;
+
+  if( titlenum >= 0 && titlenum < AUDIO_LINKED_VTS_MAX ) {
+    cached = &ctx->rd->audio_linked_vts[ titlenum ];
+    if( *cached != 0 )
+      return *cached > 0 ? *cached : 0;
+  }
+
+  vtsn = DVDAudioResolveLinkedVTS( ctx, titlenum );
+
+  if( cached )
+    *cached = vtsn > 0 ? vtsn : -1;
   return vtsn;
 }
 
