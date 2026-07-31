@@ -1849,13 +1849,16 @@ static int DVDReadBlocksPath( const dvd_file_t *dvd_file, unsigned int offset,
 ssize_t DVDReadBlocks( dvd_file_t *dvd_file, int offset,
                        size_t block_count, unsigned char *data )
 {
-  dvd_reader_t *ctx = dvd_file->ctx;
-  dvd_reader_device_t *dvd = ctx->rd;
+  dvd_reader_t *ctx;
+  dvd_reader_device_t *dvd;
   int ret;
 
   /* Check arguments. */
   if( dvd_file == NULL || offset < 0 || data == NULL )
     return -1;
+
+  ctx = dvd_file->ctx;
+  dvd = ctx->rd;
 
   /* Hack, and it will still fail for multiple opens in a threaded app ! */
   if( dvd->css_title != dvd_file->css_title ) {
