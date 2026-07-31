@@ -72,6 +72,11 @@ void navRead_PCI(pci_t *pci, unsigned char *buffer) {
   getbits_state_t state;
   if (!getbits_init(&state, buffer)) abort(); /* Passed NULL pointers */
 
+  /* pci_t is no longer packed, so it now has padding bytes that the field by
+   * field parsing below never writes; clear them to keep the whole structure
+   * deterministic for callers that copy or hash it. */
+  memset(pci, 0, sizeof(*pci));
+
   /* pci pci_gi */
   pci->pci_gi.nv_pck_lbn = getbits(&state, 32 );
   pci->pci_gi.vobu_cat = getbits(&state, 16 );
