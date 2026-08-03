@@ -122,7 +122,7 @@ if get_option('extra_checks')
         '-Werror=restrict',
         '-Werror=int-conversion',
         '-Werror=implicit-int',
-        '-Werror=declaration-missing-parameter-type',
+        '-Werror=declaration-missing-parameter-type', '-we4028', '-we4029',
         '-Werror=excess-initializers',
         '-Werror=unterminated-string-initialization', '-we4295',
     ]
