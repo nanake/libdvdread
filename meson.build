@@ -118,7 +118,7 @@ if get_option('extra_checks')
         '-Werror=missing-field-initializers',
         '-Werror=format', '-we4477', '-we4313',
         '-Werror=return-mismatch', '-we4098', '-we4033',
-        '-Werror=incompatible-pointer-types', '-we4047',
+        '-Werror=incompatible-pointer-types', '-we4047', '-we4113',
         '-Werror=restrict',
         '-Werror=int-conversion',
         '-Werror=implicit-int',
