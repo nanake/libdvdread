@@ -545,7 +545,7 @@ static dvd_reader_t *DVDOpenCommon( void *priv,
     cpxm_init_condition( ctx, type, have_css );
     return ctx;
   } else if ((fileinfo.st_mode & DVD_S_IFMT) == DVD_S_IFDIR ) {
-#if defined(SYS_BSD)
+#if defined(SYS_BSD) && !defined(__APPLE__)
     struct fstab* fe;
 #elif defined(__sun) || defined(__linux__)
     FILE *mntfile;
