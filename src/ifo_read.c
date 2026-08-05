@@ -1169,7 +1169,16 @@ static void ifoRead_TT_stillpics(struct ifo_handle_private_s *ifop,
   }
 
   for(int j = 0; j < nr_frames; j++) {
+    uint8_t start_effect, end_effect;
+
     B2N_32(frames[j].display_timing);
+
+    memcpy(&start_effect, &frames[j].start_effect, 1);
+    memcpy(&end_effect, &frames[j].end_effect, 1);
+    frames[j].start_effect.period = start_effect & 0x0f;
+    frames[j].start_effect.mode = start_effect >> 4;
+    frames[j].end_effect.period = end_effect & 0x0f;
+    frames[j].end_effect.mode = end_effect >> 4;
   }
 
   index->dlist = frames;
