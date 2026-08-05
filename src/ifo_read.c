@@ -1102,9 +1102,14 @@ static int ifoRead_ASVS(ifo_handle_t *ifofile){
     return 0;
   }
 
-  uint16_t *asv_srpt_raw = (uint16_t *)asvs_mat->asv_srpt;
-  for(int i = 0; i < total_nr_frames; i++)
-    B2N_16(asv_srpt_raw[i]);
+  for(int i = 0; i < total_nr_frames; i++) {
+    uint16_t search_pointer;
+
+    memcpy(&search_pointer, &asvs_mat->asv_srpt[i], ASV_SRPT_SIZE);
+    B2N_16(search_pointer);
+    asvs_mat->asv_srpt[i].offset = search_pointer & 0x3fff;
+    asvs_mat->asv_srpt[i].cci = search_pointer >> 14;
+  }
 
   /* a few discs write zero here */
   CHECK_VALUE(asvs_mat->specification_version == 0x0012
