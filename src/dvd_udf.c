@@ -675,7 +675,7 @@ static int UDFScanDir( dvd_reader_t *ctx, struct AD Dir, char *FileName,
 
 
 /**
- * Return 1 on success, 0 on error.
+ * Return 1 on success, 0 or a negative read error on error.
  */
 static int UDFGetAVDP( dvd_reader_t *ctx,
                        struct avdp_t *avdp)
@@ -700,7 +700,7 @@ static int UDFGetAVDP( dvd_reader_t *ctx,
   for(;;) {
     ret = DVDReadLBUDF( ctx, lbnum, 1, Anchor, 0 );
     if( ret < 0 ) {
-      return 0;
+      return (int)ret;
     }
     if( ret == 0 ) {
       TagID = 0;
@@ -762,7 +762,7 @@ static int UDFFindPartition( dvd_reader_t *ctx, int partnum,
   ssize_t ret;
   struct avdp_t avdp;
 
-  if(!UDFGetAVDP(ctx, &avdp))
+  if(UDFGetAVDP(ctx, &avdp) <= 0)
     return 0;
 
   /* Main volume descriptor */
@@ -921,7 +921,7 @@ static int UDFGetDescriptor( dvd_reader_t *ctx, int id,
   if(bufsize < DVD_VIDEO_LB_LEN)
     return 0;
 
-  if(!UDFGetAVDP(ctx, &avdp))
+  if(UDFGetAVDP(ctx, &avdp) <= 0)
     return 0;
 
   /* Main volume descriptor */
