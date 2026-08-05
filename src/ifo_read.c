@@ -1145,8 +1145,16 @@ static void ifoRead_TT_stillpics(struct ifo_handle_private_s *ifop,
   }
 
   for(int j = 0; j < nr_tracks; j++) {
+    uint8_t display_mode;
+
     B2N_16(ranges[j].start_value);
     B2N_16(ranges[j].end_value);
+
+    memcpy(&display_mode, &ranges[j].dmod, 1);
+    ranges[j].dmod.order = display_mode & 0x03;
+    ranges[j].dmod.timing = (display_mode >> 2) & 0x03;
+    ranges[j].dmod.zero = display_mode >> 4;
+
     if(ranges[j].end_value > max_end)
       max_end = ranges[j].end_value;
   }
