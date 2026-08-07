@@ -76,6 +76,8 @@ struct Partition {
   uint32_t AccessType;
   uint32_t Start;
   uint32_t Length;
+  uint32_t FSD_Location;
+  uint32_t FSD_Length;
 };
 
 struct AD {
@@ -770,6 +772,8 @@ static int UDFFindPartition( dvd_reader_t *ctx, int partnum,
   MVDS_length = avdp.mvds.length;
 
   part->valid = 0;
+  part->FSD_Location = 0;
+  part->FSD_Length = 0;
   volvalid = 0;
   i = 1;
   do {
@@ -797,8 +801,16 @@ static int UDFFindPartition( dvd_reader_t *ctx, int partnum,
         /* Logical Volume Descriptor */
         if( UDFLogVolume( LogBlock ) ) {
           /* TODO: sector size wrong! */
-        } else
-          volvalid = 1;
+        } else {
+          struct AD fsd;
+
+          UDFLongAD( &LogBlock[ 248 ], &fsd );
+          if( part->Number == fsd.Partition ) {
+            part->FSD_Location = fsd.Location;
+            part->FSD_Length = fsd.Length;
+            volvalid = 1;
+          }
+        }
       }
 
     } while( ( lbnum <= MVDS_location + ( MVDS_length - 1 )
@@ -841,7 +853,7 @@ uint32_t UDFFindFile( dvd_reader_t *ctx, const char *filename,
     SetUDFCache(ctx, PartitionCache, 0, &partition);
 
     /* Find root dir ICB */
-    lbnum = partition.Start;
+    lbnum = partition.Start + partition.FSD_Location;
     do {
       ret = DVDReadLBUDF( ctx, lbnum++, 1, LogBlock, 0 );
       if( ret < 0 ) {
